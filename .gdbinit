@@ -87,7 +87,7 @@ def complete(word, candidates):
 # Dashboard --------------------------------------------------------------------
 
 class Dashboard(gdb.Command):
-    """Redisplay or control the dashboard visibility [on/off]"""
+    """Redisplay the dashboard"""
 
     @staticmethod
     def start():
@@ -149,6 +149,7 @@ class Dashboard(gdb.Command):
         gdb.Command.__init__(self, 'dashboard',
                              gdb.COMMAND_USER, gdb.COMPLETE_NONE, True)
         self.enabled = True
+        Dashboard.EnabledCommand(self)
         Dashboard.ModulesCommand(self)
         Dashboard.LayoutCommand(self)
         Dashboard.StyleCommand()
@@ -249,13 +250,27 @@ class Dashboard(gdb.Command):
     def invoke(self, arg, from_tty):
         if arg == '':
             self.redisplay()
-        elif arg == 'on':
-            self.redisplay()
-            self.enabled = True
-        elif arg == 'off':
-            self.enabled = False
         else:
-            err('Wrong argument "{}"; expecting on/off or nothing'.format(arg))
+            err('Wrong argument "{}"'.format(arg))
+
+    class EnabledCommand(gdb.Command):
+        """Enable or disable the dashboard (on/off)"""
+
+        def __init__(self, dashboard):
+            gdb.Command.__init__(self, 'dashboard -enabled', gdb.COMMAND_USER)
+            self.dashboard = dashboard
+
+        def invoke(self, arg, from_tty):
+            if arg == 'on':
+                self.dashboard.enabled = True
+                self.dashboard.redisplay()
+            elif arg == 'off':
+                self.dashboard.enabled = False
+            else:
+                err('Wrong argument "{}"; expecting on/off'.format(arg))
+
+        def complete(self, text, word):
+            return complete(word, ['on', 'off'])
 
     class ModulesCommand(gdb.Command):
         """List all the currently loaded modules.
