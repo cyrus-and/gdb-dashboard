@@ -285,6 +285,7 @@ disables all the modules."""
                 module['enabled'] = False
             # move and enable the selected modules on top
             last = 0
+            n_enabled = 0
             for directive in directives:
                 # parse next directive
                 enabled = (directive[0] == '!')
@@ -297,6 +298,7 @@ disables all the modules."""
                     modules[index]['enabled'] = enabled
                     modules.insert(last, modules.pop(index))
                     last += 1
+                    n_enabled += enabled
                 except StopIteration:
                     def find_module(x):
                         return x['name'] == name
@@ -306,6 +308,9 @@ disables all the modules."""
                     else:
                         err('Module "{}" already specified'.format(name))
                     continue
+            # redisplay the dashboard
+            if not self.dashboard.init and self.dashboard.enabled and n_enabled:
+                self.dashboard.redisplay()
 
     class StyleCommand(gdb.Command):
         """Set style attributes.
