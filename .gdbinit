@@ -337,9 +337,9 @@ disables all the modules."""
             return complete(word, all_modules)
 
     class StyleCommand(gdb.Command):
-        """Set style attributes.
-The first argument is the name and the second is the value. Omitting the value
-corresponds to the empty string."""
+        """Set or show style attributes.
+The first argument is the name and the second is the value (no quotes are
+necessary). The current value is printed if the new value is not present."""
 
         def __init__(self):
             gdb.Command.__init__(self, 'dashboard -style', gdb.COMMAND_USER)
@@ -347,7 +347,11 @@ corresponds to the empty string."""
         def invoke(self, arg, from_tty):
             name, _, value = arg.partition(' ')
             if name in dir(R):
-                setattr(R, name, value)
+                if value:
+                    setattr(R, name, value)
+                else:
+                    value = getattr(R, name)
+                    print '{} = {}'.format(name, value)
             else:
                 err('No style attribute "{}"'.format(name))
 
