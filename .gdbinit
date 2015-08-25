@@ -166,51 +166,10 @@ class Dashboard(gdb.Command):
         gdb.events.stop.connect(display_dashboard)
 
     def load_modules(self, modules):
-        dashboard = self
-        dupe_set = set()
         self.modules = []
         for module in modules:
-            # skip duplicate modules
-            if module in dupe_set:
-                continue
-            # instantiatie the module
-            instance = module()
-            info = {'name': module.__name__,
-                    'enabled': True,
-                    'instance': instance}
+            info = Dashboard.ModuleInfo(self, module)
             self.modules.append(info)
-            dupe_set.add(module)
-            # create a GDB subcommand for it
-            has_sub_commands = 'commands' in dir(instance)
-            def invoke(self, arg, from_tty, info=info):
-                try:
-                    # set, reset or toggle visibility
-                    enabled = parse_on_off(arg, info['enabled'])
-                    changed = (info['enabled'] != enabled)
-                    info['enabled'] = enabled
-                    if changed:
-                        dashboard.redisplay()
-                except Exception as e:
-                    err(e)
-            doc_brief = 'Configure the {} module.'.format(module.__name__)
-            doc_extended = 'Toggle or control the visibility [on/off]'
-            doc = '{}\n{}'.format(doc_brief, doc_extended)
-            prefix = 'dashboard {}'.format(module.__name__.lower())
-            Dashboard.create_command(prefix, invoke, doc, has_sub_commands)
-            # create subsubcommands, if any
-            if has_sub_commands:
-                for name, action, doc in instance.commands():
-                    def invoke(self, arg, from_tty, action=action, info=info):
-                        try:
-                            if dashboard.init or info['enabled']:
-                                action(arg)
-                                dashboard.redisplay()
-                            else:
-                                err('Module disabled')
-                        except Exception as e:
-                            err(e)
-                    sub_prefix = '{} {}'.format(prefix, name)
-                    Dashboard.create_command(sub_prefix, invoke, doc)
 
     def redisplay(self):
         if not self.init:
@@ -225,10 +184,10 @@ class Dashboard(gdb.Command):
 
     def display(self):
         lines = []
-        for descr in self.modules:
-            if not descr['enabled']:
+        for module in self.modules:
+            if not module.enabled:
                 continue
-            module = descr['instance']
+            module = module.instance
             # active if more than zero lines
             module_lines = module.lines()
             lines.append(divider(module.label(), module_lines))
@@ -245,7 +204,47 @@ class Dashboard(gdb.Command):
         print '\n'.join(lines)
         run('set pagination on')
 
-    # GDB commands
+# Module descriptor ------------------------------------------------------------
+
+    class ModuleInfo:
+
+        def __init__(self, dashboard, module):
+            self.name = module.__name__
+            self.enabled = True
+            self.instance = module()
+            # add GDB commands
+            self.has_sub_commands = ('commands' in dir(self.instance))
+            self.add_main_command(dashboard)
+            if self.has_sub_commands:
+                for command in self.instance.commands():
+                    self.add_sub_commands(dashboard, command)
+
+        def add_main_command(self, dashboard):
+            def invoke(self, arg, from_tty, info=self):
+                if arg == '':
+                    info.enabled ^= True
+                    dashboard.redisplay()
+                else:
+                    err('Wrong argument "{}"'.format(arg))
+            doc_brief = 'Configure the {} module.'.format(self.name)
+            doc_extended = 'Toggle the module visibility'
+            doc = '{}\n{}'.format(doc_brief, doc_extended)
+            prefix = 'dashboard {}'.format(self.name.lower())
+            Dashboard.create_command(prefix, invoke, doc, self.has_sub_commands)
+
+        def add_sub_commands(self, dashboard, command):
+            name, action, doc = command
+            def invoke(self, arg, from_tty, info=self):
+                try:
+                    if dashboard.init or info.enabled:
+                        action(arg)
+                        dashboard.redisplay()
+                    else:
+                        err('Module disabled')
+                except Exception as e:
+                    err(e)
+            prefix = 'dashboard {} {}'.format(self.name.lower(), name)
+            Dashboard.create_command(prefix, invoke, doc)
 
     def invoke(self, arg, from_tty):
         if arg == '':
@@ -283,9 +282,8 @@ and disabled modules are properly marked."""
 
         def invoke(self, arg, from_tty):
             for module in self.dashboard.modules:
-                enabled = module['enabled']
-                info = module['name']
-                print ansi(info, R.style_high if enabled else R.style_low)
+                style = R.style_high if module.enabled else R.style_low
+                print ansi(module.name, style)
 
     class LayoutCommand(gdb.Command):
         """Set the dashboard layout by rearranging its modules.
@@ -304,7 +302,7 @@ disables all the modules."""
             directives = str(arg).split()
             # reset visibility
             for module in modules:
-                module['enabled'] = False
+                module.enabled = False
             # move and enable the selected modules on top
             last = 0
             n_enabled = 0
@@ -316,14 +314,14 @@ disables all the modules."""
                     # it may actually start from last, but in this way repeated
                     # modules can be handler transparently and without error
                     todo = enumerate(modules[last:], start=last)
-                    index = next(i for i, m in todo if name == m['name'])
-                    modules[index]['enabled'] = enabled
+                    index = next(i for i, m in todo if name == m.name)
+                    modules[index].enabled = enabled
                     modules.insert(last, modules.pop(index))
                     last += 1
                     n_enabled += enabled
                 except StopIteration:
                     def find_module(x):
-                        return x['name'] == name
+                        return x.name == name
                     first_part = modules[:last]
                     if len(filter(find_module, first_part)) == 0:
                         err('Cannot find module "{}"'.format(name))
@@ -335,7 +333,7 @@ disables all the modules."""
                 self.dashboard.redisplay()
 
         def complete(self, text, word):
-            all_modules = (m['name'] for m in self.dashboard.modules)
+            all_modules = (m.name for m in self.dashboard.modules)
             return complete(word, all_modules)
 
     class StyleCommand(gdb.Command):
