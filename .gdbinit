@@ -77,6 +77,13 @@ def parse_value(arg, conversion, check, msg):
     except ValueError:
         raise Exception('Wrong argument "{}"; {}'.format(arg, msg))
 
+def complete(word, candidates):
+    matching = []
+    for candidate in candidates:
+        if candidate.startswith(word):
+            matching.append(candidate)
+    return matching
+
 # Dashboard --------------------------------------------------------------------
 
 class Dashboard(gdb.Command):
@@ -312,6 +319,10 @@ disables all the modules."""
             if not self.dashboard.init and self.dashboard.enabled and n_enabled:
                 self.dashboard.redisplay()
 
+        def complete(self, text, word):
+            all_modules = (m['name'] for m in self.dashboard.modules)
+            return complete(word, all_modules)
+
     class StyleCommand(gdb.Command):
         """Set style attributes.
 The first argument is the name and the second is the value. Omitting the value
@@ -326,6 +337,14 @@ corresponds to the empty string."""
                 setattr(R, name, value)
             else:
                 err('No style attribute "{}"'.format(name))
+
+        def complete(self, text, word):
+            all_styles = (s for s in dir(R) if not s.startswith('__'))
+            # for the first word only
+            if ' ' in text:
+                return gdb.COMPLETE_NONE
+            else:
+                return complete(word, all_styles)
 
 # Base module ------------------------------------------------------------------
 
