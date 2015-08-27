@@ -149,21 +149,28 @@ class Dashboard(gdb.Command):
         gdb.Command.__init__(self, 'dashboard',
                              gdb.COMMAND_USER, gdb.COMPLETE_NONE, True)
         self.enabled = True
+        # setup subcommands
         Dashboard.EnabledCommand(self)
         Dashboard.ModulesCommand(self)
         Dashboard.LayoutCommand(self)
         Dashboard.StyleCommand()
-        # clear the screen on continue
-        def display_header(_):
-            if self.enabled and self.is_running():
-                os.system('clear')
-                print divider('Output/messages')
-        gdb.events.cont.connect(display_header)
-        # display the dashboard on stop
-        def display_dashboard(_):
-            if self.enabled and self.is_running():
-                self.display()
-        gdb.events.stop.connect(display_dashboard)
+        # setup events
+        gdb.events.cont.connect(lambda _: self.on_continue())
+        gdb.events.stop.connect(lambda _: self.on_stop())
+        gdb.events.exited.connect(lambda _: self.on_exit())
+
+    def on_continue(self):
+        if self.enabled and self.is_running():
+            os.system('clear')
+            print divider('Output/messages')
+        self.pre_display = False
+
+    def on_stop(self):
+        if self.enabled and self.is_running():
+            self.display()
+
+    def on_exit(self):
+        pass
 
     def load_modules(self, modules):
         self.modules = []
