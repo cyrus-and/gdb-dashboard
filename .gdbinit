@@ -497,24 +497,31 @@ class Stack(Dashboard.Module):
                     file_name = ansi(sal.symtab.filename, R.style_high)
                     file_line = ansi(str(sal.line), R.style_high)
                     info += ' at {}:{}'.format(file_name, file_line)
-            lines.append(info)
             # fetch frame arguments and locals
             decorator = gdb.FrameDecorator.FrameDecorator(frame)
+            frame_args_lines = []
             if Stack.show_arguments:
                 frame_args = decorator.frame_args()
-                lines += self.fetch_frame_info(frame, frame_args, R.style_1)
+                frame_args_lines = self.fetch_frame_info(frame, frame_args)
+            frame_locals_lines = []
             if Stack.show_locals:
                 frame_locals = decorator.frame_locals()
-                lines += self.fetch_frame_info(frame, frame_locals, R.style_2)
+                frame_locals_lines = self.fetch_frame_info(frame, frame_locals)
+            # format the frame info
+            lines.append(info)
+            lines.extend(frame_args_lines)
+            if frame_args_lines and frame_locals_lines:
+                lines.append(ansi(R.divider_fill_char, R.divider_fill_style))
+            lines.extend(frame_locals_lines)
             # next
             frame = frame.older()
             number += 1
         return lines
 
-    def fetch_frame_info(self, frame, data, style):
+    def fetch_frame_info(self, frame, data):
         lines = []
         for elem in data or []:
-            name = ansi(elem.sym, style)
+            name = ansi(elem.sym, R.style_low)
             value = elem.sym.value(frame)
             lines.append('{} = {}'.format(name, value))
         return lines
@@ -542,7 +549,7 @@ class History(Dashboard.Module):
         for i in range(-History.length + 1, 1):
             try:
                 value = gdb.history(i)
-                value_id = ansi('$${}', R.style_1).format(abs(i))
+                value_id = ansi('$${}', R.style_low).format(abs(i))
                 line = '{} = {}'.format(value_id, value)
                 out.append(line)
             except gdb.error:
