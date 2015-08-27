@@ -529,6 +529,32 @@ class Stack(Dashboard.Module):
                 ('locals', show_locals,
                  'Toggle or control frame locals visibility [on/off]')]
 
+class History(Dashboard.Module):
+
+    length = 5
+
+    def label(self):
+        return 'History'
+
+    def lines(self):
+        out = []
+        # fetch last entries
+        for i in range(-History.length + 1, 1):
+            try:
+                value = gdb.history(i)
+                value_id = ansi('$${}', R.style_1).format(abs(i))
+                line = '{} = {}'.format(value_id, value)
+                out.append(line)
+            except gdb.error:
+                continue
+        return out
+
+    def commands(self):
+        def length(arg):
+            msg = 'expecting a positive integer'
+            History.length = parse_value(arg, int, lambda x: x >= 0, msg)
+        return [('length', length, 'Set the max number of values to show.')]
+
 end
 
 # Better GDB defaults ----------------------------------------------------------
