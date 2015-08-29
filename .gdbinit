@@ -488,17 +488,17 @@ class Stack(Dashboard.Module):
         while frame:
             # fetch frame info
             selected = frame == gdb.selected_frame()
-            style = R.style_selected_1 if selected else R.style_high
+            style = R.style_selected_1 if selected else R.style_selected_2
             frame_id = ansi(str(number), style)
-            frame_pc = ansi('0x{:016x}', R.style_high).format(frame.pc())
+            frame_pc = ansi('0x{:016x}', style).format(frame.pc())
             info = '[{}] from {}'.format(frame_id, frame_pc)
             if frame.name():
-                frame_name = ansi(frame.name(), R.style_high)
+                frame_name = ansi(frame.name(), style)
                 info += ' in {}()'.format(frame_name)
                 sal = frame.find_sal()
                 if sal.symtab:
-                    file_name = ansi(sal.symtab.filename, R.style_high)
-                    file_line = ansi(str(sal.line), R.style_high)
+                    file_name = ansi(sal.symtab.filename, style)
+                    file_line = ansi(str(sal.line), style)
                     info += ' at {}:{}'.format(file_name, file_line)
             # fetch frame arguments and locals
             decorator = gdb.FrameDecorator.FrameDecorator(frame)
