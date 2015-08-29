@@ -21,8 +21,6 @@ class R():
 
     style_selected_1 = '1;32'
     style_selected_2 = '32'
-    style_1 = '31'
-    style_2 = '33'
     style_low = '1;30'
     style_high = '1;37'
     style_error = '31'
