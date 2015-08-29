@@ -570,6 +570,9 @@ class Registers(Dashboard.Module):
     max_name = 8
     max_value = 32
 
+    def __init__(self):
+        self.table = {}
+
     def label(self):
         return 'Registers'
 
@@ -577,13 +580,18 @@ class Registers(Dashboard.Module):
         # fetch registers status
         registers = []
         for reg_info in run('info registers').strip().split('\n'):
+            # fetch register and update the table
             name = reg_info.split(None, 1)[0]
             value = gdb.parse_and_eval('${}'.format(name))
             string_value = self.format_value(value)
+            changed = self.table and (self.table.get(name, '') != string_value)
+            self.table[name] = string_value
+            # format register info
             fill_format = '{{:>{}}}'.format(Registers.max_name)
             styled_name = ansi(fill_format, R.style_low).format(name)
             fill_format = '{{:<{}}}'.format(Registers.max_value)
-            styled_value = fill_format.format(string_value)
+            value_style = R.style_selected_1 if changed else ''
+            styled_value = ansi(fill_format, value_style).format(string_value)
             registers.append(styled_name + ' ' + styled_value)
         # format registers in rows
         max_width = Registers.max_name + Registers.max_value + 1
