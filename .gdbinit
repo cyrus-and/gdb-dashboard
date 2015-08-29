@@ -1,6 +1,7 @@
 python
 
 import os
+import string
 import subprocess
 
 # Default values ---------------------------------------------------------------
@@ -562,6 +563,83 @@ class History(Dashboard.Module):
             msg = 'expecting a positive integer'
             History.length = parse_value(arg, int, lambda x: x >= 0, msg)
         return [('length', length, 'Set the max number of values to show.')]
+
+class Memory(Dashboard.Module):
+
+    row_length = 16
+
+    @staticmethod
+    def format_memory(start, memory):
+        out = []
+        for i in range(0, len(memory), Memory.row_length):
+            region = memory[i:i + Memory.row_length]
+            pad = Memory.row_length - len(region)
+            address = '0x{:016x}'.format(start + i)
+            hexa = (' '.join('{:02x}'.format(ord(byte)) for byte in region))
+            text = (''.join(Memory.format_byte(byte) for byte in region))
+            out.append('{} {} {}'.format(ansi(address, R.style_low),
+                                         hexa + pad * '   ',
+                                         ansi(text, R.style_high)))
+        return out
+
+    @staticmethod
+    def format_byte(byte):
+        if byte in string.whitespace:
+            return ' '
+        elif byte in string.printable:
+            return byte
+        else:
+            return '.'
+
+    @staticmethod
+    def parse_as_int(expression):
+        return int(gdb.parse_and_eval(expression).cast(gdb.Value(0).type))
+
+    def __init__(self):
+        self.table = {}
+
+    def label(self):
+        return 'Memory'
+
+    def lines(self):
+        out = []
+        inferior = gdb.selected_inferior()
+        for address, length in self.table.iteritems():
+            try:
+                memory = inferior.read_memory(address, length)
+                out.extend(Memory.format_memory(address, memory))
+            except gdb.error:
+                msg = 'Cannot access {} bytes starting at 0x{:016x}'
+                out.append(ansi(msg.format(length, address), R.style_error))
+            out.append(ansi(R.divider_fill_char, R.divider_fill_style))
+        # drop last divider
+        if out:
+            del out[-1]
+        return out
+
+    def commands(self):
+        def watch(arg):
+            address, _, length = arg.partition(' ')
+            address = Memory.parse_as_int(address)
+            if length:
+                length = Memory.parse_as_int(length)
+            else:
+                length = Memory.row_length
+            self.table[address] = length
+        def unwatch(arg):
+            try:
+                del self.table[Memory.parse_as_int(arg)]
+            except KeyError:
+                raise Exception('Memory region not watched')
+        def clear(arg):
+            self.table.clear()
+        return [('watch', watch,
+                 'Watch a memory region given its address and its length.\n'
+                 'The length defaults to 16 byte.'),
+                ('unwatch', unwatch,
+                 'Stop watching a memory region given its address.'),
+                ('clear', clear,
+                 'Clear all the watched regions.')]
 
 class Registers(Dashboard.Module):
 
