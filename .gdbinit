@@ -602,7 +602,8 @@ class Registers(Dashboard.Module):
     def format_value(self, value):
         try:
             if value.type.code in [gdb.TYPE_CODE_INT, gdb.TYPE_CODE_PTR]:
-                int_value = int(str(value), 0)
+                mask = (1 << (value.type.sizeof * 8)) - 1
+                int_value = int(str(value), 0) & mask
                 value_format = '0x{{:0{}x}}'.format(2 * value.type.sizeof)
                 return value_format.format(int_value)
         except (gdb.error, ValueError):
