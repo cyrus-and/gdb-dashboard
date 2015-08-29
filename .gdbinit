@@ -38,8 +38,11 @@ def ansi(string, style):
 def err(string):
     print ansi(string, R.style_error)
 
+def term_width():
+    return int(subprocess.check_output('echo $COLUMNS', shell=True))
+
 def divider(label='', active=True):
-    width = int(subprocess.check_output('echo $COLUMNS', shell=True))
+    width = term_width()
     if label:
         if active:
             divider_label_style = R.divider_label_style_on
@@ -561,6 +564,44 @@ class History(Dashboard.Module):
             msg = 'expecting a positive integer'
             History.length = parse_value(arg, int, lambda x: x >= 0, msg)
         return [('length', length, 'Set the max number of values to show.')]
+
+class Registers(Dashboard.Module):
+
+    max_name = 8
+    max_value = 32
+
+    def label(self):
+        return 'Registers'
+
+    def lines(self):
+        # fetch registers status
+        registers = []
+        for reg_info in run('info registers').strip().split('\n'):
+            name = reg_info.split(None, 1)[0]
+            value = gdb.parse_and_eval('${}'.format(name))
+            string_value = self.format_value(value)
+            fill_format = '{{:>{}}}'.format(Registers.max_name)
+            styled_name = ansi(fill_format, R.style_low).format(name)
+            fill_format = '{{:<{}}}'.format(Registers.max_value)
+            styled_value = fill_format.format(string_value)
+            registers.append(styled_name + ' ' + styled_value)
+        # format registers in rows
+        max_width = Registers.max_name + Registers.max_value + 1
+        per_line = term_width() / max_width or 1
+        out = []
+        for i in range(0, len(registers), per_line):
+            out.append(''.join(registers[i:i + per_line]).rstrip())
+        return out
+
+    def format_value(self, value):
+        try:
+            if value.type.code in [gdb.TYPE_CODE_INT, gdb.TYPE_CODE_PTR]:
+                int_value = int(str(value), 0)
+                value_format = '0x{{:0{}x}}'.format(2 * value.type.sizeof)
+                return value_format.format(int_value)
+        except (gdb.error, ValueError):
+            pass
+        return str(value)
 
 end
 
