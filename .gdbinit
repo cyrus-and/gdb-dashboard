@@ -505,10 +505,14 @@ class Stack(Dashboard.Module):
             if Stack.show_arguments:
                 frame_args = decorator.frame_args()
                 frame_args_lines = self.fetch_frame_info(frame, frame_args)
+                if not frame_args_lines:
+                    frame_args_lines = [ansi('(no arguments)', R.style_low)]
             frame_locals_lines = []
             if Stack.show_locals:
                 frame_locals = decorator.frame_locals()
                 frame_locals_lines = self.fetch_frame_info(frame, frame_locals)
+                if not frame_locals_lines:
+                    frame_locals_lines = [ansi('(no locals)', R.style_low)]
             # format the frame info
             lines.append(info)
             lines.extend(frame_args_lines)
