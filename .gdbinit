@@ -97,7 +97,7 @@ def complete(word, candidates):
 # Dashboard --------------------------------------------------------------------
 
 class Dashboard(gdb.Command):
-    """Redisplay the dashboard"""
+    """Redisplay the dashboard."""
 
     @staticmethod
     def start():
@@ -256,7 +256,7 @@ class Dashboard(gdb.Command):
                 else:
                     Dashboard.err('Wrong argument "{}"'.format(arg))
             doc_brief = 'Configure the {} module.'.format(self.name)
-            doc_extended = 'Toggle the module visibility'
+            doc_extended = 'Toggle the module visibility.'
             doc = '{}\n{}'.format(doc_brief, doc_extended)
             prefix = 'dashboard {}'.format(self.name.lower())
             Dashboard.create_command(prefix, invoke, doc, self.has_sub_commands)
@@ -282,7 +282,7 @@ class Dashboard(gdb.Command):
             Dashboard.err('Wrong argument "{}"'.format(arg))
 
     class EnabledCommand(gdb.Command):
-        """Enable or disable the dashboard (on/off)"""
+        """Enable or disable the dashboard (on/off)."""
 
         def __init__(self, dashboard):
             gdb.Command.__init__(self, 'dashboard -enabled', gdb.COMMAND_USER)
@@ -552,9 +552,9 @@ class Stack(Dashboard.Module):
         def show_locals(arg):
             Stack.show_locals = parse_on_off(arg, Stack.show_locals)
         return [('arguments', show_arguments,
-                 'Toggle or control frame arguments visibility [on/off]'),
+                 'Toggle or control frame arguments visibility [on/off].'),
                 ('locals', show_locals,
-                 'Toggle or control frame locals visibility [on/off]')]
+                 'Toggle or control frame locals visibility [on/off].')]
 
 class History(Dashboard.Module):
 
