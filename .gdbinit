@@ -289,14 +289,18 @@ class Dashboard(gdb.Command):
             Dashboard.err('Wrong argument "{}"'.format(arg))
 
     class EnabledCommand(gdb.Command):
-        """Enable or disable the dashboard (on/off)."""
+        """Enable or disable the dashboard [on/off].
+The current status is printed if no argument is present."""
 
         def __init__(self, dashboard):
             gdb.Command.__init__(self, 'dashboard -enabled', gdb.COMMAND_USER)
             self.dashboard = dashboard
 
         def invoke(self, arg, from_tty):
-            if arg == 'on':
+            if arg == '':
+                status = 'enabled' if self.dashboard.enabled else 'disabled'
+                print 'The dashboard is {}'.format(status)
+            elif arg == 'on':
                 self.dashboard.enabled = True
                 self.dashboard.redisplay()
             elif arg == 'off':
