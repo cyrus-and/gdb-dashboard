@@ -691,6 +691,7 @@ class Registers(Dashboard.Module):
                 value_format = '0x{{:0{}x}}'.format(2 * value.type.sizeof)
                 return value_format.format(int_value)
         except (gdb.error, ValueError):
+            # convert to unsigned but preserve code and flags information
             pass
         return str(value)
 
