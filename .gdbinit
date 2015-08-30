@@ -596,8 +596,10 @@ class Memory(Dashboard.Module):
             return '.'
 
     @staticmethod
-    def parse_as_int(expression):
-        return int(gdb.parse_and_eval(expression).cast(gdb.Value(0).type))
+    def parse_as_address(expression):
+        value = gdb.parse_and_eval(expression)
+        mask = (1 << (value.type.sizeof * 8)) - 1
+        return int(value.cast(gdb.Value(0).type)) & mask
 
     def __init__(self):
         self.table = {}
@@ -624,15 +626,15 @@ class Memory(Dashboard.Module):
     def commands(self):
         def watch(arg):
             address, _, length = arg.partition(' ')
-            address = Memory.parse_as_int(address)
+            address = Memory.parse_as_address(address)
             if length:
-                length = Memory.parse_as_int(length)
+                length = Memory.parse_as_address(length)
             else:
                 length = Memory.row_length
             self.table[address] = length
         def unwatch(arg):
             try:
-                del self.table[Memory.parse_as_int(arg)]
+                del self.table[Memory.parse_as_address(arg)]
             except KeyError:
                 raise Exception('Memory region not watched')
         def clear(arg):
