@@ -581,9 +581,11 @@ class Memory(Dashboard.Module):
             address = '0x{:016x}'.format(start + i)
             hexa = (' '.join('{:02x}'.format(ord(byte)) for byte in region))
             text = (''.join(Memory.format_byte(byte) for byte in region))
-            out.append('{} {} {}'.format(ansi(address, R.style_low),
-                                         hexa + pad * '   ',
-                                         ansi(text, R.style_high)))
+            out.append('{} {}{} {}{}'.format(ansi(address, R.style_low),
+                                             hexa,
+                                             ansi(pad * ' --', R.style_low),
+                                             ansi(text, R.style_high),
+                                             ansi(pad * '.', R.style_low)))
         return out
 
     @staticmethod
