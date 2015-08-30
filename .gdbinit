@@ -12,10 +12,14 @@ class R():
     prompt_thread_available = '\[\e[1;35m\]>>>\[\e[0m\]'
     prompt_thread_not_available = '\[\e[1;30m\]>>>\[\e[0m\]'
 
-    divider_fill_style = '36'
-    divider_fill_char = '─'
-    divider_label_style_on = '1;33'
-    divider_label_style_off = '33'
+    divider_fill_style_primary = '36'
+    divider_fill_char_primary = '─'
+    divider_fill_style_secondary = '1;30'
+    divider_fill_char_secondary = '─'
+    divider_label_style_on_primary = '1;33'
+    divider_label_style_off_primary = '33'
+    divider_label_style_on_secondary = '0'
+    divider_label_style_off_secondary = '1;30'
     divider_label_skip = '3'
     divider_label_margin = '1'
     divider_label_align_right = '0'
@@ -37,24 +41,34 @@ def ansi(string, style):
 def term_width():
     return int(subprocess.check_output('echo $COLUMNS', shell=True))
 
-def divider(label='', active=True):
+def divider(label='', primary=True, active=True):
     width = term_width()
+    if primary:
+        divider_fill_style = R.divider_fill_style_primary
+        divider_fill_char = R.divider_fill_char_primary
+        divider_label_style_on = R.divider_label_style_on_primary
+        divider_label_style_off = R.divider_label_style_off_primary
+    else:
+        divider_fill_style = R.divider_fill_style_secondary
+        divider_fill_char = R.divider_fill_char_secondary
+        divider_label_style_on = R.divider_label_style_on_secondary
+        divider_label_style_off = R.divider_label_style_off_secondary
     if label:
         if active:
-            divider_label_style = R.divider_label_style_on
+            divider_label_style = divider_label_style_on
         else:
-            divider_label_style = R.divider_label_style_off
+            divider_label_style = divider_label_style_off
         skip = int(R.divider_label_skip)
         margin = int(R.divider_label_margin)
-        before = ansi(R.divider_fill_char * skip, R.divider_fill_style)
+        before = ansi(divider_fill_char * skip, divider_fill_style)
         middle = ansi(label, divider_label_style)
         after_length = width - len(label) - skip - 2 * margin
-        after = ansi(R.divider_fill_char * after_length, R.divider_fill_style)
+        after = ansi(divider_fill_char * after_length, divider_fill_style)
         if int(R.divider_label_align_right or '0'):
             before, after = after, before
         return ''.join([before, ' ' * margin, middle, ' ' * margin, after])
     else:
-        return ansi(R.divider_fill_char * width, R.divider_fill_style)
+        return ansi(divider_fill_char * width, divider_fill_style)
 
 def parse_on_off(arg, value):
     if arg == '':
@@ -200,7 +214,7 @@ class Dashboard(gdb.Command):
             module = module.instance
             # active if more than zero lines
             module_lines = module.lines()
-            lines.append(divider(module.label(), module_lines))
+            lines.append(divider(module.label(), True, module_lines))
             lines.extend(module_lines)
         if len(lines) == 0:
             lines.append(divider('Error'))
@@ -501,26 +515,19 @@ class Stack(Dashboard.Module):
                     file_name = ansi(sal.symtab.filename, style)
                     file_line = ansi(str(sal.line), style)
                     info += ' at {}:{}'.format(file_name, file_line)
+            lines.append(info)
             # fetch frame arguments and locals
             decorator = gdb.FrameDecorator.FrameDecorator(frame)
-            frame_args_lines = []
             if Stack.show_arguments:
                 frame_args = decorator.frame_args()
-                frame_args_lines = self.fetch_frame_info(frame, frame_args)
-                if not frame_args_lines:
-                    frame_args_lines = [ansi('(no arguments)', R.style_low)]
-            frame_locals_lines = []
+                args_lines = self.fetch_frame_info(frame, frame_args)
+                lines.append(divider('Arguments', False, args_lines))
+                lines.extend(args_lines)
             if Stack.show_locals:
                 frame_locals = decorator.frame_locals()
-                frame_locals_lines = self.fetch_frame_info(frame, frame_locals)
-                if not frame_locals_lines:
-                    frame_locals_lines = [ansi('(no locals)', R.style_low)]
-            # format the frame info
-            lines.append(info)
-            lines.extend(frame_args_lines)
-            if frame_args_lines and frame_locals_lines:
-                lines.append(ansi(R.divider_fill_char, R.divider_fill_style))
-            lines.extend(frame_locals_lines)
+                locals_lines = self.fetch_frame_info(frame, frame_locals)
+                lines.append(divider('Locals', False, locals_lines))
+                lines.extend(locals_lines)
             # next
             frame = frame.older()
             number += 1
@@ -621,7 +628,7 @@ class Memory(Dashboard.Module):
             except gdb.error:
                 msg = 'Cannot access {} bytes starting at 0x{:016x}'
                 out.append(ansi(msg.format(length, address), R.style_error))
-            out.append(ansi(R.divider_fill_char, R.divider_fill_style))
+            out.append(divider('', False))
         # drop last divider
         if out:
             del out[-1]
