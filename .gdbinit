@@ -171,7 +171,6 @@ class Dashboard(gdb.Command):
         self.enabled = True
         # setup subcommands
         Dashboard.EnabledCommand(self)
-        Dashboard.ModulesCommand(self)
         Dashboard.LayoutCommand(self)
         Dashboard.StyleCommand()
         # setup events
@@ -312,35 +311,35 @@ The current status is printed if no argument is present."""
         def complete(self, text, word):
             return complete(word, ['on', 'off'])
 
-    class ModulesCommand(gdb.Command):
-        """List all the currently loaded modules.
-Modules are listed in the same order as they appear in the dashboard. Enabled
-and disabled modules are properly marked."""
-
-        def __init__(self, dashboard):
-            gdb.Command.__init__(self, 'dashboard -modules', gdb.COMMAND_USER)
-            self.dashboard = dashboard
-
-        def invoke(self, arg, from_tty):
-            for module in self.dashboard.modules:
-                style = R.style_high if module.enabled else R.style_low
-                print ansi(module.name, style)
-
     class LayoutCommand(gdb.Command):
-        """Set the dashboard layout by rearranging its modules.
+        """Set or show the dashboard layout.
 Accepts a space-separated list of directive. Each directive is in the form
 "[!]<module>". Modules in the list are placed in the dashboard in the same order
 as they appear and those prefixed by "!" are visible by default. Omitted modules
-are hidden and placed at the bottom in alphabetical order. Without arguments
-disables all the modules."""
+are hidden and placed at the bottom in alphabetical order. Without arguments the
+current layout is shown; enabled and disabled modules are properly marked."""
 
         def __init__(self, dashboard):
             gdb.Command.__init__(self, 'dashboard -layout', gdb.COMMAND_USER)
             self.dashboard = dashboard
 
         def invoke(self, arg, from_tty):
-            modules = self.dashboard.modules
             directives = str(arg).split()
+            if directives:
+                self.layout(directives)
+                # show feedback
+                if not self.dashboard.init and not self.dashboard.is_running():
+                    self.show()
+            else:
+                self.show()
+
+        def show(self):
+            for module in self.dashboard.modules:
+                style = R.style_high if module.enabled else R.style_low
+                print ansi(module.name, style)
+
+        def layout(self, directives):
+            modules = self.dashboard.modules
             # reset visibility
             for module in modules:
                 module.enabled = False
