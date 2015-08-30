@@ -64,8 +64,8 @@ def parse_on_off(arg, value):
     elif arg == 'off':
         return False
     else:
-        msg = 'Wrong argument "{}"; expecting on/off or nothing'.format(arg)
-        raise Exception(msg)
+        msg = 'Wrong argument "{}"; expecting on/off or nothing'
+        raise Exception(msg.format(arg))
 
 def parse_value(arg, conversion, check, msg):
     try:
