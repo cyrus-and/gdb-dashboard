@@ -41,7 +41,7 @@ def ansi(string, style):
 def term_width():
     return int(subprocess.check_output('echo $COLUMNS', shell=True))
 
-def divider(label='', primary=True, active=True):
+def divider(label='', primary=False, active=True):
     width = term_width()
     if primary:
         divider_fill_style = R.divider_fill_style_primary
@@ -179,7 +179,7 @@ class Dashboard(gdb.Command):
     def on_continue(self):
         if self.enabled and self.is_running():
             os.system('clear')
-            print divider('Output/messages')
+            print divider('Output/messages', True)
         self.pre_display = False
 
     def on_stop(self):
@@ -214,15 +214,15 @@ class Dashboard(gdb.Command):
             module = module.instance
             # active if more than zero lines
             module_lines = module.lines()
-            lines.append(divider(module.label(), enabled=module_lines))
+            lines.append(divider(module.label(), True, module_lines))
             lines.extend(module_lines)
         if len(lines) == 0:
-            lines.append(divider('Error'))
+            lines.append(divider('Error', True))
             if len(self.modules) == 0:
                 lines.append('No module loaded')
             else:
                 lines.append('No module to display (see `help dashboard`)')
-        lines.append(divider())
+        lines.append(divider(primary=True))
         # print without pagination
         run('set pagination off')
         print '\n'.join(lines)
@@ -521,12 +521,12 @@ class Stack(Dashboard.Module):
             if Stack.show_arguments:
                 frame_args = decorator.frame_args()
                 args_lines = self.fetch_frame_info(frame, frame_args)
-                lines.append(divider('Arguments', False, args_lines))
+                lines.append(divider('Arguments', active=args_lines))
                 lines.extend(args_lines)
             if Stack.show_locals:
                 frame_locals = decorator.frame_locals()
                 locals_lines = self.fetch_frame_info(frame, frame_locals)
-                lines.append(divider('Locals', False, locals_lines))
+                lines.append(divider('Locals', active=locals_lines))
                 lines.extend(locals_lines)
             # next
             frame = frame.older()
@@ -628,7 +628,7 @@ class Memory(Dashboard.Module):
             except gdb.error:
                 msg = 'Cannot access {} bytes starting at 0x{:016x}'
                 out.append(ansi(msg.format(length, address), R.style_error))
-            out.append(divider('', False))
+            out.append(divider())
         # drop last divider
         if out:
             del out[-1]
