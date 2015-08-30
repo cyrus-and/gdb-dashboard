@@ -33,7 +33,7 @@ class R():
 # Common -----------------------------------------------------------------------
 
 def run(command):
-    return gdb.execute(command, False, True)
+    return gdb.execute(command, to_string=True)
 
 def ansi(string, style):
     return '[{}m{}[0m'.format(style, string)
@@ -214,7 +214,7 @@ class Dashboard(gdb.Command):
             module = module.instance
             # active if more than zero lines
             module_lines = module.lines()
-            lines.append(divider(module.label(), True, module_lines))
+            lines.append(divider(module.label(), enabled=module_lines))
             lines.extend(module_lines)
         if len(lines) == 0:
             lines.append(divider('Error'))
