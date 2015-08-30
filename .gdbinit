@@ -38,11 +38,8 @@ def run(command):
 def ansi(string, style):
     return '[{}m{}[0m'.format(style, string)
 
-def term_width():
-    return int(subprocess.check_output('echo $COLUMNS', shell=True))
-
 def divider(label='', primary=False, active=True):
-    width = term_width()
+    width = Dashboard.term_width
     if primary:
         divider_fill_style = R.divider_fill_style_primary
         divider_fill_char = R.divider_fill_char_primary
@@ -104,6 +101,7 @@ class Dashboard(gdb.Command):
 
     @staticmethod
     def start():
+        Dashboard.update_term_width()
         dashboard = Dashboard()
         Dashboard.set_custom_prompt(dashboard)
         # parse Python inits, load modules then parse GDB inits
@@ -113,6 +111,11 @@ class Dashboard(gdb.Command):
         dashboard.load_modules(modules)
         Dashboard.parse_inits(False)
         dashboard.init = False
+
+    @staticmethod
+    def update_term_width():
+        height, width = subprocess.check_output(['stty', 'size']).split()
+        Dashboard.term_width = int(width)
 
     @staticmethod
     def set_custom_prompt(dashboard):
@@ -207,6 +210,8 @@ class Dashboard(gdb.Command):
         return gdb.selected_inferior().pid != 0
 
     def display(self):
+        Dashboard.update_term_width()
+        # fetch lines
         lines = []
         for module in self.modules:
             if not module.enabled:
@@ -688,7 +693,7 @@ class Registers(Dashboard.Module):
             registers.append(styled_name + ' ' + styled_value)
         # format registers in rows
         max_width = Registers.max_name + Registers.max_value + 1
-        per_line = term_width() / max_width or 1
+        per_line = Dashboard.term_width / max_width or 1
         out = []
         for i in range(0, len(registers), per_line):
             out.append(''.join(registers[i:i + per_line]).rstrip())
