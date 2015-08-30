@@ -275,6 +275,8 @@ class Dashboard(gdb.Command):
             prefix = 'dashboard {} {}'.format(self.name.lower(), name)
             Dashboard.create_command(prefix, invoke, doc)
 
+# GDB commands -----------------------------------------------------------------
+
     def invoke(self, arg, from_tty):
         if arg == '':
             self.redisplay()
