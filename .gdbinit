@@ -199,12 +199,9 @@ class Dashboard(gdb.Command):
             self.modules.append(info)
 
     def redisplay(self):
-        if not self.init:
-            if self.is_running():
-                os.system('clear')
-                self.display()
-            else:
-                Dashboard.err('Is the target program running?')
+        if not self.init and self.is_running():
+            os.system('clear')
+            self.display()
 
     def is_running(self):
         return gdb.selected_inferior().pid != 0
@@ -249,10 +246,15 @@ class Dashboard(gdb.Command):
                     self.add_sub_commands(dashboard, command)
 
         def add_main_command(self, dashboard):
+            module = self
             def invoke(self, arg, from_tty, info=self):
                 if arg == '':
                     info.enabled ^= True
-                    dashboard.redisplay()
+                    if dashboard.is_running():
+                        dashboard.redisplay()
+                    else:
+                        status = 'enabled' if info.enabled else 'disabled'
+                        print '{} module {}'.format(module.name, status)
                 else:
                     Dashboard.err('Wrong argument "{}"'.format(arg))
             doc_brief = 'Configure the {} module.'.format(self.name)
@@ -279,7 +281,10 @@ class Dashboard(gdb.Command):
 
     def invoke(self, arg, from_tty):
         if arg == '':
-            self.redisplay()
+            if self.is_running():
+                self.redisplay()
+            else:
+                Dashboard.err('Is the target program running?')
         else:
             Dashboard.err('Wrong argument "{}"'.format(arg))
 
@@ -361,7 +366,7 @@ disables all the modules."""
                         Dashboard.err('Module "{}" already set'.format(name))
                     continue
             # redisplay the dashboard
-            if not self.dashboard.init and self.dashboard.enabled and n_enabled:
+            if n_enabled:
                 self.dashboard.redisplay()
 
         def complete(self, text, word):
