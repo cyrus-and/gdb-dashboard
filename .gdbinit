@@ -34,9 +34,6 @@ def run(command):
 def ansi(string, style):
     return '[{}m{}[0m'.format(style, string)
 
-def err(string):
-    print ansi(string, R.style_error)
-
 def term_width():
     return int(subprocess.check_output('echo $COLUMNS', shell=True))
 
@@ -147,6 +144,10 @@ class Dashboard(gdb.Command):
         Class = type('', (gdb.Command,), {'invoke': invoke, '__doc__': doc})
         Class(name, gdb.COMMAND_USER, gdb.COMPLETE_NONE, is_prefix)
 
+    @staticmethod
+    def err(string):
+        print ansi(string, R.style_error)
+
     def __init__(self):
         gdb.Command.__init__(self, 'dashboard',
                              gdb.COMMAND_USER, gdb.COMPLETE_NONE, True)
@@ -186,7 +187,7 @@ class Dashboard(gdb.Command):
                 os.system('clear')
                 self.display()
             else:
-                err('Is the target program running?')
+                Dashboard.err('Is the target program running?')
 
     def is_running(self):
         return gdb.selected_inferior().pid != 0
@@ -234,7 +235,7 @@ class Dashboard(gdb.Command):
                     info.enabled ^= True
                     dashboard.redisplay()
                 else:
-                    err('Wrong argument "{}"'.format(arg))
+                    Dashboard.err('Wrong argument "{}"'.format(arg))
             doc_brief = 'Configure the {} module.'.format(self.name)
             doc_extended = 'Toggle the module visibility'
             doc = '{}\n{}'.format(doc_brief, doc_extended)
@@ -249,9 +250,9 @@ class Dashboard(gdb.Command):
                         action(arg)
                         dashboard.redisplay()
                     else:
-                        err('Module disabled')
+                        Dashboard.err('Module disabled')
                 except Exception as e:
-                    err(e)
+                    Dashboard.err(e)
             prefix = 'dashboard {} {}'.format(self.name.lower(), name)
             Dashboard.create_command(prefix, invoke, doc)
 
@@ -259,7 +260,7 @@ class Dashboard(gdb.Command):
         if arg == '':
             self.redisplay()
         else:
-            err('Wrong argument "{}"'.format(arg))
+            Dashboard.err('Wrong argument "{}"'.format(arg))
 
     class EnabledCommand(gdb.Command):
         """Enable or disable the dashboard (on/off)"""
@@ -275,7 +276,8 @@ class Dashboard(gdb.Command):
             elif arg == 'off':
                 self.dashboard.enabled = False
             else:
-                err('Wrong argument "{}"; expecting on/off'.format(arg))
+                msg = 'Wrong argument "{}"; expecting on/off'
+                Dashboard.err(msg.format(arg))
 
         def complete(self, text, word):
             return complete(word, ['on', 'off'])
@@ -333,9 +335,9 @@ disables all the modules."""
                         return x.name == name
                     first_part = modules[:last]
                     if len(filter(find_module, first_part)) == 0:
-                        err('Cannot find module "{}"'.format(name))
+                        Dashboard.err('Cannot find module "{}"'.format(name))
                     else:
-                        err('Module "{}" already specified'.format(name))
+                        Dashboard.err('Module "{}" already set'.format(name))
                     continue
             # redisplay the dashboard
             if not self.dashboard.init and self.dashboard.enabled and n_enabled:
@@ -362,7 +364,7 @@ necessary). The current value is printed if the new value is not present."""
                     value = getattr(R, name)
                     print '{} = {}'.format(name, value)
             else:
-                err('No style attribute "{}"'.format(name))
+                Dashboard.err('No style attribute "{}"'.format(name))
 
         def complete(self, text, word):
             all_styles = (s for s in dir(R) if not s.startswith('__'))
