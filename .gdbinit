@@ -675,9 +675,6 @@ class Memory(Dashboard.Module):
 
 class Registers(Dashboard.Module):
 
-    max_name = 8
-    max_value = 18
-
     def __init__(self):
         self.table = {}
 
@@ -694,19 +691,26 @@ class Registers(Dashboard.Module):
             string_value = self.format_value(value)
             changed = self.table and (self.table.get(name, '') != string_value)
             self.table[name] = string_value
+            registers.append((name, string_value, changed))
+        max_name = max(len(name) for name, _, _ in registers)
+        max_value = max(len(value) for _, value, _ in registers)
+        partial = []
+        for name, value, changed in registers:
             # format register info
-            fill_format = '{{:>{}}}'.format(Registers.max_name)
+            fill_format = '{{:>{}}}'.format(max_name)
             styled_name = ansi(fill_format, R.style_low).format(name)
-            fill_format = '{{:<{}}}'.format(Registers.max_value)
+            fill_format = '{{:<{}}}'.format(max_value)
             value_style = R.style_selected_1 if changed else ''
-            styled_value = ansi(fill_format, value_style).format(string_value)
-            registers.append(styled_name + ' ' + styled_value)
-        # format registers in rows
-        max_width = Registers.max_name + Registers.max_value + 1
-        per_line = Dashboard.term_width / max_width or 1
+            styled_value = ansi(fill_format, value_style).format(value)
+            partial.append(styled_name + ' ' + styled_value)
+        # format registers in rows and columns, each column is composed of name,
+        # space, value and another trailing space which is skipped in the last
+        # column (hence term_width + 1)
+        max_width = max_name + max_value + 2
+        per_line = (Dashboard.term_width + 1) / max_width or 1
         out = []
-        for i in range(0, len(registers), per_line):
-            out.append(''.join(registers[i:i + per_line]).rstrip())
+        for i in range(0, len(partial), per_line):
+            out.append(' '.join(partial[i:i + per_line]).rstrip())
         return out
 
     def format_value(self, value):
