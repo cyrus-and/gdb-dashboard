@@ -1,7 +1,6 @@
 python
 
 import os
-import string
 import subprocess
 
 # Default values ---------------------------------------------------------------
@@ -163,7 +162,7 @@ class Dashboard(gdb.Command):
 
     @staticmethod
     def err(string):
-        print ansi(string, R.style_error)
+        print(ansi(string, R.style_error))
 
     def __init__(self):
         gdb.Command.__init__(self, 'dashboard',
@@ -181,7 +180,7 @@ class Dashboard(gdb.Command):
     def on_continue(self):
         if self.enabled and self.is_running():
             os.system('clear')
-            print divider('Output/messages', True)
+            print(divider('Output/messages', True))
         self.pre_display = False
 
     def on_stop(self):
@@ -226,7 +225,7 @@ class Dashboard(gdb.Command):
         lines.append(divider(primary=True))
         # print without pagination
         run('set pagination off')
-        print '\n'.join(lines)
+        print('\n'.join(lines))
         run('set pagination on')
 
 # Module descriptor ------------------------------------------------------------
@@ -253,7 +252,7 @@ class Dashboard(gdb.Command):
                         dashboard.redisplay()
                     else:
                         status = 'enabled' if info.enabled else 'disabled'
-                        print '{} module {}'.format(module.name, status)
+                        print('{} module {}'.format(module.name, status))
                 else:
                     Dashboard.err('Wrong argument "{}"'.format(arg))
             doc_brief = 'Configure the {} module.'.format(self.name)
@@ -298,7 +297,7 @@ The current status is printed if no argument is present."""
         def invoke(self, arg, from_tty):
             if arg == '':
                 status = 'enabled' if self.dashboard.enabled else 'disabled'
-                print 'The dashboard is {}'.format(status)
+                print('The dashboard is {}'.format(status))
             elif arg == 'on':
                 self.dashboard.enabled = True
                 self.dashboard.redisplay()
@@ -336,7 +335,7 @@ current layout is shown; enabled and disabled modules are properly marked."""
         def show(self):
             for module in self.dashboard.modules:
                 style = R.style_high if module.enabled else R.style_low
-                print ansi(module.name, style)
+                print(ansi(module.name, style))
 
         def layout(self, directives):
             modules = self.dashboard.modules
@@ -391,7 +390,7 @@ necessary). The current value is printed if the new value is not present."""
                     setattr(R, name, value)
                 else:
                     value = getattr(R, name)
-                    print '{} = {}'.format(name, value)
+                    print('{} = {}'.format(name, value))
             else:
                 Dashboard.err('No style attribute "{}"'.format(name))
 
@@ -614,10 +613,11 @@ class Memory(Dashboard.Module):
 
     @staticmethod
     def format_byte(byte):
-        if byte in string.whitespace:
+        # `type(byte) is bytes` in Python 3
+        if byte.isspace():
             return ' '
-        elif byte in string.printable:
-            return byte
+        elif 0x20 < ord(byte) < 0x7e:
+            return chr(ord(byte))
         else:
             return '.'
 
@@ -636,7 +636,7 @@ class Memory(Dashboard.Module):
     def lines(self):
         out = []
         inferior = gdb.selected_inferior()
-        for address, length in self.table.iteritems():
+        for address, length in self.table.items():
             try:
                 memory = inferior.read_memory(address, length)
                 out.extend(Memory.format_memory(address, memory))
@@ -707,7 +707,7 @@ class Registers(Dashboard.Module):
         # space, value and another trailing space which is skipped in the last
         # column (hence term_width + 1)
         max_width = max_name + max_value + 2
-        per_line = (Dashboard.term_width + 1) / max_width or 1
+        per_line = int((Dashboard.term_width + 1) / max_width) or 1
         out = []
         for i in range(0, len(partial), per_line):
             out.append(' '.join(partial[i:i + per_line]).rstrip())
