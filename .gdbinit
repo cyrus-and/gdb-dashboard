@@ -74,7 +74,7 @@ def parse_on_off(arg, value):
     elif arg == 'off':
         return False
     else:
-        msg = 'Wrong argument "{}"; expecting on/off or nothing'
+        msg = 'Wrong argument "{}"; expecting "on", "off" or nothing'
         raise Exception(msg.format(arg))
 
 def parse_value(arg, conversion, check, msg):
@@ -287,7 +287,7 @@ class Dashboard(gdb.Command):
             Dashboard.err('Wrong argument "{}"'.format(arg))
 
     class EnabledCommand(gdb.Command):
-        """Enable or disable the dashboard [on/off].
+        """Enable or disable the dashboard [on|off].
 The current status is printed if no argument is present."""
 
         def __init__(self, dashboard):
@@ -304,7 +304,7 @@ The current status is printed if no argument is present."""
             elif arg == 'off':
                 self.dashboard.enabled = False
             else:
-                msg = 'Wrong argument "{}"; expecting on/off'
+                msg = 'Wrong argument "{}"; expecting "on" or "off"'
                 Dashboard.err(msg.format(arg))
 
         def complete(self, text, word):
@@ -561,9 +561,9 @@ class Stack(Dashboard.Module):
         def show_locals(arg):
             Stack.show_locals = parse_on_off(arg, Stack.show_locals)
         return [('arguments', show_arguments,
-                 'Toggle or control frame arguments visibility [on/off].'),
+                 'Toggle or control frame arguments visibility [on|off].'),
                 ('locals', show_locals,
-                 'Toggle or control frame locals visibility [on/off].')]
+                 'Toggle or control frame locals visibility [on|off].')]
 
 class History(Dashboard.Module):
 
