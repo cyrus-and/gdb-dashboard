@@ -676,7 +676,7 @@ class Memory(Dashboard.Module):
 class Registers(Dashboard.Module):
 
     max_name = 8
-    max_value = 32
+    max_value = 18
 
     def __init__(self):
         self.table = {}
