@@ -236,6 +236,7 @@ class Dashboard(gdb.Command):
             self.name = module.__name__.lower()  # from class to module name
             self.enabled = True
             self.instance = module()
+            self.doc = self.instance.__doc__ or '(no documentation)'
             # add GDB commands
             self.has_sub_commands = ('commands' in dir(self.instance))
             self.add_main_command(dashboard)
@@ -257,7 +258,7 @@ class Dashboard(gdb.Command):
                     Dashboard.err('Wrong argument "{}"'.format(arg))
             doc_brief = 'Configure the {} module.'.format(self.name)
             doc_extended = 'Toggle the module visibility.'
-            doc = '{}\n{}'.format(doc_brief, doc_extended)
+            doc = '{}\n{}\n\n{}'.format(doc_brief, doc_extended, self.doc)
             prefix = 'dashboard {}'.format(self.name)
             Dashboard.create_command(prefix, invoke, doc, self.has_sub_commands)
 
@@ -411,6 +412,7 @@ necessary). The current value is printed if the new value is not present."""
 # Default modules --------------------------------------------------------------
 
 class Source(Dashboard.Module):
+    """Show the program source code, if available."""
 
     context = 10
 
@@ -450,6 +452,8 @@ class Source(Dashboard.Module):
         return [('context', context, 'Set the number of context lines.')]
 
 class Assembly(Dashboard.Module):
+    """Show the disassembled code surrounding the program counter. The
+instructions constituting the current statement are marked, if available."""
 
     context = 5
 
@@ -503,6 +507,8 @@ class Assembly(Dashboard.Module):
         return [('context', context, 'Set the number of context instructions.')]
 
 class Stack(Dashboard.Module):
+    """Show the current stack trace including the function name and the file
+location, if available. Optionally list the frame arguments and locals too."""
 
     show_arguments = True
     show_locals = False
@@ -566,6 +572,7 @@ class Stack(Dashboard.Module):
                  'Toggle or control frame locals visibility [on|off].')]
 
 class History(Dashboard.Module):
+    """List the last entries of the value history."""
 
     length = 5
 
@@ -592,6 +599,7 @@ class History(Dashboard.Module):
         return [('length', length, 'Set the max number of values to show.')]
 
 class Memory(Dashboard.Module):
+    """Allow to inspect memory regions."""
 
     row_length = 16
 
@@ -674,6 +682,7 @@ class Memory(Dashboard.Module):
                  'Clear all the watched regions.')]
 
 class Registers(Dashboard.Module):
+    """Show the CPU registers and their values."""
 
     def __init__(self):
         self.table = {}
