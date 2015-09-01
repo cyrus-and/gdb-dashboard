@@ -233,7 +233,7 @@ class Dashboard(gdb.Command):
     class ModuleInfo:
 
         def __init__(self, dashboard, module):
-            self.name = module.__name__
+            self.name = module.__name__.lower()  # from class to module name
             self.enabled = True
             self.instance = module()
             # add GDB commands
@@ -258,7 +258,7 @@ class Dashboard(gdb.Command):
             doc_brief = 'Configure the {} module.'.format(self.name)
             doc_extended = 'Toggle the module visibility.'
             doc = '{}\n{}'.format(doc_brief, doc_extended)
-            prefix = 'dashboard {}'.format(self.name.lower())
+            prefix = 'dashboard {}'.format(self.name)
             Dashboard.create_command(prefix, invoke, doc, self.has_sub_commands)
 
         def add_sub_commands(self, dashboard, command):
@@ -272,7 +272,7 @@ class Dashboard(gdb.Command):
                         Dashboard.err('Module disabled')
                 except Exception as e:
                     Dashboard.err(e)
-            prefix = 'dashboard {} {}'.format(self.name.lower(), name)
+            prefix = 'dashboard {} {}'.format(self.name, name)
             Dashboard.create_command(prefix, invoke, doc)
 
 # GDB commands -----------------------------------------------------------------
