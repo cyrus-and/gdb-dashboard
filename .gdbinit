@@ -100,6 +100,7 @@ class Dashboard(gdb.Command):
 
     @staticmethod
     def start():
+        # initialize the dashboard
         Dashboard.update_term_width()
         dashboard = Dashboard()
         Dashboard.set_custom_prompt(dashboard)
