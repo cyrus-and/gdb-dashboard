@@ -110,6 +110,8 @@ class Dashboard(gdb.Command):
         dashboard.load_modules(modules)
         Dashboard.parse_inits(False)
         dashboard.init = False
+        # turn off pagination
+        run('set pagination off')
 
     @staticmethod
     def update_term_width():
@@ -223,10 +225,8 @@ class Dashboard(gdb.Command):
             else:
                 lines.append('No module to display (see `help dashboard`)')
         lines.append(divider(primary=True))
-        # print without pagination
-        run('set pagination off')
+        # print the dashboard
         print('\n'.join(lines))
-        run('set pagination on')
 
 # Module descriptor ------------------------------------------------------------
 
