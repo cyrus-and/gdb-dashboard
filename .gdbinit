@@ -707,11 +707,9 @@ class Registers(Dashboard.Module):
         partial = []
         for name, value, changed in registers:
             # format register info
-            fill_format = '{{:>{}}}'.format(max_name)
-            styled_name = ansi(fill_format, R.style_low).format(name)
-            fill_format = '{{:<{}}}'.format(max_value)
+            styled_name = ansi(name.rjust(max_name), R.style_low)
             value_style = R.style_selected_1 if changed else ''
-            styled_value = ansi(fill_format, value_style).format(value)
+            styled_value = ansi(value.ljust(max_value), value_style)
             partial.append(styled_name + ' ' + styled_value)
         # format registers in rows and columns, each column is composed of name,
         # space, value and another trailing space which is skipped in the last
