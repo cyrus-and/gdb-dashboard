@@ -639,10 +639,11 @@ class Memory(Dashboard.Module):
 
     @staticmethod
     def parse_as_address(expression):
+        # values from GDB can be used transparently but are not suitable for
+        # being printed, so a conversion is needed
         value = gdb.parse_and_eval(expression)
-        mask = (1 << (value.type.sizeof * 8)) - 1
-        return int(value.cast(gdb.Value(0).type)) & mask
-
+        mask = (sys.maxint << 1) | 1  # as unsigned
+        return int(value.cast(gdb.Value(0L).type)) & mask
     def __init__(self):
         self.table = {}
 
