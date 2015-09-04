@@ -462,6 +462,7 @@ class Assembly(Dashboard.Module):
 instructions constituting the current statement are marked, if available."""
 
     context = 5
+    show_opcodes = False
 
     def label(self):
         return 'Assembly'
@@ -489,20 +490,32 @@ instructions constituting the current statement are marked, if available."""
             # after a fixed number of instructions
             asm = disassemble(frame.pc(), count=Assembly.context)
         # return the machine code
+        max_length = max(instr['length'] for instr in asm)
+        inferior = gdb.selected_inferior()
         out = []
         for index, instr in enumerate(asm):
             addr = instr['addr']
+            length = instr['length']
+            if Assembly.show_opcodes:
+                # fetch and format opcode
+                region = inferior.read_memory(addr, length)
+                opcodes = (' '.join('{:02x}'.format(ord(byte))
+                                    for byte in region))
+                opcodes += (max_length - len(region)) * 3 * ' ' + '    '
+            else:
+                opcodes = ''
+            # fetch mnemonic and operands
             mnem, _, ops = instr['asm'].partition('\t')
             addr_str = '0x{:016x}'.format(addr)
-            format_string = '{} {}\t{}'
-            asm_line = format_string.format(addr_str, mnem, ops)
+            format_string = '{} {}{}\t{}'
+            asm_line = format_string.format(addr_str, opcodes, mnem, ops)
             if addr == frame.pc():
                 line = ansi(asm_line, R.style_selected_1)
             elif line_info and line_info.pc <= addr < line_info.last:
                 line = ansi(asm_line, R.style_selected_2)
             else:
                 styled_addr = ansi(addr_str, R.style_low)
-                line = format_string.format(styled_addr, mnem, ops)
+                line = format_string.format(styled_addr, opcodes, mnem, ops)
             out.append(line)
         return out
 
@@ -510,8 +523,12 @@ instructions constituting the current statement are marked, if available."""
         def context(arg):
             msg = 'expecting a positive integer'
             Assembly.context = parse_value(arg, int, lambda x: x >= 0, msg)
+        def show_opcodes(arg):
+            Assembly.show_opcodes = parse_on_off(arg, Assembly.show_opcodes)
         return [('context', context, None,
-                 'Set the number of context instructions.')]
+                 'Set the number of context instructions.'),
+                ('opcodes', show_opcodes, None,
+                 'Toggle or control opcodes visibility [on|off].')]
 
 class Stack(Dashboard.Module):
     """Show the current stack trace including the function name and the file
