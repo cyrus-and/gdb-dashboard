@@ -160,9 +160,9 @@ class Dashboard(gdb.Command):
         return modules
 
     @staticmethod
-    def create_command(name, invoke, doc, is_prefix=False):
+    def create_command(name, invoke, doc, is_prefix, complete=None):
         Class = type('', (gdb.Command,), {'invoke': invoke, '__doc__': doc})
-        Class(name, gdb.COMMAND_USER, gdb.COMPLETE_NONE, is_prefix)
+        Class(name, gdb.COMMAND_USER, complete or gdb.COMPLETE_NONE, is_prefix)
 
     @staticmethod
     def err(string):
@@ -268,7 +268,7 @@ class Dashboard(gdb.Command):
             Dashboard.create_command(prefix, invoke, doc, self.has_sub_commands)
 
         def add_sub_commands(self, dashboard, command):
-            name, action, doc = command
+            name, action, complete, doc = command
             def invoke(self, arg, from_tty, info=self):
                 try:
                     if dashboard.init or info.enabled:
@@ -279,7 +279,7 @@ class Dashboard(gdb.Command):
                 except Exception as e:
                     Dashboard.err(e)
             prefix = 'dashboard {} {}'.format(self.name, name)
-            Dashboard.create_command(prefix, invoke, doc)
+            Dashboard.create_command(prefix, invoke, doc, False, complete)
 
 # GDB commands -----------------------------------------------------------------
 
@@ -454,7 +454,8 @@ class Source(Dashboard.Module):
         def context(arg):
             msg = 'expecting a positive integer'
             Source.context = parse_value(arg, int, lambda x: x >= 0, msg)
-        return [('context', context, 'Set the number of context lines.')]
+        return [('context', context, None,
+                 'Set the number of context lines.')]
 
 class Assembly(Dashboard.Module):
     """Show the disassembled code surrounding the program counter. The
@@ -509,7 +510,8 @@ instructions constituting the current statement are marked, if available."""
         def context(arg):
             msg = 'expecting a positive integer'
             Assembly.context = parse_value(arg, int, lambda x: x >= 0, msg)
-        return [('context', context, 'Set the number of context instructions.')]
+        return [('context', context, None,
+                 'Set the number of context instructions.')]
 
 class Stack(Dashboard.Module):
     """Show the current stack trace including the function name and the file
@@ -571,9 +573,9 @@ location, if available. Optionally list the frame arguments and locals too."""
             Stack.show_arguments = parse_on_off(arg, Stack.show_arguments)
         def show_locals(arg):
             Stack.show_locals = parse_on_off(arg, Stack.show_locals)
-        return [('arguments', show_arguments,
+        return [('arguments', show_arguments, None,
                  'Toggle or control frame arguments visibility [on|off].'),
-                ('locals', show_locals,
+                ('locals', show_locals, None,
                  'Toggle or control frame locals visibility [on|off].')]
 
 class History(Dashboard.Module):
@@ -601,7 +603,8 @@ class History(Dashboard.Module):
         def length(arg):
             msg = 'expecting a positive integer'
             History.length = parse_value(arg, int, lambda x: x >= 0, msg)
-        return [('length', length, 'Set the max number of values to show.')]
+        return [('length', length, None,
+                 'Set the max number of values to show.')]
 
 class Memory(Dashboard.Module):
     """Allow to inspect memory regions."""
@@ -678,12 +681,12 @@ class Memory(Dashboard.Module):
                 raise Exception('Memory region not watched')
         def clear(arg):
             self.table.clear()
-        return [('watch', watch,
+        return [('watch', watch, gdb.COMPLETE_EXPRESSION,
                  'Watch a memory region given its address and its length.\n'
                  'The length defaults to 16 byte.'),
-                ('unwatch', unwatch,
+                ('unwatch', unwatch, gdb.COMPLETE_EXPRESSION,
                  'Stop watching a memory region given its address.'),
-                ('clear', clear,
+                ('clear', clear, None,
                  'Clear all the watched regions.')]
 
 class Registers(Dashboard.Module):
