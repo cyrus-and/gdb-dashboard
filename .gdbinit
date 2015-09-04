@@ -7,9 +7,9 @@ import subprocess
 
 class R():
 
-    prompt = '{thread_status} '
-    prompt_thread_available = '\[\e[1;35m\]>>>\[\e[0m\]'
-    prompt_thread_not_available = '\[\e[1;30m\]>>>\[\e[0m\]'
+    prompt = '{status} '
+    prompt_running = '\[\e[1;35m\]>>>\[\e[0m\]'
+    prompt_not_running = '\[\e[1;30m\]>>>\[\e[0m\]'
 
     divider_fill_style_primary = '36'
     divider_fill_char_primary = '─'
@@ -124,11 +124,12 @@ class Dashboard(gdb.Command):
         def custom_prompt(_):
             # render thread status indicator
             if dashboard.is_running():
-                thread_status = R.prompt_thread_available
+                pid = dashboard.inferior_pid()
+                status = R.prompt_running.format(pid=pid)
             else:
-                thread_status = R.prompt_thread_not_available
+                status = R.prompt_not_running
             # build prompt
-            prompt = R.prompt.format(thread_status=thread_status)
+            prompt = R.prompt.format(status=status)
             return gdb.prompt.substitute_prompt(prompt)
         gdb.prompt_hook = custom_prompt
 
@@ -204,8 +205,11 @@ class Dashboard(gdb.Command):
             os.system('clear')
             self.display()
 
+    def inferior_pid(self):
+        return gdb.selected_inferior().pid
+
     def is_running(self):
-        return gdb.selected_inferior().pid != 0
+        return self.inferior_pid() != 0
 
     def display(self):
         Dashboard.update_term_width()
