@@ -433,7 +433,7 @@ necessary). The current value is printed if the new value is not present."""
 class Source(Dashboard.Module):
     """Show the program source code, if available."""
 
-    context = 10
+    context = 5
 
     def label(self):
         return 'Source'
@@ -480,7 +480,7 @@ class Assembly(Dashboard.Module):
     """Show the disassembled code surrounding the program counter. The
 instructions constituting the current statement are marked, if available."""
 
-    context = 5
+    context = 3
     show_opcodes = False
     show_function = True
 
@@ -579,7 +579,7 @@ location, if available. Optionally list the frame arguments and locals too."""
 
     show_arguments = True
     show_locals = False
-    frame_limit = 0
+    frame_limit = 2
 
     def label(self):
         return 'Stack'
@@ -666,7 +666,7 @@ location, if available. Optionally list the frame arguments and locals too."""
 class History(Dashboard.Module):
     """List the last entries of the value history."""
 
-    length = 5
+    length = 3
 
     def label(self):
         return 'History'
