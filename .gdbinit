@@ -524,15 +524,19 @@ instructions constituting the current statement are marked, if available."""
             mnem, _, ops = instr['asm'].partition('\t')
             addr_str = format_address(addr)
             format_string = '{} {}{}\t{}'
-            asm_line = format_string.format(addr_str, opcodes, mnem, ops)
             if addr == frame.pc():
-                line = ansi(asm_line, R.style_selected_1)
+                addr_str = ansi(addr_str, R.style_selected_1)
+                opcodes = ansi(opcodes, R.style_selected_1)
+                mnem = ansi(mnem, R.style_selected_1)
+                ops = ansi(ops, R.style_selected_1)
             elif line_info and line_info.pc <= addr < line_info.last:
-                line = ansi(asm_line, R.style_selected_2)
+                addr_str = ansi(addr_str, R.style_selected_2)
+                opcodes = ansi(opcodes, R.style_selected_2)
+                mnem = ansi(mnem, R.style_selected_2)
+                ops = ansi(ops, R.style_selected_2)
             else:
-                styled_addr = ansi(addr_str, R.style_low)
-                line = format_string.format(styled_addr, opcodes, mnem, ops)
-            out.append(line)
+                addr_str = ansi(addr_str, R.style_low)
+            out.append(format_string.format(addr_str, opcodes, mnem, ops))
         return out
 
     def commands(self):
