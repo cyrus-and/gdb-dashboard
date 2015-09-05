@@ -96,13 +96,6 @@ def to_unsigned(value, size=8):
     # being printed as unsigned integers, so a conversion is needed
     return int(value.cast(gdb.Value(0).type)) % (2 ** (size * 8))
 
-def complete(word, candidates):
-    matching = []
-    for candidate in candidates:
-        if candidate.startswith(word):
-            matching.append(candidate)
-    return matching
-
 # Dashboard --------------------------------------------------------------------
 
 class Dashboard(gdb.Command):
@@ -177,6 +170,14 @@ class Dashboard(gdb.Command):
     @staticmethod
     def err(string):
         print(ansi(string, R.style_error))
+
+    @staticmethod
+    def complete(word, candidates):
+        matching = []
+        for candidate in candidates:
+            if candidate.startswith(word):
+                matching.append(candidate)
+        return matching
 
     def __init__(self):
         gdb.Command.__init__(self, 'dashboard',
@@ -324,7 +325,7 @@ The current status is printed if no argument is present."""
                 Dashboard.err(msg.format(arg))
 
         def complete(self, text, word):
-            return complete(word, ['on', 'off'])
+            return Dashboard.complete(word, ['on', 'off'])
 
     class LayoutCommand(gdb.Command):
         """Set or show the dashboard layout.
@@ -389,7 +390,7 @@ current layout is shown; enabled and disabled modules are properly marked."""
 
         def complete(self, text, word):
             all_modules = (m.name for m in self.dashboard.modules)
-            return complete(word, all_modules)
+            return Dashboard.complete(word, all_modules)
 
     class StyleCommand(gdb.Command):
         """Set or show style attributes.
@@ -416,7 +417,7 @@ necessary). The current value is printed if the new value is not present."""
             if ' ' in text:
                 return gdb.COMPLETE_NONE
             else:
-                return complete(word, all_styles)
+                return Dashboard.complete(word, all_styles)
 
 # Base module ------------------------------------------------------------------
 
