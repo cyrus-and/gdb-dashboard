@@ -510,6 +510,14 @@ instructions constituting the current statement are marked, if available."""
             # if it is not possible (stripped binary) start from PC and end
             # after a fixed number of instructions
             asm = disassemble(frame.pc(), count=Assembly.context)
+        # fetch function start if available
+        func_start = None
+        if frame.name():
+            try:
+                value = gdb.parse_and_eval(frame.name()).address
+                func_start = to_unsigned(value)
+            except gdb.error:
+                pass  # e.g., @plt
         # return the machine code
         max_length = max(instr['length'] for instr in asm)
         inferior = gdb.selected_inferior()
@@ -528,6 +536,11 @@ instructions constituting the current statement are marked, if available."""
             # fetch mnemonic and operands
             mnem, _, ops = instr['asm'].partition('\t')
             addr_str = format_address(addr)
+            # compute the offset if available
+            if func_start:
+                max_offset = len(str(asm[-1]['addr'] - func_start))
+                offset = str(addr - func_start).ljust(max_offset)
+                addr_str += ' {}+{}'.format(frame.name(), offset)
             format_string = '{} {}{}\t{}'
             if addr == frame.pc():
                 addr_str = ansi(addr_str, R.style_selected_1)
