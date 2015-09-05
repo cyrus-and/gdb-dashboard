@@ -615,25 +615,30 @@ location, if available. Optionally list the frame arguments and locals too."""
             decorator = gdb.FrameDecorator.FrameDecorator(frame)
             if Stack.show_arguments:
                 frame_args = decorator.frame_args()
-                args_lines = self.fetch_frame_info(frame, frame_args)
-                lines.append(divider('Arguments', active=args_lines))
-                lines.extend(args_lines)
+                args_lines = self.fetch_frame_info(frame, frame_args, 'arg')
+                if args_lines:
+                    lines.extend(args_lines)
+                else:
+                    lines.append(ansi('(no arguments)', R.style_low))
             if Stack.show_locals:
                 frame_locals = decorator.frame_locals()
-                locals_lines = self.fetch_frame_info(frame, frame_locals)
-                lines.append(divider('Locals', active=locals_lines))
-                lines.extend(locals_lines)
+                locals_lines = self.fetch_frame_info(frame, frame_locals, 'loc')
+                if locals_lines:
+                    lines.extend(locals_lines)
+                else:
+                    lines.append(ansi('(no locals)', R.style_low))
             # next
             frame = frame.older()
             number += 1
         return lines
 
-    def fetch_frame_info(self, frame, data):
+    def fetch_frame_info(self, frame, data, prefix):
+        prefix = ansi(prefix, R.style_low)
         lines = []
         for elem in data or []:
-            name = ansi(elem.sym, R.style_low)
+            name = elem.sym
             value = elem.sym.value(frame)
-            lines.append('{} = {}'.format(name, value))
+            lines.append('{} {} = {}'.format(prefix, name, value))
         return lines
 
     def commands(self):
