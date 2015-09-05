@@ -551,7 +551,7 @@ location, if available. Optionally list the frame arguments and locals too."""
         frame = gdb.newest_frame()
         while frame:
             # fetch frame info
-            selected = frame == gdb.selected_frame()
+            selected = (frame == gdb.selected_frame())
             style = R.style_selected_1 if selected else R.style_selected_2
             frame_id = ansi(str(number), style)
             frame_pc = ansi('0x{:016x}', style).format(frame.pc())
@@ -666,6 +666,7 @@ class Memory(Dashboard.Module):
         value = gdb.parse_and_eval(expression)
         mask = (sys.maxint << 1) | 1  # as unsigned
         return int(value.cast(gdb.Value(0L).type)) & mask
+
     def __init__(self):
         self.table = {}
 
