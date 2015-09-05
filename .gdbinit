@@ -532,7 +532,7 @@ instructions constituting the current statement are marked, if available."""
                 region = inferior.read_memory(addr, length)
                 opcodes = (' '.join('{:02x}'.format(ord(byte))
                                     for byte in region))
-                opcodes += (max_length - len(region)) * 3 * ' ' + '    '
+                opcodes += (max_length - len(region) + 1) * 3 * ' '
             else:
                 opcodes = ''
             # compute the offset if available
