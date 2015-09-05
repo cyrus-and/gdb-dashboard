@@ -65,7 +65,7 @@ def divider(label='', primary=False, active=True):
         middle = ansi(label, divider_label_style)
         after_length = width - len(label) - skip - 2 * margin
         after = ansi(divider_fill_char * after_length, divider_fill_style)
-        if int(R.divider_label_align_right or '0'):
+        if int(R.divider_label_align_right):
             before, after = after, before
         return ''.join([before, ' ' * margin, middle, ' ' * margin, after])
     else:
