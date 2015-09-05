@@ -732,20 +732,28 @@ class Registers(Dashboard.Module):
             changed = self.table and (self.table.get(name, '') != string_value)
             self.table[name] = string_value
             registers.append((name, string_value, changed))
+        # split registers in rows and columns, each column is composed of name,
+        # space, value and another trailing space which is skipped in the last
+        # column (hence term_width + 1)
         max_name = max(len(name) for name, _, _ in registers)
         max_value = max(len(value) for _, value, _ in registers)
+        max_width = max_name + max_value + 2
+        per_line = int((Dashboard.term_width + 1) / max_width) or 1
+        # redistribute extra space among columns
+        extra = (Dashboard.term_width + 1 - max_width * per_line) / per_line
+        if per_line == 1:
+            # center when there is only one column
+            max_name += extra / 2
+            max_value += extra / 2
+        else:
+            max_value += extra
+        # format registers info
         partial = []
         for name, value, changed in registers:
-            # format register info
             styled_name = ansi(name.rjust(max_name), R.style_low)
             value_style = R.style_selected_1 if changed else ''
             styled_value = ansi(value.ljust(max_value), value_style)
             partial.append(styled_name + ' ' + styled_value)
-        # format registers in rows and columns, each column is composed of name,
-        # space, value and another trailing space which is skipped in the last
-        # column (hence term_width + 1)
-        max_width = max_name + max_value + 2
-        per_line = int((Dashboard.term_width + 1) / max_width) or 1
         out = []
         for i in range(0, len(partial), per_line):
             out.append(' '.join(partial[i:i + per_line]).rstrip())
