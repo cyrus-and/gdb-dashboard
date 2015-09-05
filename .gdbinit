@@ -91,6 +91,11 @@ def parse_value(arg, conversion, check, msg):
     except ValueError:
         raise Exception('Wrong argument "{}"; {}'.format(arg, msg))
 
+def to_unsigned(value, size=8):
+    # values from GDB can be used transparently but are not suitable for
+    # being printed as unsigned integers, so a conversion is needed
+    return int(value.cast(gdb.Value(0).type)) % (2 ** (size * 8))
+
 def complete(word, candidates):
     matching = []
     for candidate in candidates:
@@ -562,9 +567,8 @@ location, if available. Optionally list the frame arguments and locals too."""
                 frame_name = ansi(frame.name(), style)
                 try:
                     # try to compute the offset relative to the current function
-                    value = gdb.parse_and_eval(frame.name())
-                    mask = (sys.maxsize << 1) | 1  # as unsigned
-                    func_start = int(value.cast(gdb.Value(0).type)) & mask
+                    value = gdb.parse_and_eval(frame.name()).address
+                    func_start = to_unsigned(value)
                     offset = frame.pc() - func_start
                     frame_name += '+' + ansi(offset, style)
                 except gdb.error:
@@ -672,11 +676,8 @@ class Memory(Dashboard.Module):
 
     @staticmethod
     def parse_as_address(expression):
-        # values from GDB can be used transparently but are not suitable for
-        # being printed, so a conversion is needed
         value = gdb.parse_and_eval(expression)
-        mask = (sys.maxsize << 1) | 1  # as unsigned
-        return int(value.cast(gdb.Value(0).type)) & mask
+        return to_unsigned(value)
 
     def __init__(self):
         self.table = {}
@@ -775,8 +776,7 @@ class Registers(Dashboard.Module):
     def format_value(self, value):
         try:
             if value.type.code in [gdb.TYPE_CODE_INT, gdb.TYPE_CODE_PTR]:
-                mask = (1 << (value.type.sizeof * 8)) - 1
-                int_value = int(value.cast(gdb.Value(0).type)) & mask
+                int_value = to_unsigned(value, value.type.sizeof)
                 value_format = '0x{{:0{}x}}'.format(2 * value.type.sizeof)
                 return value_format.format(int_value)
         except (gdb.error, ValueError):
