@@ -579,6 +579,7 @@ location, if available. Optionally list the frame arguments and locals too."""
 
     show_arguments = True
     show_locals = False
+    frame_limit = 0
 
     def label(self):
         return 'Stack'
@@ -630,6 +631,11 @@ location, if available. Optionally list the frame arguments and locals too."""
             # next
             frame = frame.older()
             number += 1
+            # apply the limit
+            if Stack.frame_limit and number >= Stack.frame_limit:
+                if frame:
+                    lines.append('[{}]'.format(ansi('+', R.style_selected_2)))
+                break
         return lines
 
     def fetch_frame_info(self, frame, data, prefix):
@@ -646,10 +652,16 @@ location, if available. Optionally list the frame arguments and locals too."""
             Stack.show_arguments = parse_on_off(arg, Stack.show_arguments)
         def show_locals(arg):
             Stack.show_locals = parse_on_off(arg, Stack.show_locals)
+        def frame_limit(arg):
+            msg = 'expecting a positive integer'
+            Stack.frame_limit = parse_value(arg, int, lambda x: x >= 0, msg)
         return [('arguments', show_arguments, None,
                  'Toggle or control frame arguments visibility [on|off].'),
                 ('locals', show_locals, None,
-                 'Toggle or control frame locals visibility [on|off].')]
+                 'Toggle or control frame locals visibility [on|off].'),
+                ('limit', frame_limit, None,
+                 'Set the maximum number of displayed frames.\n'
+                 'Zero means no limit.')]
 
 class History(Dashboard.Module):
     """List the last entries of the value history."""
