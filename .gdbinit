@@ -558,6 +558,15 @@ location, if available. Optionally list the frame arguments and locals too."""
             info = '[{}] from {}'.format(frame_id, frame_pc)
             if frame.name():
                 frame_name = ansi(frame.name(), style)
+                try:
+                    # try to compute the offset relative to the current function
+                    value = gdb.parse_and_eval(frame.name())
+                    mask = (sys.maxint << 1) | 1  # as unsigned
+                    func_start = int(value.cast(gdb.Value(0L).type)) & mask
+                    offset = frame.pc() - func_start
+                    frame_name += '+' + ansi(offset, style)
+                except gdb.error:
+                    pass
                 info += ' in {}()'.format(frame_name)
                 sal = frame.find_sal()
                 if sal.symtab:
@@ -764,7 +773,7 @@ class Registers(Dashboard.Module):
         try:
             if value.type.code in [gdb.TYPE_CODE_INT, gdb.TYPE_CODE_PTR]:
                 mask = (1 << (value.type.sizeof * 8)) - 1
-                int_value = int(str(value), 0) & mask
+                int_value = int(value.cast(gdb.Value(0L).type)) & mask
                 value_format = '0x{{:0{}x}}'.format(2 * value.type.sizeof)
                 return value_format.format(int_value)
         except (gdb.error, ValueError):
