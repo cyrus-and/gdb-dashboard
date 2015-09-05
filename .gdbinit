@@ -482,6 +482,7 @@ instructions constituting the current statement are marked, if available."""
 
     context = 5
     show_opcodes = False
+    show_function = True
 
     def label(self):
         return 'Assembly'
@@ -512,7 +513,7 @@ instructions constituting the current statement are marked, if available."""
             asm = disassemble(frame.pc(), count=Assembly.context)
         # fetch function start if available
         func_start = None
-        if frame.name():
+        if Assembly.show_function and frame.name():
             try:
                 value = gdb.parse_and_eval(frame.name()).address
                 func_start = to_unsigned(value)
@@ -537,10 +538,13 @@ instructions constituting the current statement are marked, if available."""
             mnem, _, ops = instr['asm'].partition('\t')
             addr_str = format_address(addr)
             # compute the offset if available
-            if func_start:
-                max_offset = len(str(asm[-1]['addr'] - func_start))
-                offset = str(addr - func_start).ljust(max_offset)
-                addr_str += ' {}+{}'.format(frame.name(), offset)
+            if Assembly.show_function:
+                if func_start:
+                    max_offset = len(str(asm[-1]['addr'] - func_start))
+                    offset = str(addr - func_start).ljust(max_offset)
+                    addr_str += ' {}+{}'.format(frame.name(), offset)
+                else:
+                    addr_str += ' ?'
             format_string = '{} {}{}\t{}'
             if addr == frame.pc():
                 addr_str = ansi(addr_str, R.style_selected_1)
@@ -563,10 +567,14 @@ instructions constituting the current statement are marked, if available."""
             Assembly.context = parse_value(arg, int, lambda x: x >= 0, msg)
         def show_opcodes(arg):
             Assembly.show_opcodes = parse_on_off(arg, Assembly.show_opcodes)
+        def show_function(arg):
+            Assembly.show_function = parse_on_off(arg, Assembly.show_function)
         return [('context', context, None,
                  'Set the number of context instructions.'),
                 ('opcodes', show_opcodes, None,
-                 'Toggle or control opcodes visibility [on|off].')]
+                 'Toggle or control opcodes visibility [on|off].'),
+                ('function', show_function, None,
+                 'Toggle or control function information visibility [on|off].')]
 
 class Stack(Dashboard.Module):
     """Show the current stack trace including the function name and the file
