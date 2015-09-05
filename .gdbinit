@@ -96,6 +96,9 @@ def to_unsigned(value, size=8):
     # being printed as unsigned integers, so a conversion is needed
     return int(value.cast(gdb.Value(0).type)) % (2 ** (size * 8))
 
+def format_address(address):
+    return '0x{:016x}'.format(address)
+
 # Dashboard --------------------------------------------------------------------
 
 class Dashboard(gdb.Command):
@@ -519,7 +522,7 @@ instructions constituting the current statement are marked, if available."""
                 opcodes = ''
             # fetch mnemonic and operands
             mnem, _, ops = instr['asm'].partition('\t')
-            addr_str = '0x{:016x}'.format(addr)
+            addr_str = format_address(addr)
             format_string = '{} {}{}\t{}'
             asm_line = format_string.format(addr_str, opcodes, mnem, ops)
             if addr == frame.pc():
@@ -562,7 +565,7 @@ location, if available. Optionally list the frame arguments and locals too."""
             selected = (frame == gdb.selected_frame())
             style = R.style_selected_1 if selected else R.style_selected_2
             frame_id = ansi(str(number), style)
-            frame_pc = ansi('0x{:016x}', style).format(frame.pc())
+            frame_pc = ansi(format_address(frame.pc()), style)
             info = '[{}] from {}'.format(frame_id, frame_pc)
             if frame.name():
                 frame_name = ansi(frame.name(), style)
@@ -655,7 +658,7 @@ class Memory(Dashboard.Module):
         for i in range(0, len(memory), Memory.row_length):
             region = memory[i:i + Memory.row_length]
             pad = Memory.row_length - len(region)
-            address = '0x{:016x}'.format(start + i)
+            address = format_address(start + i)
             hexa = (' '.join('{:02x}'.format(ord(byte)) for byte in region))
             text = (''.join(Memory.format_byte(byte) for byte in region))
             out.append('{} {}{} {}{}'.format(ansi(address, R.style_low),
@@ -694,8 +697,9 @@ class Memory(Dashboard.Module):
                 memory = inferior.read_memory(address, length)
                 out.extend(Memory.format_memory(address, memory))
             except gdb.error:
-                msg = 'Cannot access {} bytes starting at 0x{:016x}'
-                out.append(ansi(msg.format(length, address), R.style_error))
+                msg = 'Cannot access {} bytes starting at {}'
+                msg = msg.format(length, format_address(address))
+                out.append(ansi(msg, R.style_error))
             out.append(divider())
         # drop last divider
         if out:
