@@ -580,7 +580,7 @@ location, if available. Optionally list the frame arguments and locals too."""
                     offset = frame.pc() - func_start
                     frame_name += '+' + ansi(offset, style)
                 except gdb.error:
-                    pass
+                    pass  # e.g., @plt
                 info += ' in {}()'.format(frame_name)
                 sal = frame.find_sal()
                 if sal.symtab:
