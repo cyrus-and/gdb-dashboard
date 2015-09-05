@@ -11,6 +11,8 @@ class R():
     prompt_running = '\[\e[1;35m\]>>>\[\e[0m\]'
     prompt_not_running = '\[\e[1;30m\]>>>\[\e[0m\]'
 
+    no_ansi = '0'
+
     divider_fill_style_primary = '36'
     divider_fill_char_primary = '─'
     divider_fill_style_secondary = '1;30'
@@ -35,7 +37,10 @@ def run(command):
     return gdb.execute(command, to_string=True)
 
 def ansi(string, style):
-    return '[{}m{}[0m'.format(style, string)
+    if int(R.no_ansi):
+        return string
+    else:
+        return '[{}m{}[0m'.format(style, string)
 
 def divider(label='', primary=False, active=True):
     width = Dashboard.term_width
