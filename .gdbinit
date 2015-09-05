@@ -445,9 +445,14 @@ class Source(Dashboard.Module):
         if current_line == 0:
             return []
         # try to fetch the source code in the range
-        start = max(current_line - Source.context, 1)
-        end = current_line + Source.context
-        source = run('list {},{}'.format(start, end)).split('\n')[:-1]
+        try:
+            start = max(current_line - Source.context, 1)
+            end = current_line + Source.context
+            source = run('list {},{}'.format(start, end)).split('\n')[:-1]
+        except gdb.error:
+            # e.g., start and end are in different *system* files; it is not
+            # a matter of file bounds anyway
+            return []
         # omit useless 'list' output when no source code is available
         if len(source) == 1:
             if not source[0].startswith(str(current_line) + '\t'):
