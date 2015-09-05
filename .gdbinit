@@ -488,8 +488,10 @@ instructions constituting the current statement are marked, if available."""
             start = max(pc_index - Assembly.context, 0)
             end = pc_index + Assembly.context + 1
             asm = asm[start:end]
-            # if there are line information then use it
+            # if there are line information then use it, it may be that
+            # line_info is not None but line_info.last is None
             line_info = gdb.find_pc_line(frame.pc())
+            line_info = line_info if line_info.last else None
         except gdb.error:
             # if it is not possible (stripped binary) start from PC and end
             # after a fixed number of instructions
@@ -561,8 +563,8 @@ location, if available. Optionally list the frame arguments and locals too."""
                 try:
                     # try to compute the offset relative to the current function
                     value = gdb.parse_and_eval(frame.name())
-                    mask = (sys.maxint << 1) | 1  # as unsigned
-                    func_start = int(value.cast(gdb.Value(0L).type)) & mask
+                    mask = (sys.maxsize << 1) | 1  # as unsigned
+                    func_start = int(value.cast(gdb.Value(0).type)) & mask
                     offset = frame.pc() - func_start
                     frame_name += '+' + ansi(offset, style)
                 except gdb.error:
@@ -673,8 +675,8 @@ class Memory(Dashboard.Module):
         # values from GDB can be used transparently but are not suitable for
         # being printed, so a conversion is needed
         value = gdb.parse_and_eval(expression)
-        mask = (sys.maxint << 1) | 1  # as unsigned
-        return int(value.cast(gdb.Value(0L).type)) & mask
+        mask = (sys.maxsize << 1) | 1  # as unsigned
+        return int(value.cast(gdb.Value(0).type)) & mask
 
     def __init__(self):
         self.table = {}
@@ -750,11 +752,12 @@ class Registers(Dashboard.Module):
         max_width = max_name + max_value + 2
         per_line = int((Dashboard.term_width + 1) / max_width) or 1
         # redistribute extra space among columns
-        extra = (Dashboard.term_width + 1 - max_width * per_line) / per_line
+        extra = int((Dashboard.term_width + 1 -
+                     max_width * per_line) / per_line)
         if per_line == 1:
             # center when there is only one column
-            max_name += extra / 2
-            max_value += extra / 2
+            max_name += int(extra / 2)
+            max_value += int(extra / 2)
         else:
             max_value += extra
         # format registers info
@@ -773,7 +776,7 @@ class Registers(Dashboard.Module):
         try:
             if value.type.code in [gdb.TYPE_CODE_INT, gdb.TYPE_CODE_PTR]:
                 mask = (1 << (value.type.sizeof * 8)) - 1
-                int_value = int(value.cast(gdb.Value(0L).type)) & mask
+                int_value = int(value.cast(gdb.Value(0).type)) & mask
                 value_format = '0x{{:0{}x}}'.format(2 * value.type.sizeof)
                 return value_format.format(int_value)
         except (gdb.error, ValueError):
