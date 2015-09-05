@@ -527,35 +527,40 @@ instructions constituting the current statement are marked, if available."""
             addr = instr['addr']
             length = instr['length']
             text = instr['asm']
+            addr_str = format_address(addr)
             if Assembly.show_opcodes:
                 # fetch and format opcode
                 region = inferior.read_memory(addr, length)
                 opcodes = (' '.join('{:02x}'.format(ord(byte))
                                     for byte in region))
-                opcodes += (max_length - len(region) + 1) * 3 * ' '
+                opcodes += (max_length - len(region)) * 3 * ' ' + ' '
             else:
                 opcodes = ''
             # compute the offset if available
-            addr_str = format_address(addr)
             if Assembly.show_function:
                 if func_start:
                     max_offset = len(str(asm[-1]['addr'] - func_start))
                     offset = str(addr - func_start).ljust(max_offset)
-                    addr_str += ' {}+{}'.format(frame.name(), offset)
+                    func_info = '{}+{} '.format(frame.name(), offset)
                 else:
-                    addr_str += ' ?'
-            format_string = '{} {}{}'
+                    func_info = '? '
+            else:
+                func_info = ''
+            format_string = '{} {}{}{}'
             if addr == frame.pc():
                 addr_str = ansi(addr_str, R.style_selected_1)
                 opcodes = ansi(opcodes, R.style_selected_1)
+                func_info = ansi(func_info, R.style_selected_1)
                 text = ansi(text, R.style_selected_1)
             elif line_info and line_info.pc <= addr < line_info.last:
                 addr_str = ansi(addr_str, R.style_selected_2)
                 opcodes = ansi(opcodes, R.style_selected_2)
+                func_info = ansi(func_info, R.style_selected_2)
                 text = ansi(text, R.style_selected_2)
             else:
                 addr_str = ansi(addr_str, R.style_low)
-            out.append(format_string.format(addr_str, opcodes, text))
+                func_info = ansi(func_info, R.style_low)
+            out.append(format_string.format(addr_str, opcodes, func_info, text))
         return out
 
     def commands(self):
