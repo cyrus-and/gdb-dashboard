@@ -526,6 +526,7 @@ instructions constituting the current statement are marked, if available."""
         for index, instr in enumerate(asm):
             addr = instr['addr']
             length = instr['length']
+            text = instr['asm']
             if Assembly.show_opcodes:
                 # fetch and format opcode
                 region = inferior.read_memory(addr, length)
@@ -534,10 +535,8 @@ instructions constituting the current statement are marked, if available."""
                 opcodes += (max_length - len(region)) * 3 * ' ' + '    '
             else:
                 opcodes = ''
-            # fetch mnemonic and operands
-            mnem, _, ops = instr['asm'].partition('\t')
-            addr_str = format_address(addr)
             # compute the offset if available
+            addr_str = format_address(addr)
             if Assembly.show_function:
                 if func_start:
                     max_offset = len(str(asm[-1]['addr'] - func_start))
@@ -545,20 +544,18 @@ instructions constituting the current statement are marked, if available."""
                     addr_str += ' {}+{}'.format(frame.name(), offset)
                 else:
                     addr_str += ' ?'
-            format_string = '{} {}{}\t{}'
+            format_string = '{} {}{}'
             if addr == frame.pc():
                 addr_str = ansi(addr_str, R.style_selected_1)
                 opcodes = ansi(opcodes, R.style_selected_1)
-                mnem = ansi(mnem, R.style_selected_1)
-                ops = ansi(ops, R.style_selected_1)
+                text = ansi(text, R.style_selected_1)
             elif line_info and line_info.pc <= addr < line_info.last:
                 addr_str = ansi(addr_str, R.style_selected_2)
                 opcodes = ansi(opcodes, R.style_selected_2)
-                mnem = ansi(mnem, R.style_selected_2)
-                ops = ansi(ops, R.style_selected_2)
+                text = ansi(text, R.style_selected_2)
             else:
                 addr_str = ansi(addr_str, R.style_low)
-            out.append(format_string.format(addr_str, opcodes, mnem, ops))
+            out.append(format_string.format(addr_str, opcodes, text))
         return out
 
     def commands(self):
