@@ -117,8 +117,9 @@ class Dashboard(gdb.Command):
         dashboard.load_modules(modules)
         Dashboard.parse_inits(False)
         dashboard.init = False
-        # turn off pagination
+        # GDB override
         run('set pagination off')
+        run('alias -a db = dashboard')
 
     @staticmethod
     def update_term_width():
