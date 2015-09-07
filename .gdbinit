@@ -450,7 +450,8 @@ necessary). The current value is printed if the new value is not present."""
 class Source(Dashboard.Module):
     """Show the program source code, if available."""
 
-    context = 5
+    def __init__(self):
+        self.context = 5
 
     def label(self):
         return 'Source'
@@ -463,8 +464,8 @@ class Source(Dashboard.Module):
             return []
         # try to fetch the source code in the range
         try:
-            start = max(current_line - Source.context, 1)
-            end = current_line + Source.context
+            start = max(current_line - self.context, 1)
+            end = current_line + self.context
             source = run('list {},{}'.format(start, end)).split('\n')[:-1]
         except gdb.error:
             # e.g., start and end are in different *system* files; it is not
@@ -486,20 +487,22 @@ class Source(Dashboard.Module):
             out.append(line_format.format(number, code))
         return out
 
+    def set_context(self, arg):
+        msg = 'expecting a positive integer'
+        self.context = parse_value(arg, int, lambda x: x >= 0, msg)
+
     def commands(self):
-        def context(arg):
-            msg = 'expecting a positive integer'
-            Source.context = parse_value(arg, int, lambda x: x >= 0, msg)
-        return [('context', context, None,
+        return [('context', self.set_context, None,
                  'Set the number of context lines.')]
 
 class Assembly(Dashboard.Module):
     """Show the disassembled code surrounding the program counter. The
 instructions constituting the current statement are marked, if available."""
 
-    context = 3
-    show_opcodes = False
-    show_function = True
+    def __init__(self):
+        self.context = 3
+        self.show_opcodes = False
+        self.show_function = True
 
     def label(self):
         return 'Assembly'
@@ -517,8 +520,8 @@ instructions constituting the current statement are marked, if available."""
             # find the location of the PC
             pc_index = next(index for index, instr in enumerate(asm)
                             if instr['addr'] == frame.pc())
-            start = max(pc_index - Assembly.context, 0)
-            end = pc_index + Assembly.context + 1
+            start = max(pc_index - self.context, 0)
+            end = pc_index + self.context + 1
             asm = asm[start:end]
             # if there are line information then use it, it may be that
             # line_info is not None but line_info.last is None
@@ -527,10 +530,10 @@ instructions constituting the current statement are marked, if available."""
         except gdb.error:
             # if it is not possible (stripped binary) start from PC and end
             # after a fixed number of instructions
-            asm = disassemble(frame.pc(), count=Assembly.context)
+            asm = disassemble(frame.pc(), count=self.context)
         # fetch function start if available
         func_start = None
-        if Assembly.show_function and frame.name():
+        if self.show_function and frame.name():
             try:
                 value = gdb.parse_and_eval(frame.name()).address
                 func_start = to_unsigned(value)
@@ -545,7 +548,7 @@ instructions constituting the current statement are marked, if available."""
             length = instr['length']
             text = instr['asm']
             addr_str = format_address(addr)
-            if Assembly.show_opcodes:
+            if self.show_opcodes:
                 # fetch and format opcode
                 region = inferior.read_memory(addr, length)
                 opcodes = (' '.join('{:02x}'.format(ord(byte))
@@ -554,7 +557,7 @@ instructions constituting the current statement are marked, if available."""
             else:
                 opcodes = ''
             # compute the offset if available
-            if Assembly.show_function:
+            if self.show_function:
                 if func_start:
                     max_offset = len(str(asm[-1]['addr'] - func_start))
                     offset = str(addr - func_start).ljust(max_offset)
@@ -580,28 +583,32 @@ instructions constituting the current statement are marked, if available."""
             out.append(format_string.format(addr_str, opcodes, func_info, text))
         return out
 
+    def set_context(self, arg):
+        msg = 'expecting a positive integer'
+        self.context = parse_value(arg, int, lambda x: x >= 0, msg)
+
+    def set_show_opcodes(self, arg):
+        self.show_opcodes = parse_on_off(arg, self.show_opcodes)
+
+    def set_show_function(self, arg):
+        self.show_function = parse_on_off(arg, self.show_function)
+
     def commands(self):
-        def context(arg):
-            msg = 'expecting a positive integer'
-            Assembly.context = parse_value(arg, int, lambda x: x >= 0, msg)
-        def show_opcodes(arg):
-            Assembly.show_opcodes = parse_on_off(arg, Assembly.show_opcodes)
-        def show_function(arg):
-            Assembly.show_function = parse_on_off(arg, Assembly.show_function)
-        return [('context', context, None,
+        return [('context', self.set_context, None,
                  'Set the number of context instructions.'),
-                ('opcodes', show_opcodes, None,
+                ('opcodes', self.set_show_opcodes, None,
                  'Toggle or control opcodes visibility [on|off].'),
-                ('function', show_function, None,
+                ('function', self.set_show_function, None,
                  'Toggle or control function information visibility [on|off].')]
 
 class Stack(Dashboard.Module):
     """Show the current stack trace including the function name and the file
 location, if available. Optionally list the frame arguments and locals too."""
 
-    show_arguments = True
-    show_locals = False
-    frame_limit = 2
+    def __init__(self):
+        self.show_arguments = True
+        self.show_locals = False
+        self.frame_limit = 2
 
     def label(self):
         return 'Stack'
@@ -636,14 +643,14 @@ location, if available. Optionally list the frame arguments and locals too."""
             lines.append(info)
             # fetch frame arguments and locals
             decorator = gdb.FrameDecorator.FrameDecorator(frame)
-            if Stack.show_arguments:
+            if self.show_arguments:
                 frame_args = decorator.frame_args()
                 args_lines = self.fetch_frame_info(frame, frame_args, 'arg')
                 if args_lines:
                     lines.extend(args_lines)
                 else:
                     lines.append(ansi('(no arguments)', R.style_low))
-            if Stack.show_locals:
+            if self.show_locals:
                 frame_locals = decorator.frame_locals()
                 locals_lines = self.fetch_frame_info(frame, frame_locals, 'loc')
                 if locals_lines:
@@ -654,7 +661,7 @@ location, if available. Optionally list the frame arguments and locals too."""
             frame = frame.older()
             number += 1
             # apply the limit
-            if Stack.frame_limit and number >= Stack.frame_limit:
+            if self.frame_limit and number >= self.frame_limit:
                 if frame:
                     lines.append('[{}]'.format(ansi('+', R.style_selected_2)))
                 break
@@ -669,26 +676,30 @@ location, if available. Optionally list the frame arguments and locals too."""
             lines.append('{} {} = {}'.format(prefix, name, value))
         return lines
 
+    def set_show_arguments(self, arg):
+        self.show_arguments = parse_on_off(arg, self.show_arguments)
+
+    def set_show_locals(self, arg):
+        self.show_locals = parse_on_off(arg, self.show_locals)
+
+    def set_frame_limit(self, arg):
+        msg = 'expecting a positive integer'
+        self.frame_limit = parse_value(arg, int, lambda x: x >= 0, msg)
+
     def commands(self):
-        def show_arguments(arg):
-            Stack.show_arguments = parse_on_off(arg, Stack.show_arguments)
-        def show_locals(arg):
-            Stack.show_locals = parse_on_off(arg, Stack.show_locals)
-        def frame_limit(arg):
-            msg = 'expecting a positive integer'
-            Stack.frame_limit = parse_value(arg, int, lambda x: x >= 0, msg)
-        return [('arguments', show_arguments, None,
+        return [('arguments', self.set_show_arguments, None,
                  'Toggle or control frame arguments visibility [on|off].'),
-                ('locals', show_locals, None,
+                ('locals', self.set_show_locals, None,
                  'Toggle or control frame locals visibility [on|off].'),
-                ('limit', frame_limit, None,
+                ('limit', self.set_frame_limit, None,
                  'Set the maximum number of displayed frames.\n'
                  'Zero means no limit.')]
 
 class History(Dashboard.Module):
     """List the last entries of the value history."""
 
-    length = 3
+    def __init__(self):
+        self.length = 3
 
     def label(self):
         return 'History'
@@ -696,7 +707,7 @@ class History(Dashboard.Module):
     def lines(self):
         out = []
         # fetch last entries
-        for i in range(-History.length + 1, 1):
+        for i in range(-self.length + 1, 1):
             try:
                 value = gdb.history(i)
                 value_id = ansi('$${}', R.style_low).format(abs(i))
@@ -706,33 +717,16 @@ class History(Dashboard.Module):
                 continue
         return out
 
+    def set_length(self, arg):
+        msg = 'expecting a positive integer'
+        History.length = parse_value(arg, int, lambda x: x >= 0, msg)
+
     def commands(self):
-        def length(arg):
-            msg = 'expecting a positive integer'
-            History.length = parse_value(arg, int, lambda x: x >= 0, msg)
-        return [('length', length, None,
+        return [('length', self.set_length, None,
                  'Set the max number of values to show.')]
 
 class Memory(Dashboard.Module):
     """Allow to inspect memory regions."""
-
-    row_length = 16
-
-    @staticmethod
-    def format_memory(start, memory):
-        out = []
-        for i in range(0, len(memory), Memory.row_length):
-            region = memory[i:i + Memory.row_length]
-            pad = Memory.row_length - len(region)
-            address = format_address(start + i)
-            hexa = (' '.join('{:02x}'.format(ord(byte)) for byte in region))
-            text = (''.join(Memory.format_byte(byte) for byte in region))
-            out.append('{} {}{} {}{}'.format(ansi(address, R.style_low),
-                                             hexa,
-                                             ansi(pad * ' --', R.style_low),
-                                             ansi(text, R.style_high),
-                                             ansi(pad * '.', R.style_low)))
-        return out
 
     @staticmethod
     def format_byte(byte):
@@ -750,7 +744,23 @@ class Memory(Dashboard.Module):
         return to_unsigned(value)
 
     def __init__(self):
+        self.row_length = 16
         self.table = {}
+
+    def format_memory(self, start, memory):
+        out = []
+        for i in range(0, len(memory), self.row_length):
+            region = memory[i:i + self.row_length]
+            pad = self.row_length - len(region)
+            address = format_address(start + i)
+            hexa = (' '.join('{:02x}'.format(ord(byte)) for byte in region))
+            text = (''.join(Memory.format_byte(byte) for byte in region))
+            out.append('{} {}{} {}{}'.format(ansi(address, R.style_low),
+                                             hexa,
+                                             ansi(pad * ' --', R.style_low),
+                                             ansi(text, R.style_high),
+                                             ansi(pad * '.', R.style_low)))
+        return out
 
     def label(self):
         return 'Memory'
@@ -761,7 +771,7 @@ class Memory(Dashboard.Module):
         for address, length in self.table.items():
             try:
                 memory = inferior.read_memory(address, length)
-                out.extend(Memory.format_memory(address, memory))
+                out.extend(self.format_memory(address, memory))
             except gdb.error:
                 msg = 'Cannot access {} bytes starting at {}'
                 msg = msg.format(length, format_address(address))
@@ -772,28 +782,31 @@ class Memory(Dashboard.Module):
             del out[-1]
         return out
 
+    def watch(self, arg):
+        address, _, length = arg.partition(' ')
+        address = Memory.parse_as_address(address)
+        if length:
+            length = Memory.parse_as_address(length)
+        else:
+            length = self.row_length
+        self.table[address] = length
+
+    def unwatch(self, arg):
+        try:
+            del self.table[Memory.parse_as_address(arg)]
+        except KeyError:
+            raise Exception('Memory region not watched')
+
+    def clear(self, arg):
+        self.table.clear()
+
     def commands(self):
-        def watch(arg):
-            address, _, length = arg.partition(' ')
-            address = Memory.parse_as_address(address)
-            if length:
-                length = Memory.parse_as_address(length)
-            else:
-                length = Memory.row_length
-            self.table[address] = length
-        def unwatch(arg):
-            try:
-                del self.table[Memory.parse_as_address(arg)]
-            except KeyError:
-                raise Exception('Memory region not watched')
-        def clear(arg):
-            self.table.clear()
-        return [('watch', watch, gdb.COMPLETE_EXPRESSION,
+        return [('watch', self.watch, gdb.COMPLETE_EXPRESSION,
                  'Watch a memory region given its address and its length.\n'
                  'The length defaults to 16 byte.'),
-                ('unwatch', unwatch, gdb.COMPLETE_EXPRESSION,
+                ('unwatch', self.unwatch, gdb.COMPLETE_EXPRESSION,
                  'Stop watching a memory region given its address.'),
-                ('clear', clear, None,
+                ('clear', self.clear, None,
                  'Clear all the watched regions.')]
 
 class Registers(Dashboard.Module):
