@@ -270,11 +270,11 @@ class Dashboard(gdb.Command):
             self.instance = module()
             self.doc = self.instance.__doc__ or '(no documentation)'
             # add GDB commands
-            self.has_sub_commands = ('commands' in dir(self.instance))
+            self.has_subcommands = ('commands' in dir(self.instance))
             self.add_main_command(dashboard)
-            if self.has_sub_commands:
+            if self.has_subcommands:
                 for command in self.instance.commands():
-                    self.add_sub_commands(dashboard, command)
+                    self.add_subcommand(dashboard, command)
 
         def add_main_command(self, dashboard):
             module = self
@@ -293,9 +293,9 @@ class Dashboard(gdb.Command):
             doc_extended = 'Toggle the module visibility.'
             doc = '{}\n{}\n\n{}'.format(doc_brief, doc_extended, self.doc)
             prefix = 'dashboard {}'.format(self.name)
-            Dashboard.create_command(prefix, invoke, doc, self.has_sub_commands)
+            Dashboard.create_command(prefix, invoke, doc, self.has_subcommands)
 
-        def add_sub_commands(self, dashboard, command):
+        def add_subcommand(self, dashboard, command):
             name, action, complete, doc = command
             def invoke(self, arg, from_tty, info=self):
                 arg = Dashboard.parse_arg(arg)
