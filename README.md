@@ -1,0 +1,375 @@
+GDB dashboard
+=============
+
+Modular visual interface for GDB in Python.
+
+This comes as a standalone single-file `.gdbinit` which, among the other things,
+enables a configurable dashboard showing the most relevant information during
+the program execution. Its main goal is to reduce the number of GDB commands
+issued to inspect the current program status allowing the programmer to focus on
+the control flow instead.
+
+Screenshot
+----------
+
+![Screenshot](TODO)
+
+Features
+--------
+
+ * Interaction with GDB using the native [Python API][api].
+
+ * Several default modules are included to address the most basic
+   needs: source code, assembly, registers, etc.).
+
+ * User-defined modules can be easily developed by extending the
+   [proper Python class](#custom-modules).
+
+ * Additional configuration files (both [GDB][commands] and Python) are read
+   from `~/.gdbinit.d/`.
+
+ * Fully stylable user interface and dynamic command prompt.
+
+ * No GDB command has been redefined, instead all the
+   features are available as subcommands of the main `dashboard` command.
+
+Installation
+------------
+
+Just place `.gdbinit` in your home directory, for example:
+
+    cd; wget https://raw.githubusercontent.com/cyrus-and/gdb-dashboard/master/.gdbinit
+
+Default modules
+---------------
+
+Follows the list of bundled default modules. Refer to the GDB help system for
+the full syntax.
+
+ * `assembly`
+
+    Show the disassembled code surrounding the program counter. The instructions
+    constituting the current statement are marked, if available.
+
+ * `history`
+
+    List the last entries of the value history.
+
+ * `memory`
+
+    Allow to inspect memory regions.
+
+ * `registers`
+
+    Show the CPU registers and their values.
+
+ * `source`
+
+    Show the program source code, if available.
+
+ * `stack`
+
+    Show the current stack trace including the function name and the file
+    location, if available. Optionally list the frame arguments and locals too.
+
+Commands
+--------
+
+The GDB documentation is available at `help dashboard`. Just like any GDB
+command, abbreviations are possible. Moreover, the alias `db` resolves to
+`dashboard`.
+
+### dashboard
+
+This is the root command and it is used to manually redisplay the dashboard.
+
+### dashboard -enabled [on|off]
+
+Enable or disable the automatic display of the dashboard whenever the target
+program stops. The dashboard is enabled by default and even when it is disabled,
+it can be manually displayed with `dashboard`.
+
+### dashboard -layout [`<directive>`...]
+
+By default, all the modules are enabled and placed within the dashboard in
+alphabetical order. As the number of modules grows, it is important to decide
+which modules will be part of the dashboard, and where.
+
+Each directive is in the form `[!]<module>`, when the `!` is present then the
+corresponding module is enabled by default. The order of directives denotes the
+display order within the dashboard. For example:
+
+    dashboard -layout !source assembly !stack
+
+Modules which do not appear in the list are disabled and placed after the last
+element in alphabetical order.
+
+When executed without arguments, this command lists all the available modules.
+
+### dashboard -style `<name>` [`<value>`]
+
+Access to the stylable attributes of the dashboard, see [Stylable
+attributes](stylable-attributes). For example, to change the prompt to something
+more familiar:
+
+    dashboard -style prompt (gdb)
+
+Note that no quotation mechanism is present, strings are treated verbatim by
+GDB. When only the name is specified this command shows the current value.
+
+### Modules subcommands
+
+Every module adds its own subcommand `dashboard <module>` which is used to
+toggle the enable flag and to redisplay the dashboard.
+
+Modules may also declare additional subcommands, see `help dashboard <module>`
+from GDB.
+
+Configuration
+-------------
+
+Files in `~/.gdbinit.d/` are executed in alphabetical order, but the preference
+is given to Python files. If there are subdirectories, they are walked
+recursively. The idea is to keep separated the custom modules definition from
+the configuration itself.
+
+The main configuration file can be placed in `~/.gdbinit.d/` (say
+`~/.gdbinit.d/init`) and should be used to tune the dashboard styles and modules
+configuration but also the usual GDB parameters.
+
+The alternative is to hard code changes in the provided `.gdbinit`, to do so
+just add new modules and GDB settings under `# Default modules` and `# Better
+GDB defaults` respectively.
+
+Stylable attributes
+-------------------
+
+There is number of attributes that can be used to customize the aspect of the
+dashboard.
+
+Colors and text styles are specified using [ANSI][ansi] escape codes. For
+example setting a style to `1;31` will produce `^[[1;31m`, which will result in
+displaying the text red (`31`) and bright (`1`).
+
+### Miscellaneous
+
+ * `no_ansi`
+
+    When set to `0` (default) enables [ANSI][ansi] output. The command prompt,
+    however, is unaffected.
+
+### Prompt
+
+ * `prompt`
+
+    GDB command prompt. This value is parsed as a [Python format string][format]
+    and the following optional field names are available:
+
+     * `status` is expanded with the substitution of either `prompt_running` or
+       `prompt_not_running`, according to the target program status.
+
+    The resulting string must be a valid [GDB prompt][prompt]. For example:
+
+        dashboard -style prompt {status}:
+        dashboard -style prompt_running R
+        dashboard -style prompt_not_running S
+
+ * `prompt_running`
+
+    Value of `status` (see the `prompt` attribute) when the target program is
+    running. This value is parsed as a [Python format string][format] and the
+    following optional field names are available:
+
+     * `pid` is expanded with the process identifier of the target program.
+
+ * `prompt_not_running`
+
+    Value of `status` (see the `prompt` attribute) when the target program is
+    not running.
+
+### Dividers
+
+A divider is basically a terminal-wide horizontal line with an optional label. A
+left-aligned divider will look like:
+
+    >   < skip
+     --- Label ----------[...]
+             > < margin
+    - = filling character
+
+Primary dividers are those used to separate the modules, whereas secondary
+dividers may be used inside modules to logically separate different sections.
+When a section or module is empty then the style is set to `off`.
+
+Dividers are used in several places and these are the styles controlling their
+appearance.
+
+ * `divider_fill_char_primary`
+   `divider_fill_char_secondary`
+
+    Single character used to fill the empty space around the label.
+
+ * `divider_fill_style_primary`
+   `divider_fill_style_secondary`
+
+    Style of the filling character.
+
+ * `divider_label_style_on_primary`
+   `divider_label_style_on_secondary`
+   `divider_label_style_off_primary`
+   `divider_label_style_off_secondary`
+
+    Style of the text label.
+
+ * `divider_label_skip`
+
+    Number of characters between the aligning border and the label.
+
+ * `divider_label_margin`
+
+    Number of spaces around the label.
+
+ * `divider_label_align_right`
+
+    When set to `0` (default) the title is aligned to left.
+
+### Common styles
+
+These are general purpose [ANSI][ansi] styles defined for convenience and used
+within the default modules.
+
+ * `style_selected_1`
+ * `style_selected_2`
+ * `style_low`
+ * `style_high`
+ * `style_error`
+
+Custom modules
+--------------
+
+The idea of custom modules is that they provide ways to access readonly
+information from the the target program status; it is safe to assume that they
+will be queried during the program execution only.
+
+Custom modules must inherit the `Dashboard.Module` class and define some
+methods:
+
+ * `label`
+
+    Return the module label which will appear in the divider.
+
+ * `lines`
+
+    Return a list of strings which will form the module content. When a module
+    is temporarily unable to produce its content, it should return an empty
+    list; its divider will then use the `off` style.
+
+The name of a module is automatically obtained by the class name.
+
+Modules are instantiated once at initialization time and kept during the whole
+the GDB session.
+
+Optionally, a module may include a description which will appear in the GDB help
+system by specifying a Python docstring for the class.
+
+Optionally, a module may declare subcommands by defining the `commands` method
+returning a list of tuples:
+
+ 1. Name of the subcommand.
+
+ 2. Callback to be executed accepting the raw input string from the prompt.
+    Callbacks may raise exceptions to notify erroneous situations which message
+    will be shown automatically to the user.
+
+ 3. Completion policy, one of the `gdb.COMPLETE_*` constants defined in the
+    [reference manual][completion] (`None` is equivalent to
+    `gdb.COMPLETE_NONE`).
+
+ 4. Command documentation.
+
+### Common functions
+
+A number of auxiliary common functions are defined in the global scope, they can
+be found in the provided `.gdbinit` and concern topics like [ANSI][ansi] output,
+divider formatting etc. They should be more or less self-documented, some usage
+examples can be found within the bundled default modules.
+
+### Example
+
+Default modules already provide a good example, but here is a simple module
+which may be used as a template for new custom modules, it allows the programmer
+to note down some snippets of text during the debugging session.
+
+
+```python
+class Notes(Dashboard.Module):
+    """Simple user-defined notes."""
+
+    def __init__(self):
+        self.notes = []
+
+    def label(self):
+        return 'Notes'
+
+    def lines(self):
+        out = []
+        for note in self.notes:
+            out.append(note)
+            out.append(divider())
+        return out[:-1]
+
+    def add(self, arg):
+        if arg:
+            self.notes.append(arg)
+        else:
+            raise Exception('Cannot add an empty note')
+
+    def clear(self, arg):
+        self.notes = []
+
+    def commands(self):
+        return [('add', self.add, None, 'Add a note.'),
+                ('clear', self.clear, None, 'Remove all the notes.')]
+```
+
+To use the above just save it in a Python file, say `notes.py`, inside
+`~/.gdbinit.d/`, the the following commands (together with the help) will be
+available:
+
+    dashboard notes
+    dashboard notes add <text>
+    dashboard notes clear
+
+Resources
+---------
+
+* [GDB Python API][api]
+
+License
+-------
+
+Copyright (c) 2015 Andrea Cardaci <cyrus.and@gmail.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+[api]: https://sourceware.org/gdb/onlinedocs/gdb/Python-API.html
+[commands]: https://sourceware.org/gdb/onlinedocs/gdb/Command-Files.html
+[ansi]: https://en.wikipedia.org/wiki/ANSI_escape_code
+[format]: https://docs.python.org/2/library/string.html#format-string-syntax
+[prompt]: https://sourceware.org/gdb/onlinedocs/gdb/gdb_002eprompt.html
+[completion]: https://sourceware.org/gdb/onlinedocs/gdb/Commands-In-Python.html
