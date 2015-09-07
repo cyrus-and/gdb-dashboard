@@ -13,13 +13,13 @@ class R():
 
     no_ansi = '0'
 
-    divider_fill_style_primary = '36'
     divider_fill_char_primary = '─'
-    divider_fill_style_secondary = '1;30'
     divider_fill_char_secondary = '─'
+    divider_fill_style_primary = '36'
+    divider_fill_style_secondary = '1;30'
     divider_label_style_on_primary = '1;33'
-    divider_label_style_off_primary = '33'
     divider_label_style_on_secondary = '0'
+    divider_label_style_off_primary = '33'
     divider_label_style_off_secondary = '1;30'
     divider_label_skip = '3'
     divider_label_margin = '1'
