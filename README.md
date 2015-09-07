@@ -273,19 +273,18 @@ Optionally, a module may include a description which will appear in the GDB help
 system by specifying a Python docstring for the class.
 
 Optionally, a module may declare subcommands by defining the `commands` method
-returning a list of tuples:
+returning a dictionary in which the key is the command name and the value is a
+tuple:
 
- 1. Name of the subcommand.
-
- 2. Callback to be executed accepting the raw input string from the prompt.
+ 1. Callback to be executed accepting the raw input string from the prompt.
     Callbacks may raise exceptions to notify erroneous situations which message
     will be shown automatically to the user.
 
- 3. Completion policy, one of the `gdb.COMPLETE_*` constants defined in the
+ 2. Completion policy, one of the `gdb.COMPLETE_*` constants defined in the
     [reference manual][completion] (`None` is equivalent to
     `gdb.COMPLETE_NONE`).
 
- 4. Command documentation.
+ 3. Command documentation.
 
 ### Common functions
 
@@ -328,8 +327,10 @@ class Notes(Dashboard.Module):
         self.notes = []
 
     def commands(self):
-        return [('add', self.add, None, 'Add a note.'),
-                ('clear', self.clear, None, 'Remove all the notes.')]
+        return {
+            'add': (self.add, None, 'Add a note.'),
+            'clear': (self.clear, None, 'Remove all the notes.')
+        }
 ```
 
 To use the above just save it in a Python file, say `notes.py`, inside

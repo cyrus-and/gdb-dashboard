@@ -276,8 +276,8 @@ class Dashboard(gdb.Command):
             self.has_subcommands = ('commands' in dir(self.instance))
             self.add_main_command(dashboard)
             if self.has_subcommands:
-                for command in self.instance.commands():
-                    self.add_subcommand(dashboard, command)
+                for name, command in self.instance.commands().items():
+                    self.add_subcommand(dashboard, name, command)
 
         def add_main_command(self, dashboard):
             module = self
@@ -298,8 +298,8 @@ class Dashboard(gdb.Command):
             prefix = 'dashboard {}'.format(self.name)
             Dashboard.create_command(prefix, invoke, doc, self.has_subcommands)
 
-        def add_subcommand(self, dashboard, command):
-            name, action, complete, doc = command
+        def add_subcommand(self, dashboard, name, command):
+            action, complete, doc = command
             def invoke(self, arg, from_tty, info=self):
                 arg = Dashboard.parse_arg(arg)
                 if dashboard.init or info.enabled:
@@ -500,8 +500,12 @@ class Source(Dashboard.Module):
         self.context = parse_value(arg, int, lambda x: x >= 0, msg)
 
     def commands(self):
-        return [('context', self.set_context, None,
-                 'Set the number of context lines.')]
+        return {
+            'context': (
+                self.set_context, None,
+                'Set the number of context lines.'
+            )
+        }
 
 class Assembly(Dashboard.Module):
     """Show the disassembled code surrounding the program counter. The
@@ -602,12 +606,20 @@ instructions constituting the current statement are marked, if available."""
         self.show_function = parse_on_off(arg, self.show_function)
 
     def commands(self):
-        return [('context', self.set_context, None,
-                 'Set the number of context instructions.'),
-                ('opcodes', self.set_show_opcodes, None,
-                 'Toggle or control opcodes visibility [on|off].'),
-                ('function', self.set_show_function, None,
-                 'Toggle or control function information visibility [on|off].')]
+        return {
+            'context': (
+                self.set_context, None,
+                'Set the number of context instructions.'
+            ),
+            'opcodes': (
+                self.set_show_opcodes, None,
+                'Toggle or control opcodes visibility [on|off].'
+            ),
+            'function': (
+                self.set_show_function, None,
+                'Toggle or control function information visibility [on|off].'
+            )
+        }
 
 class Stack(Dashboard.Module):
     """Show the current stack trace including the function name and the file
@@ -695,13 +707,21 @@ location, if available. Optionally list the frame arguments and locals too."""
         self.frame_limit = parse_value(arg, int, lambda x: x >= 0, msg)
 
     def commands(self):
-        return [('arguments', self.set_show_arguments, None,
-                 'Toggle or control frame arguments visibility [on|off].'),
-                ('locals', self.set_show_locals, None,
-                 'Toggle or control frame locals visibility [on|off].'),
-                ('limit', self.set_frame_limit, None,
-                 'Set the maximum number of displayed frames.\n'
-                 'Zero means no limit.')]
+        return {
+            'arguments': (
+                self.set_show_arguments, None,
+                'Toggle or control frame arguments visibility [on|off].'
+            ),
+            'locals': (
+                self.set_show_locals, None,
+                'Toggle or control frame locals visibility [on|off].'
+            ),
+            'limit': (
+                self.set_frame_limit, None,
+                'Set the maximum number of displayed frames.\n'
+                'Zero means no limit.'
+            )
+        }
 
 class History(Dashboard.Module):
     """List the last entries of the value history."""
@@ -730,8 +750,12 @@ class History(Dashboard.Module):
         History.length = parse_value(arg, int, lambda x: x >= 0, msg)
 
     def commands(self):
-        return [('length', self.set_length, None,
-                 'Set the max number of values to show.')]
+        return {
+            'length': (
+                self.set_length, None,
+                'Set the max number of values to show.'
+            )
+        }
 
 class Memory(Dashboard.Module):
     """Allow to inspect memory regions."""
@@ -809,13 +833,21 @@ class Memory(Dashboard.Module):
         self.table.clear()
 
     def commands(self):
-        return [('watch', self.watch, gdb.COMPLETE_EXPRESSION,
-                 'Watch a memory region given its address and its length.\n'
-                 'The length defaults to 16 byte.'),
-                ('unwatch', self.unwatch, gdb.COMPLETE_EXPRESSION,
-                 'Stop watching a memory region given its address.'),
-                ('clear', self.clear, None,
-                 'Clear all the watched regions.')]
+        return {
+            'watch': (
+                self.watch, gdb.COMPLETE_EXPRESSION,
+                'Watch a memory region given its address and its length.\n'
+                'The length defaults to 16 byte.'
+            ),
+            'unwatch': (
+                self.unwatch, gdb.COMPLETE_EXPRESSION,
+                'Stop watching a memory region given its address.'
+            ),
+            'clear': (
+                self.clear, None,
+                'Clear all the watched regions.'
+            )
+        }
 
 class Registers(Dashboard.Module):
     """Show the CPU registers and their values."""
