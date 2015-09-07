@@ -7,7 +7,7 @@ import subprocess
 
 class R():
 
-    prompt = '{status} '
+    prompt = '{status}'
     prompt_running = '\[\e[1;35m\]>>>\[\e[0m\]'
     prompt_not_running = '\[\e[1;30m\]>>>\[\e[0m\]'
 
@@ -137,7 +137,8 @@ class Dashboard(gdb.Command):
                 status = R.prompt_not_running
             # build prompt
             prompt = R.prompt.format(status=status)
-            return gdb.prompt.substitute_prompt(prompt)
+            prompt = gdb.prompt.substitute_prompt(prompt)
+            return prompt + ' '  # force trailing space
         gdb.prompt_hook = custom_prompt
 
     @staticmethod
