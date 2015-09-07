@@ -108,6 +108,73 @@ def format_address(address):
 class Dashboard(gdb.Command):
     """Redisplay the dashboard."""
 
+    def __init__(self):
+        gdb.Command.__init__(self, 'dashboard',
+                             gdb.COMMAND_USER, gdb.COMPLETE_NONE, True)
+        self.enabled = True
+        # setup subcommands
+        Dashboard.EnabledCommand(self)
+        Dashboard.LayoutCommand(self)
+        Dashboard.StyleCommand()
+        # setup events
+        gdb.events.cont.connect(lambda _: self.on_continue())
+        gdb.events.stop.connect(lambda _: self.on_stop())
+        gdb.events.exited.connect(lambda _: self.on_exit())
+
+    def on_continue(self):
+        if self.enabled and self.is_running():
+            os.system('clear')
+            print(divider('Output/messages', True))
+        self.pre_display = False
+
+    def on_stop(self):
+        if self.enabled and self.is_running():
+            self.display()
+
+    def on_exit(self):
+        pass
+
+    def load_modules(self, modules):
+        self.modules = []
+        for module in modules:
+            info = Dashboard.ModuleInfo(self, module)
+            self.modules.append(info)
+
+    def redisplay(self):
+        if not self.init and self.is_running():
+            os.system('clear')
+            self.display()
+
+    def inferior_pid(self):
+        return gdb.selected_inferior().pid
+
+    def is_running(self):
+        return self.inferior_pid() != 0
+
+    def display(self):
+        Dashboard.update_term_width()
+        # fetch lines
+        lines = []
+        for module in self.modules:
+            if not module.enabled:
+                continue
+            module = module.instance
+            # active if more than zero lines
+            module_lines = module.lines()
+            lines.append(divider(module.label(), True, module_lines))
+            lines.extend(module_lines)
+        if len(lines) == 0:
+            lines.append(divider('Error', True))
+            if len(self.modules) == 0:
+                lines.append('No module loaded')
+            else:
+                lines.append('No module to display (see `help dashboard`)')
+        lines.append(divider(primary=True))
+        # print the dashboard
+        print('\n'.join(lines))
+
+# Utility methods --------------------------------------------------------------
+
     @staticmethod
     def start():
         # initialize the dashboard
@@ -194,71 +261,6 @@ class Dashboard(gdb.Command):
         if type(arg) is not str:
             arg = arg.encode('utf8')
         return arg
-
-    def __init__(self):
-        gdb.Command.__init__(self, 'dashboard',
-                             gdb.COMMAND_USER, gdb.COMPLETE_NONE, True)
-        self.enabled = True
-        # setup subcommands
-        Dashboard.EnabledCommand(self)
-        Dashboard.LayoutCommand(self)
-        Dashboard.StyleCommand()
-        # setup events
-        gdb.events.cont.connect(lambda _: self.on_continue())
-        gdb.events.stop.connect(lambda _: self.on_stop())
-        gdb.events.exited.connect(lambda _: self.on_exit())
-
-    def on_continue(self):
-        if self.enabled and self.is_running():
-            os.system('clear')
-            print(divider('Output/messages', True))
-        self.pre_display = False
-
-    def on_stop(self):
-        if self.enabled and self.is_running():
-            self.display()
-
-    def on_exit(self):
-        pass
-
-    def load_modules(self, modules):
-        self.modules = []
-        for module in modules:
-            info = Dashboard.ModuleInfo(self, module)
-            self.modules.append(info)
-
-    def redisplay(self):
-        if not self.init and self.is_running():
-            os.system('clear')
-            self.display()
-
-    def inferior_pid(self):
-        return gdb.selected_inferior().pid
-
-    def is_running(self):
-        return self.inferior_pid() != 0
-
-    def display(self):
-        Dashboard.update_term_width()
-        # fetch lines
-        lines = []
-        for module in self.modules:
-            if not module.enabled:
-                continue
-            module = module.instance
-            # active if more than zero lines
-            module_lines = module.lines()
-            lines.append(divider(module.label(), True, module_lines))
-            lines.extend(module_lines)
-        if len(lines) == 0:
-            lines.append(divider('Error', True))
-            if len(self.modules) == 0:
-                lines.append('No module loaded')
-            else:
-                lines.append('No module to display (see `help dashboard`)')
-        lines.append(divider(primary=True))
-        # print the dashboard
-        print('\n'.join(lines))
 
 # Module descriptor ------------------------------------------------------------
 
