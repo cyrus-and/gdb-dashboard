@@ -417,8 +417,8 @@ current layout is shown; enabled and disabled modules are properly marked."""
 
     class StyleCommand(gdb.Command):
         """Set or show style attributes.
-The first argument is the name and the second is the value (no quotes are
-necessary). The current value is printed if the new value is not present."""
+The first argument is the name and the second is the value. The current value is
+printed if the new value is not present."""
 
         def __init__(self):
             gdb.Command.__init__(self, 'dashboard -style', gdb.COMMAND_USER)
