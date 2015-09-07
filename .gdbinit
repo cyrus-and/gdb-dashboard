@@ -115,7 +115,8 @@ class Dashboard(gdb.Command):
         # setup subcommands
         Dashboard.EnabledCommand(self)
         Dashboard.LayoutCommand(self)
-        Dashboard.StyleCommand()
+        styles = (style for style in dir(R) if not style.startswith('__'))
+        Dashboard.StyleCommand('dashboard', R, styles)
         # setup events
         gdb.events.cont.connect(lambda _: self.on_continue())
         gdb.events.stop.connect(lambda _: self.on_stop())
@@ -422,28 +423,29 @@ current layout is shown; enabled and disabled modules are properly marked."""
 The first argument is the name and the second is the value. The current value is
 printed if the new value is not present."""
 
-        def __init__(self):
-            gdb.Command.__init__(self, 'dashboard -style', gdb.COMMAND_USER)
+        def __init__(self, prefix, obj, attrs):
+            gdb.Command.__init__(self, prefix + ' -style', gdb.COMMAND_USER)
+            self.obj = obj
+            self.attrs = list(attrs)  # must flatten if generator
 
         def invoke(self, arg, from_tty):
             arg = Dashboard.parse_arg(arg)
             name, _, value = arg.partition(' ')
-            if name in dir(R):
+            if name in self.attrs:
                 if value:
-                    setattr(R, name, value)
+                    setattr(self.obj, name, value)
                 else:
-                    value = getattr(R, name)
+                    value = getattr(self.obj, name)
                     print('{} = {}'.format(name, value))
             else:
                 Dashboard.err('No style attribute "{}"'.format(name))
 
         def complete(self, text, word):
-            all_styles = (s for s in dir(R) if not s.startswith('__'))
             # for the first word only
             if ' ' in text:
                 return gdb.COMPLETE_NONE
             else:
-                return Dashboard.complete(word, all_styles)
+                return Dashboard.complete(word, self.attrs)
 
 # Base module ------------------------------------------------------------------
 
