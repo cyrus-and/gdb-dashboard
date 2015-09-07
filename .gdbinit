@@ -184,6 +184,13 @@ class Dashboard(gdb.Command):
                 matching.append(candidate)
         return matching
 
+    @staticmethod
+    def parse_arg(arg):
+        # encode unicode GDB command arguments as utf8 in Python 2.7
+        if type(arg) is not str:
+            arg = arg.encode('utf8')
+        return arg
+
     def __init__(self):
         gdb.Command.__init__(self, 'dashboard',
                              gdb.COMMAND_USER, gdb.COMPLETE_NONE, True)
@@ -268,6 +275,7 @@ class Dashboard(gdb.Command):
         def add_main_command(self, dashboard):
             module = self
             def invoke(self, arg, from_tty, info=self):
+                arg = Dashboard.parse_arg(arg)
                 if arg == '':
                     info.enabled ^= True
                     if dashboard.is_running():
@@ -286,6 +294,7 @@ class Dashboard(gdb.Command):
         def add_sub_commands(self, dashboard, command):
             name, action, complete, doc = command
             def invoke(self, arg, from_tty, info=self):
+                arg = Dashboard.parse_arg(arg)
                 if dashboard.init or info.enabled:
                     try:
                         action(arg)
@@ -302,6 +311,7 @@ class Dashboard(gdb.Command):
 # GDB commands -----------------------------------------------------------------
 
     def invoke(self, arg, from_tty):
+        arg = Dashboard.parse_arg(arg)
         if arg == '':
             if self.is_running():
                 self.redisplay()
@@ -319,6 +329,7 @@ The current status is printed if no argument is present."""
             self.dashboard = dashboard
 
         def invoke(self, arg, from_tty):
+            arg = Dashboard.parse_arg(arg)
             if arg == '':
                 status = 'enabled' if self.dashboard.enabled else 'disabled'
                 print('The dashboard is {}'.format(status))
@@ -347,6 +358,7 @@ current layout is shown; enabled and disabled modules are properly marked."""
             self.dashboard = dashboard
 
         def invoke(self, arg, from_tty):
+            arg = Dashboard.parse_arg(arg)
             directives = str(arg).split()
             if directives:
                 self.layout(directives)
@@ -408,6 +420,7 @@ necessary). The current value is printed if the new value is not present."""
             gdb.Command.__init__(self, 'dashboard -style', gdb.COMMAND_USER)
 
         def invoke(self, arg, from_tty):
+            arg = Dashboard.parse_arg(arg)
             name, _, value = arg.partition(' ')
             if name in dir(R):
                 if value:
