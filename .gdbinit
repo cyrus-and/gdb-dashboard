@@ -285,14 +285,16 @@ class Dashboard(gdb.Command):
         def add_sub_commands(self, dashboard, command):
             name, action, complete, doc = command
             def invoke(self, arg, from_tty, info=self):
-                try:
-                    if dashboard.init or info.enabled:
+                if dashboard.init or info.enabled:
+                    try:
                         action(arg)
-                        dashboard.redisplay()
-                    else:
-                        Dashboard.err('Module disabled')
-                except Exception as e:
-                    Dashboard.err(e)
+                    except Exception as e:
+                        Dashboard.err(e)
+                        return
+                    # don't catch redisplay errors
+                    dashboard.redisplay()
+                else:
+                    Dashboard.err('Module disabled')
             prefix = 'dashboard {} {}'.format(self.name, name)
             Dashboard.create_command(prefix, invoke, doc, False, complete)
 
