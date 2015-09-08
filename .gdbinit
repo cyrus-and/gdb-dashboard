@@ -417,56 +417,53 @@ current layout is shown; enabled and disabled modules are properly marked."""
             return Dashboard.complete(word, all_modules)
 
     class StyleCommand(gdb.Command):
-        """Set or show style attributes.
-The first argument is the name and the second is the value. If the new value is
-omitted then the current value is printed. Without arguments all the attributes
-are printed."""
+        """Access style attributes.
+Print all the stylable attributes."""
 
         def __init__(self, dashboard, prefix, obj, attributes):
-            gdb.Command.__init__(self, prefix + ' -style', gdb.COMMAND_USER)
+            self.prefix = prefix + ' -style'
+            gdb.Command.__init__(self, self.prefix,
+                                 gdb.COMMAND_USER, gdb.COMPLETE_NONE, True)
             self.dashboard = dashboard
             self.obj = obj
             self.attributes = attributes
+            self.add_styles()
+
+        def add_styles(self):
+            this = self
+            # create a command for each style
+            for name, attribute in self.attributes.items():
+                def invoke(self, arg, from_tty, name=name, attribute=attribute):
+                    new_value = Dashboard.parse_arg(arg)
+                    attr_name = attribute.get('name', name)
+                    attr_type = attribute.get('type', str)
+                    attr_check = attribute.get('check', lambda _: True)
+                    if new_value == '':
+                        # print the current value
+                        value = getattr(this.obj, attr_name)
+                        print('{} = {}'.format(name, value))
+                    else:
+                        try:
+                            # convert and check the new value
+                            value = attr_type(new_value)
+                            if not attr_check(value):
+                                msg = 'Invalid value "{}" for "{}"'
+                                raise Exception(msg.format(new_value, name))
+                            # set and redisplay
+                            setattr(this.obj, attr_name, value)
+                            this.dashboard.redisplay()
+                        except Exception as e:
+                            Dashboard.err(e)
+                prefix = self.prefix + ' ' + name
+                doc = 'Set or display the value of the attribute.'
+                Dashboard.create_command(prefix, invoke, doc, False)
 
         def invoke(self, arg, from_tty):
-            arg = Dashboard.parse_arg(arg)
-            name, _, new_value = arg.partition(' ')
-            if name in self.attributes:
-                attribute = self.attributes[name]
+            # print all the pairs
+            for name, attribute in self.attributes.items():
                 attr_name = attribute.get('name', name)
-                attr_type = attribute.get('type', str)
-                attr_check = attribute.get('check', lambda _: True)
-                if new_value:
-                    try:
-                        # convert and check the new value
-                        value = attr_type(new_value)
-                        if not attr_check(value):
-                            msg = 'Invalid value "{}" for "{}"'
-                            raise Exception(msg.format(new_value, name))
-                        # set and redisplay
-                        setattr(self.obj, attr_name, value)
-                        self.dashboard.redisplay()
-                    except Exception as e:
-                        Dashboard.err(e)
-                else:
-                    value = getattr(self.obj, attr_name)
-                    print('{} = {}'.format(name, value))
-            else:
-                if name:
-                    Dashboard.err('No style attribute "{}"'.format(name))
-                else:
-                    # print all the pairs
-                    for name, attribute in self.attributes.items():
-                        attr_name = attribute.get('name', name)
-                        value = getattr(self.obj, attr_name)
-                        print('{} = {}'.format(name, value))
-
-        def complete(self, text, word):
-            # for the first word only
-            if ' ' in text:
-                return gdb.COMPLETE_NONE
-            else:
-                return Dashboard.complete(word, self.attributes.keys())
+                value = getattr(self.obj, attr_name)
+                print('{} = {}'.format(name, value))
 
 # Base module ------------------------------------------------------------------
 
