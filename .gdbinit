@@ -7,33 +7,78 @@ python
 import os
 import subprocess
 
-# Default values ---------------------------------------------------------------
+# Common attributes ------------------------------------------------------------
 
 class R():
 
-    prompt = '{status}'
-    prompt_running = '\[\e[1;35m\]>>>\[\e[0m\]'
-    prompt_not_running = '\[\e[1;30m\]>>>\[\e[0m\]'
-
-    no_ansi = '0'
-
-    divider_fill_char_primary = '─'
-    divider_fill_char_secondary = '─'
-    divider_fill_style_primary = '36'
-    divider_fill_style_secondary = '1;30'
-    divider_label_style_on_primary = '1;33'
-    divider_label_style_on_secondary = '0'
-    divider_label_style_off_primary = '33'
-    divider_label_style_off_secondary = '1;30'
-    divider_label_skip = '3'
-    divider_label_margin = '1'
-    divider_label_align_right = '0'
-
-    style_selected_1 = '1;32'
-    style_selected_2 = '32'
-    style_low = '1;30'
-    style_high = '1;37'
-    style_error = '31'
+    @staticmethod
+    def attributes():
+        return {
+            # miscellaneous
+            'no_ansi': {
+                'default': '0'
+            },
+            # prompt
+            'prompt': {
+                'default': '{status}'
+            },
+            'prompt_running': {
+                'default': '\[\e[1;35m\]>>>\[\e[0m\]'
+            },
+            'prompt_not_running': {
+                'default': '\[\e[1;30m\]>>>\[\e[0m\]'
+            },
+            # divider
+            'divider_fill_char_primary': {
+                'default': '─'
+            },
+            'divider_fill_char_secondary': {
+                'default': '─'
+            },
+            'divider_fill_style_primary': {
+                'default': '36'
+            },
+            'divider_fill_style_secondary': {
+                'default': '1;30'
+            },
+            'divider_label_style_on_primary': {
+                'default': '1;33'
+            },
+            'divider_label_style_on_secondary': {
+                'default': '0'
+            },
+            'divider_label_style_off_primary': {
+                'default': '33'
+            },
+            'divider_label_style_off_secondary': {
+                'default': '1;30'
+            },
+            'divider_label_skip': {
+                'default': '3'
+            },
+            'divider_label_margin': {
+                'default': '1'
+            },
+            'divider_label_align_right': {
+                'default': '0'
+            },
+            # common styles
+            'style_selected_1': {
+                'default': '1;32'
+            },
+            'style_selected_2': {
+                'default': '32'
+            },
+            'style_low': {
+                'default': '1;30'
+            },
+            'style_high': {
+                'default': '1;37'
+            },
+            'style_error': {
+                'default': '31'
+            }
+        }
 
 # Common -----------------------------------------------------------------------
 
@@ -104,10 +149,8 @@ class Dashboard(gdb.Command):
         # setup subcommands
         Dashboard.EnabledCommand(self)
         Dashboard.LayoutCommand(self)
-        # setup style commands (no conversions and no checks)
-        styles = (style for style in dir(R) if not style.startswith('__'))
-        attributes = {style: {'default': getattr(R, style)} for style in styles}
-        Dashboard.StyleCommand(self, 'dashboard', R, attributes)
+        # setup style commands
+        Dashboard.StyleCommand(self, 'dashboard', R, R.attributes())
         # setup events
         gdb.events.cont.connect(lambda _: self.on_continue())
         gdb.events.stop.connect(lambda _: self.on_stop())
