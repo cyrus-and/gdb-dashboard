@@ -160,7 +160,7 @@ displaying the text red (`31`) and bright (`1`).
 
  * `no_ansi`
 
-    When set to `0` (default) enables [ANSI][ansi] output. The command prompt,
+    When set to `on` (default) enables [ANSI][ansi] output. The command prompt,
     however, is unaffected.
 
 ### Prompt
@@ -236,7 +236,7 @@ appearance.
 
  * `divider_label_align_right`
 
-    When set to `0` (default) the title is aligned to left.
+    When set to `off` (default) the title is aligned to left.
 
 ### Common styles
 

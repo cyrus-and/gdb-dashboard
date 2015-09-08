@@ -15,8 +15,9 @@ class R():
     def attributes():
         return {
             # miscellaneous
-            'no_ansi': {
-                'default': '0'
+            'ansi': {
+                'default': True,
+                'type': convert_bool
             },
             # prompt
             'prompt': {
@@ -54,13 +55,18 @@ class R():
                 'default': '1;30'
             },
             'divider_label_skip': {
-                'default': '3'
+                'default': 3,
+                'type': int,
+                'check': check_ge_zero
             },
             'divider_label_margin': {
-                'default': '1'
+                'default': 1,
+                'type': int,
+                'check': check_ge_zero
             },
             'divider_label_align_right': {
-                'default': '0'
+                'default': False,
+                'type': convert_bool
             },
             # common styles
             'style_selected_1': {
@@ -86,10 +92,10 @@ def run(command):
     return gdb.execute(command, to_string=True)
 
 def ansi(string, style):
-    if int(R.no_ansi):
-        return string
-    else:
+    if R.ansi:
         return '[{}m{}[0m'.format(style, string)
+    else:
+        return string
 
 def divider(label='', primary=False, active=True):
     width = Dashboard.term_width
@@ -108,13 +114,13 @@ def divider(label='', primary=False, active=True):
             divider_label_style = divider_label_style_on
         else:
             divider_label_style = divider_label_style_off
-        skip = int(R.divider_label_skip)
-        margin = int(R.divider_label_margin)
+        skip = R.divider_label_skip
+        margin = R.divider_label_margin
         before = ansi(divider_fill_char * skip, divider_fill_style)
         middle = ansi(label, divider_label_style)
         after_length = width - len(label) - skip - 2 * margin
         after = ansi(divider_fill_char * after_length, divider_fill_style)
-        if int(R.divider_label_align_right):
+        if R.divider_label_align_right:
             before, after = after, before
         return ''.join([before, ' ' * margin, middle, ' ' * margin, after])
     else:
@@ -128,6 +134,12 @@ def convert_bool(string):
     else:
         msg = 'Wrong argument "{}"; expecting "on", "off"'
         raise Exception(msg.format(string))
+
+def check_gt_zero(x):
+    return x > 0
+
+def check_ge_zero(x):
+    return x >= 0
 
 def to_unsigned(value, size=8):
     # values from GDB can be used transparently but are not suitable for
@@ -558,14 +570,14 @@ class Source(Dashboard.Module):
 
     def set_context(self, arg):
         msg = 'expecting a positive integer'
-        self.context = parse_value(arg, int, lambda x: x >= 0, msg)
+        self.context = parse_value(arg, int, check_ge_zero, msg)
 
     def attributes(self):
         return {
             'context': {
                 'default': 5,
                 'type': int,
-                'check': lambda x: x >= 0
+                'check': check_ge_zero
             }
         }
 
@@ -657,7 +669,7 @@ instructions constituting the current statement are marked, if available."""
             'context': {
                 'default': 3,
                 'type': int,
-                'check': lambda x: x >= 0
+                'check': check_ge_zero
             },
             'opcodes': {
                 'default': False,
@@ -746,7 +758,7 @@ location, if available. Optionally list the frame arguments and locals too."""
             'limit': {
                 'default': 2,
                 'type': int,
-                'check': lambda x: x >= 0
+                'check': check_ge_zero
             },
             'arguments': {
                 'default': True,
@@ -784,7 +796,7 @@ class History(Dashboard.Module):
             'limit': {
                 'default': 3,
                 'type': int,
-                'check': lambda x: x >= 0
+                'check': check_gt_zero
             }
         }
 
