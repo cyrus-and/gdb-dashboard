@@ -291,18 +291,19 @@ value is a tuple:
     which case no check is performed.
 
 Optionally, a module may declare subcommands by defining the `commands` method
-returning a dictionary in which the key is the command name and the value is a
-tuple:
+returning a dictionary in which the key is the command name and the value is
+another dictionary:
 
- 1. Callback to be executed accepting the raw input string from the prompt.
-    Callbacks may raise exceptions to notify erroneous situations which message
-    will be shown automatically to the user.
+ 1. `action` is the callback to be executed which accepts the raw input string
+    from the GDB prompt. Callbacks may raise exceptions to notify erroneous
+    situations which message will be shown automatically to the user.
 
- 2. Completion policy, one of the `gdb.COMPLETE_*` constants defined in the
-    [reference manual][completion] (`None` is equivalent to
-    `gdb.COMPLETE_NONE`).
+ 2. `doc` is the command documentation.
 
- 3. Command documentation.
+ 2. `completion` is the completion policy, one of the `gdb.COMPLETE_*` constants
+    defined in the [reference manual][completion] (this key is optional and
+    defaults to `None` which is equivalent to `gdb.COMPLETE_NONE`).
+
 
 ### Common functions
 
@@ -349,8 +350,14 @@ class Notes(Dashboard.Module):
 
     def commands(self):
         return {
-            'add': (self.add, None, 'Add a note.'),
-            'clear': (self.clear, None, 'Remove all the notes.')
+            'add': {
+                'action': self.add,
+                'doc': 'Add a note.'
+            },
+            'clear': {
+                'action': self.clear,
+                'doc': 'Remove all the notes.'
+            }
         }
 
     def attributes(self):

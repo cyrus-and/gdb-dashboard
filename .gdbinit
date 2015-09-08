@@ -296,7 +296,9 @@ class Dashboard(gdb.Command):
                     self.add_subcommand(dashboard, name, command)
 
         def add_subcommand(self, dashboard, name, command):
-            action, complete, doc = command
+            action = command['action']
+            doc = command['doc']
+            complete = command.get('complete')
             def invoke(self, arg, from_tty, info=self):
                 arg = Dashboard.parse_arg(arg)
                 if info.enabled:
@@ -800,19 +802,21 @@ class Memory(Dashboard.Module):
 
     def commands(self):
         return {
-            'watch': (
-                self.watch, gdb.COMPLETE_EXPRESSION,
-                'Watch a memory region given its address and its length.\n'
-                'The length defaults to 16 byte.'
-            ),
-            'unwatch': (
-                self.unwatch, gdb.COMPLETE_EXPRESSION,
-                'Stop watching a memory region given its address.'
-            ),
-            'clear': (
-                self.clear, None,
-                'Clear all the watched regions.'
-            )
+            'watch': {
+                'action': self.watch,
+                'doc': 'Watch a memory region by address and length.\n'
+                       'The length defaults to 16 byte.',
+                'complete': gdb.COMPLETE_EXPRESSION
+            },
+            'unwatch': {
+                'action': self.unwatch,
+                'doc': 'Stop watching a memory region by address.',
+                'complete': gdb.COMPLETE_EXPRESSION
+            },
+            'clear': {
+                'action': self.clear,
+                'doc': 'Clear all the watched regions.'
+            }
         }
 
 class Registers(Dashboard.Module):
