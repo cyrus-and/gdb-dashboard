@@ -696,7 +696,7 @@ location, if available. Optionally list the frame arguments and locals too."""
                     value = gdb.parse_and_eval(frame.name()).address
                     func_start = to_unsigned(value)
                     offset = frame.pc() - func_start
-                    frame_name += '+' + ansi(offset, style)
+                    frame_name += '+' + ansi(str(offset), style)
                 except gdb.error:
                     pass  # e.g., @plt
                 info += ' in {}()'.format(frame_name)
