@@ -683,7 +683,7 @@ location, if available. Optionally list the frame arguments and locals too."""
             frame = frame.older()
             number += 1
             # apply the limit
-            if self.frame_limit and number >= self.frame_limit:
+            if self.limit and number >= self.limit:
                 if frame:
                     lines.append('[{}]'.format(ansi('+', R.style_selected_2)))
                 break
@@ -702,7 +702,6 @@ location, if available. Optionally list the frame arguments and locals too."""
         return {
             'limit': {
                 'default': 2,
-                'name': 'frame_limit',
                 'type': int,
                 'check': lambda x: x >= 0
             },
