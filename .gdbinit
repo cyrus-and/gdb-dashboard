@@ -75,25 +75,14 @@ def divider(label='', primary=False, active=True):
     else:
         return ansi(divider_fill_char * width, divider_fill_style)
 
-def parse_on_off(arg, value):
-    if arg == '':
-        return not value
-    elif arg == 'on':
+def convert_bool(string):
+    if string == 'on':
         return True
-    elif arg == 'off':
+    elif string == 'off':
         return False
     else:
-        msg = 'Wrong argument "{}"; expecting "on", "off" or nothing'
-        raise Exception(msg.format(arg))
-
-def parse_value(arg, conversion, check, msg):
-    try:
-        value = conversion(arg)
-        if not check(value):
-            raise ValueError
-        return value
-    except ValueError:
-        raise Exception('Wrong argument "{}"; {}'.format(arg, msg))
+        msg = 'Wrong argument "{}"; expecting "on", "off"'
+        raise Exception(msg.format(string))
 
 def to_unsigned(value, size=8):
     # values from GDB can be used transparently but are not suitable for
@@ -115,8 +104,10 @@ class Dashboard(gdb.Command):
         # setup subcommands
         Dashboard.EnabledCommand(self)
         Dashboard.LayoutCommand(self)
+        # setup style commands (no conversions and no checks)
         styles = (style for style in dir(R) if not style.startswith('__'))
-        Dashboard.StyleCommand('dashboard', R, styles)
+        attributes = {style: (style, str, None) for style in styles}
+        Dashboard.StyleCommand(self, 'dashboard', R, attributes)
         # setup events
         gdb.events.cont.connect(lambda _: self.on_continue())
         gdb.events.stop.connect(lambda _: self.on_stop())
@@ -272,12 +263,11 @@ class Dashboard(gdb.Command):
             self.enabled = True
             self.instance = module()
             self.doc = self.instance.__doc__ or '(no documentation)'
+            self.prefix = 'dashboard {}'.format(self.name)
             # add GDB commands
-            self.has_subcommands = ('commands' in dir(self.instance))
             self.add_main_command(dashboard)
-            if self.has_subcommands:
-                for name, command in self.instance.commands().items():
-                    self.add_subcommand(dashboard, name, command)
+            self.add_style_command(dashboard)
+            self.add_subcommands(dashboard)
 
         def add_main_command(self, dashboard):
             module = self
@@ -295,8 +285,17 @@ class Dashboard(gdb.Command):
             doc_brief = 'Configure the {} module.'.format(self.name)
             doc_extended = 'Toggle the module visibility.'
             doc = '{}\n{}\n\n{}'.format(doc_brief, doc_extended, self.doc)
-            prefix = 'dashboard {}'.format(self.name)
-            Dashboard.create_command(prefix, invoke, doc, self.has_subcommands)
+            Dashboard.create_command(self.prefix, invoke, doc, True)
+
+        def add_style_command(self, dashboard):
+            if 'attributes' in dir(self.instance):
+                Dashboard.StyleCommand(dashboard, self.prefix, self.instance,
+                                       self.instance.attributes())
+
+        def add_subcommands(self, dashboard):
+            if 'commands' in dir(self.instance):
+                for name, command in self.instance.commands().items():
+                    self.add_subcommand(dashboard, name, command)
 
         def add_subcommand(self, dashboard, name, command):
             action, complete, doc = command
@@ -312,7 +311,7 @@ class Dashboard(gdb.Command):
                     dashboard.redisplay()
                 else:
                     Dashboard.err('Module disabled')
-            prefix = 'dashboard {} {}'.format(self.name, name)
+            prefix = '{} {}'.format(self.prefix, name)
             Dashboard.create_command(prefix, invoke, doc, False, complete)
 
 # GDB commands -----------------------------------------------------------------
@@ -420,32 +419,51 @@ current layout is shown; enabled and disabled modules are properly marked."""
 
     class StyleCommand(gdb.Command):
         """Set or show style attributes.
-The first argument is the name and the second is the value. The current value is
-printed if the new value is not present."""
+The first argument is the name and the second is the value. If the new value is
+omitted then the current value is printed. Without arguments all the attributes
+are printed."""
 
-        def __init__(self, prefix, obj, attrs):
+        def __init__(self, dashboard, prefix, obj, attrs):
             gdb.Command.__init__(self, prefix + ' -style', gdb.COMMAND_USER)
+            self.dashboard = dashboard
             self.obj = obj
-            self.attrs = list(attrs)  # must flatten if generator
+            self.attrs = attrs
 
         def invoke(self, arg, from_tty):
             arg = Dashboard.parse_arg(arg)
-            name, _, value = arg.partition(' ')
+            name, _, new_value = arg.partition(' ')
             if name in self.attrs:
-                if value:
-                    setattr(self.obj, name, value)
+                real_name, conversion, check = self.attrs[name]
+                if new_value:
+                    try:
+                        # convert and check the new value
+                        conv_value = conversion(new_value)
+                        if check and not check(conv_value):
+                            msg = 'Invalid value "{}" for "{}"'
+                            raise Exception(msg.format(new_value, name))
+                        # set and redisplay
+                        setattr(self.obj, real_name, conv_value)
+                        self.dashboard.redisplay()
+                    except Exception as e:
+                        Dashboard.err(e)
                 else:
-                    value = getattr(self.obj, name)
+                    value = getattr(self.obj, real_name)
                     print('{} = {}'.format(name, value))
             else:
-                Dashboard.err('No style attribute "{}"'.format(name))
+                if name:
+                    Dashboard.err('No style attribute "{}"'.format(name))
+                else:
+                    # print all the pairs
+                    for name, (real_name, _, _) in self.attrs.items():
+                        value = getattr(self.obj, real_name)
+                        print('{} = {}'.format(name, value))
 
         def complete(self, text, word):
             # for the first word only
             if ' ' in text:
                 return gdb.COMPLETE_NONE
             else:
-                return Dashboard.complete(word, self.attrs)
+                return Dashboard.complete(word, self.attrs.keys())
 
 # Base module ------------------------------------------------------------------
 
@@ -499,12 +517,9 @@ class Source(Dashboard.Module):
         msg = 'expecting a positive integer'
         self.context = parse_value(arg, int, lambda x: x >= 0, msg)
 
-    def commands(self):
+    def attributes(self):
         return {
-            'context': (
-                self.set_context, None,
-                'Set the number of context lines.'
-            )
+            'context': ('context', int, lambda x: x >= 0)
         }
 
 class Assembly(Dashboard.Module):
@@ -595,30 +610,11 @@ instructions constituting the current statement are marked, if available."""
             out.append(format_string.format(addr_str, opcodes, func_info, text))
         return out
 
-    def set_context(self, arg):
-        msg = 'expecting a positive integer'
-        self.context = parse_value(arg, int, lambda x: x >= 0, msg)
-
-    def set_show_opcodes(self, arg):
-        self.show_opcodes = parse_on_off(arg, self.show_opcodes)
-
-    def set_show_function(self, arg):
-        self.show_function = parse_on_off(arg, self.show_function)
-
-    def commands(self):
+    def attributes(self):
         return {
-            'context': (
-                self.set_context, None,
-                'Set the number of context instructions.'
-            ),
-            'opcodes': (
-                self.set_show_opcodes, None,
-                'Toggle or control opcodes visibility [on|off].'
-            ),
-            'function': (
-                self.set_show_function, None,
-                'Toggle or control function information visibility [on|off].'
-            )
+            'context': ('context', int, lambda x: x >= 0),
+            'opcodes': ('show_opcodes', convert_bool, None),
+            'function': ('show_function', convert_bool, None)
         }
 
 class Stack(Dashboard.Module):
@@ -626,9 +622,9 @@ class Stack(Dashboard.Module):
 location, if available. Optionally list the frame arguments and locals too."""
 
     def __init__(self):
+        self.frame_limit = 2
         self.show_arguments = True
         self.show_locals = False
-        self.frame_limit = 2
 
     def label(self):
         return 'Stack'
@@ -696,38 +692,18 @@ location, if available. Optionally list the frame arguments and locals too."""
             lines.append('{} {} = {}'.format(prefix, name, value))
         return lines
 
-    def set_show_arguments(self, arg):
-        self.show_arguments = parse_on_off(arg, self.show_arguments)
-
-    def set_show_locals(self, arg):
-        self.show_locals = parse_on_off(arg, self.show_locals)
-
-    def set_frame_limit(self, arg):
-        msg = 'expecting a positive integer'
-        self.frame_limit = parse_value(arg, int, lambda x: x >= 0, msg)
-
-    def commands(self):
+    def attributes(self):
         return {
-            'arguments': (
-                self.set_show_arguments, None,
-                'Toggle or control frame arguments visibility [on|off].'
-            ),
-            'locals': (
-                self.set_show_locals, None,
-                'Toggle or control frame locals visibility [on|off].'
-            ),
-            'limit': (
-                self.set_frame_limit, None,
-                'Set the maximum number of displayed frames.\n'
-                'Zero means no limit.'
-            )
+            'limit': ('frame_limit', int, lambda x: x >= 0),
+            'arguments': ('show_arguments', convert_bool, None),
+            'locals': ('show_locals', convert_bool, None)
         }
 
 class History(Dashboard.Module):
     """List the last entries of the value history."""
 
     def __init__(self):
-        self.length = 3
+        self.limit = 3
 
     def label(self):
         return 'History'
@@ -735,7 +711,7 @@ class History(Dashboard.Module):
     def lines(self):
         out = []
         # fetch last entries
-        for i in range(-self.length + 1, 1):
+        for i in range(-self.limit + 1, 1):
             try:
                 value = gdb.history(i)
                 value_id = ansi('$${}', R.style_low).format(abs(i))
@@ -745,16 +721,9 @@ class History(Dashboard.Module):
                 continue
         return out
 
-    def set_length(self, arg):
-        msg = 'expecting a positive integer'
-        History.length = parse_value(arg, int, lambda x: x >= 0, msg)
-
-    def commands(self):
+    def attributes(self):
         return {
-            'length': (
-                self.set_length, None,
-                'Set the max number of values to show.'
-            )
+            'limit': ('limit', int, lambda x: x >= 0)
         }
 
 class Memory(Dashboard.Module):

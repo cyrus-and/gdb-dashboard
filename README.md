@@ -106,7 +106,7 @@ element in alphabetical order.
 
 When executed without arguments, this command lists all the available modules.
 
-### dashboard -style `<name>` [`<value>`]
+### dashboard -style [`<name>` [`<value>`]]
 
 Access to the stylable attributes of the dashboard, see [Stylable
 attributes](stylable-attributes). For example, to change the prompt to something
@@ -115,7 +115,8 @@ more familiar:
     dashboard -style prompt (gdb)
 
 Note that no quotation mechanism is present, strings are treated verbatim by
-GDB. When only the name is specified this command shows the current value.
+GDB. When only the name is specified this command shows the current value,
+whereas without arguments prints all the attributes.
 
 ### Modules subcommands
 
@@ -124,6 +125,10 @@ toggle the enable flag and to redisplay the dashboard.
 
 Modules may also declare additional subcommands, see `help dashboard <module>`
 from GDB.
+
+Moreover, if a module declare stylable attributes then the command `dashboard
+<module> -style` is available. Its functioning is equivalent to the [`dashboard
+-style`](#dashboard--style-name-value) command but it does apply to a module.
 
 Configuration
 -------------
@@ -272,6 +277,19 @@ the GDB session.
 Optionally, a module may include a description which will appear in the GDB help
 system by specifying a Python docstring for the class.
 
+Optionally, a module may define stylable attributes by defining the `attributes`
+method returning a dictionary in which the key is the attribute name and the
+value is a tuple:
+
+ 1. Name of the attribute of the Python object.
+
+ 2. Conversion callback which accepts the string value and produces a value
+    in another type, or raise an exception.
+
+ 3. Control callback which accept the converted value and returns `True` if the
+    value satisfies the constraint, `False` otherwise. It may be `None`, in
+    which case no check is performed.
+
 Optionally, a module may declare subcommands by defining the `commands` method
 returning a dictionary in which the key is the command name and the value is a
 tuple:
@@ -290,8 +308,9 @@ tuple:
 
 A number of auxiliary common functions are defined in the global scope, they can
 be found in the provided `.gdbinit` and concern topics like [ANSI][ansi] output,
-divider formatting etc. They should be more or less self-documented, some usage
-examples can be found within the bundled default modules.
+divider formatting, conversion callbacks, etc. They should be more or less
+self-documented, some usage examples can be found within the bundled default
+modules.
 
 ### Example
 
@@ -306,6 +325,7 @@ class Notes(Dashboard.Module):
 
     def __init__(self):
         self.notes = []
+        self.add_divider = True
 
     def label(self):
         return 'Notes'
@@ -314,8 +334,9 @@ class Notes(Dashboard.Module):
         out = []
         for note in self.notes:
             out.append(note)
-            out.append(divider())
-        return out[:-1]
+            if self.add_divider:
+                out.append(divider())
+        return out[:-1] if self.add_divider else out
 
     def add(self, arg):
         if arg:
@@ -331,6 +352,11 @@ class Notes(Dashboard.Module):
             'add': (self.add, None, 'Add a note.'),
             'clear': (self.clear, None, 'Remove all the notes.')
         }
+
+    def attributes(self):
+        return {
+            'divider': ('add_divider', convert_bool, None)
+        }
 ```
 
 To use the above just save it in a Python file, say `notes.py`, inside
@@ -338,8 +364,9 @@ To use the above just save it in a Python file, say `notes.py`, inside
 available:
 
     dashboard notes
-    dashboard notes add <text>
+    dashboard notes add
     dashboard notes clear
+    dashboard notes -style
 
 Resources
 ---------
