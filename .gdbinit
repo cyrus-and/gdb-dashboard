@@ -133,7 +133,7 @@ class Dashboard(gdb.Command):
             self.modules.append(info)
 
     def redisplay(self):
-        if not self.init and self.is_running():
+        if self.is_running():
             os.system('clear')
             self.display()
 
@@ -174,12 +174,10 @@ class Dashboard(gdb.Command):
         dashboard = Dashboard()
         Dashboard.set_custom_prompt(dashboard)
         # parse Python inits, load modules then parse GDB inits
-        dashboard.init = True
         Dashboard.parse_inits(True)
         modules = Dashboard.get_modules()
         dashboard.load_modules(modules)
         Dashboard.parse_inits(False)
-        dashboard.init = False
         # GDB override
         run('set pagination off')
         run('alias -a db = dashboard')
@@ -301,7 +299,7 @@ class Dashboard(gdb.Command):
             action, complete, doc = command
             def invoke(self, arg, from_tty, info=self):
                 arg = Dashboard.parse_arg(arg)
-                if dashboard.init or info.enabled:
+                if info.enabled:
                     try:
                         action(arg)
                     except Exception as e:
@@ -368,8 +366,7 @@ current layout is shown; enabled and disabled modules are properly marked."""
             directives = str(arg).split()
             if directives:
                 self.layout(directives)
-                # show feedback
-                if not self.dashboard.init and not self.dashboard.is_running():
+                if from_tty and not self.dashboard.is_running():
                     self.show()
             else:
                 self.show()
