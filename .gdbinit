@@ -106,7 +106,7 @@ class Dashboard(gdb.Command):
         Dashboard.LayoutCommand(self)
         # setup style commands (no conversions and no checks)
         styles = (style for style in dir(R) if not style.startswith('__'))
-        attributes = {style: (style, str, None) for style in styles}
+        attributes = {style: {} for style in styles}
         Dashboard.StyleCommand(self, 'dashboard', R, attributes)
         # setup events
         gdb.events.cont.connect(lambda _: self.on_continue())
@@ -422,39 +422,43 @@ The first argument is the name and the second is the value. If the new value is
 omitted then the current value is printed. Without arguments all the attributes
 are printed."""
 
-        def __init__(self, dashboard, prefix, obj, attrs):
+        def __init__(self, dashboard, prefix, obj, attributes):
             gdb.Command.__init__(self, prefix + ' -style', gdb.COMMAND_USER)
             self.dashboard = dashboard
             self.obj = obj
-            self.attrs = attrs
+            self.attributes = attributes
 
         def invoke(self, arg, from_tty):
             arg = Dashboard.parse_arg(arg)
             name, _, new_value = arg.partition(' ')
-            if name in self.attrs:
-                real_name, conversion, check = self.attrs[name]
+            if name in self.attributes:
+                attribute = self.attributes[name]
+                attr_name = attribute.get('name', name)
+                attr_type = attribute.get('type', str)
+                attr_check = attribute.get('check', lambda _: True)
                 if new_value:
                     try:
                         # convert and check the new value
-                        conv_value = conversion(new_value)
-                        if check and not check(conv_value):
+                        value = attr_type(new_value)
+                        if not attr_check(value):
                             msg = 'Invalid value "{}" for "{}"'
                             raise Exception(msg.format(new_value, name))
                         # set and redisplay
-                        setattr(self.obj, real_name, conv_value)
+                        setattr(self.obj, attr_name, value)
                         self.dashboard.redisplay()
                     except Exception as e:
                         Dashboard.err(e)
                 else:
-                    value = getattr(self.obj, real_name)
+                    value = getattr(self.obj, attr_name)
                     print('{} = {}'.format(name, value))
             else:
                 if name:
                     Dashboard.err('No style attribute "{}"'.format(name))
                 else:
                     # print all the pairs
-                    for name, (real_name, _, _) in self.attrs.items():
-                        value = getattr(self.obj, real_name)
+                    for name, attribute in self.attributes.items():
+                        attr_name = attribute.get('name', name)
+                        value = getattr(self.obj, attr_name)
                         print('{} = {}'.format(name, value))
 
         def complete(self, text, word):
@@ -462,7 +466,7 @@ are printed."""
             if ' ' in text:
                 return gdb.COMPLETE_NONE
             else:
-                return Dashboard.complete(word, self.attrs.keys())
+                return Dashboard.complete(word, self.attributes.keys())
 
 # Base module ------------------------------------------------------------------
 
@@ -518,7 +522,10 @@ class Source(Dashboard.Module):
 
     def attributes(self):
         return {
-            'context': ('context', int, lambda x: x >= 0)
+            'context': {
+                'type': int,
+                'check': lambda x: x >= 0
+            }
         }
 
 class Assembly(Dashboard.Module):
@@ -611,9 +618,18 @@ instructions constituting the current statement are marked, if available."""
 
     def attributes(self):
         return {
-            'context': ('context', int, lambda x: x >= 0),
-            'opcodes': ('show_opcodes', convert_bool, None),
-            'function': ('show_function', convert_bool, None)
+            'context': {
+                'type': int,
+                'check': lambda x: x >= 0
+            },
+            'opcodes': {
+                'name': 'show_opcodes',
+                'type': convert_bool
+            },
+            'function': {
+                'name': 'show_function',
+                'type': convert_bool
+            }
         }
 
 class Stack(Dashboard.Module):
@@ -693,9 +709,19 @@ location, if available. Optionally list the frame arguments and locals too."""
 
     def attributes(self):
         return {
-            'limit': ('frame_limit', int, lambda x: x >= 0),
-            'arguments': ('show_arguments', convert_bool, None),
-            'locals': ('show_locals', convert_bool, None)
+            'limit': {
+                'name': 'frame_limit',
+                'type': int,
+                'check': lambda x: x >= 0
+            },
+            'arguments': {
+                'name': 'show_arguments',
+                'type': convert_bool
+            },
+            'locals': {
+                'name': 'show_locals',
+                'type': convert_bool
+            }
         }
 
 class History(Dashboard.Module):
@@ -722,7 +748,10 @@ class History(Dashboard.Module):
 
     def attributes(self):
         return {
-            'limit': ('limit', int, lambda x: x >= 0)
+            'limit': {
+                'type': int,
+                'check': lambda x: x >= 0
+            }
         }
 
 class Memory(Dashboard.Module):

@@ -279,16 +279,17 @@ system by specifying a Python docstring for the class.
 
 Optionally, a module may define stylable attributes by defining the `attributes`
 method returning a dictionary in which the key is the attribute name and the
-value is a tuple:
+value is another dictionary:
 
- 1. Name of the attribute of the Python object.
+ 1. `name` is the name of the attribute of the Python object, defaults to the
+    key value.
 
- 2. Conversion callback which accepts the string value and produces a value
-    in another type, or raise an exception.
+ 2. `type` is the conversion callback which accepts the string value and produc
+    in another type, or raise an exception. This key defaults to the type `str`.
 
- 3. Control callback which accept the converted value and returns `True` if the
-    value satisfies the constraint, `False` otherwise. It may be `None`, in
-    which case no check is performed.
+ 3. `check` is a control callback which accept the converted value and returns
+    `True` if the value satisfies the constraint and `False` otherwise. This key
+    is optional, when omitted no check is performed.
 
 Optionally, a module may declare subcommands by defining the `commands` method
 returning a dictionary in which the key is the command name and the value is
@@ -301,8 +302,8 @@ another dictionary:
  2. `doc` is the command documentation.
 
  2. `completion` is the completion policy, one of the `gdb.COMPLETE_*` constants
-    defined in the [reference manual][completion] (this key is optional and
-    defaults to `None` which is equivalent to `gdb.COMPLETE_NONE`).
+    defined in the [reference manual][completion]. This key is optional and
+    defaults to `None` which is equivalent to `gdb.COMPLETE_NONE`.
 
 
 ### Common functions
@@ -326,7 +327,7 @@ class Notes(Dashboard.Module):
 
     def __init__(self):
         self.notes = []
-        self.add_divider = True
+        self.divider = True
 
     def label(self):
         return 'Notes'
@@ -335,9 +336,9 @@ class Notes(Dashboard.Module):
         out = []
         for note in self.notes:
             out.append(note)
-            if self.add_divider:
+            if self.divider:
                 out.append(divider())
-        return out[:-1] if self.add_divider else out
+        return out[:-1] if self.divider else out
 
     def add(self, arg):
         if arg:
@@ -362,7 +363,9 @@ class Notes(Dashboard.Module):
 
     def attributes(self):
         return {
-            'divider': ('add_divider', convert_bool, None)
+            'divider': {
+                'type': convert_bool
+            }
         }
 ```
 
