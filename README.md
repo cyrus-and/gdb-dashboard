@@ -281,13 +281,16 @@ Optionally, a module may define stylable attributes by defining the `attributes`
 method returning a dictionary in which the key is the attribute name and the
 value is another dictionary:
 
- 1. `name` is the name of the attribute of the Python object, defaults to the
+ 1. `default` is the initial value for this attribute.
+
+ 2. `name` is the name of the attribute of the Python object, defaults to the
     key value.
 
- 2. `type` is the conversion callback which accepts the string value and produc
-    in another type, or raise an exception. This key defaults to the type `str`.
+ 3. `type` is the conversion callback which accepts the string value and produce
+    a value in another type, or raise an exception. This key defaults to the
+    type `str`.
 
- 3. `check` is a control callback which accept the converted value and returns
+ 4. `check` is a control callback which accept the converted value and returns
     `True` if the value satisfies the constraint and `False` otherwise. This key
     is optional, when omitted no check is performed.
 
@@ -327,7 +330,6 @@ class Notes(Dashboard.Module):
 
     def __init__(self):
         self.notes = []
-        self.divider = True
 
     def label(self):
         return 'Notes'
@@ -364,6 +366,7 @@ class Notes(Dashboard.Module):
     def attributes(self):
         return {
             'divider': {
+                'default': True,
                 'type': convert_bool
             }
         }

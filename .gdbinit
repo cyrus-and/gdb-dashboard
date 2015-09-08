@@ -106,7 +106,7 @@ class Dashboard(gdb.Command):
         Dashboard.LayoutCommand(self)
         # setup style commands (no conversions and no checks)
         styles = (style for style in dir(R) if not style.startswith('__'))
-        attributes = {style: {} for style in styles}
+        attributes = {style: {'default': getattr(R, style)} for style in styles}
         Dashboard.StyleCommand(self, 'dashboard', R, attributes)
         # setup events
         gdb.events.cont.connect(lambda _: self.on_continue())
@@ -431,7 +431,6 @@ Print all the stylable attributes."""
 
         def add_styles(self):
             this = self
-            # create a command for each style
             for name, attribute in self.attributes.items():
                 def invoke(self, arg, from_tty, name=name, attribute=attribute):
                     new_value = Dashboard.parse_arg(arg)
@@ -454,9 +453,13 @@ Print all the stylable attributes."""
                             this.dashboard.redisplay()
                         except Exception as e:
                             Dashboard.err(e)
+                # create the command
                 prefix = self.prefix + ' ' + name
                 doc = 'Set or display the value of the attribute.'
                 Dashboard.create_command(prefix, invoke, doc, False)
+                # set the default value
+                value = attribute['default']
+                setattr(self.obj, attribute.get('name', name), value)
 
         def invoke(self, arg, from_tty):
             # print all the pairs
@@ -475,9 +478,6 @@ Print all the stylable attributes."""
 
 class Source(Dashboard.Module):
     """Show the program source code, if available."""
-
-    def __init__(self):
-        self.context = 5
 
     def label(self):
         return 'Source'
@@ -520,6 +520,7 @@ class Source(Dashboard.Module):
     def attributes(self):
         return {
             'context': {
+                'default': 5,
                 'type': int,
                 'check': lambda x: x >= 0
             }
@@ -528,11 +529,6 @@ class Source(Dashboard.Module):
 class Assembly(Dashboard.Module):
     """Show the disassembled code surrounding the program counter. The
 instructions constituting the current statement are marked, if available."""
-
-    def __init__(self):
-        self.context = 3
-        self.show_opcodes = False
-        self.show_function = True
 
     def label(self):
         return 'Assembly'
@@ -616,14 +612,17 @@ instructions constituting the current statement are marked, if available."""
     def attributes(self):
         return {
             'context': {
+                'default': 3,
                 'type': int,
                 'check': lambda x: x >= 0
             },
             'opcodes': {
+                'default': False,
                 'name': 'show_opcodes',
                 'type': convert_bool
             },
             'function': {
+                'default': True,
                 'name': 'show_function',
                 'type': convert_bool
             }
@@ -632,11 +631,6 @@ instructions constituting the current statement are marked, if available."""
 class Stack(Dashboard.Module):
     """Show the current stack trace including the function name and the file
 location, if available. Optionally list the frame arguments and locals too."""
-
-    def __init__(self):
-        self.frame_limit = 2
-        self.show_arguments = True
-        self.show_locals = False
 
     def label(self):
         return 'Stack'
@@ -707,15 +701,18 @@ location, if available. Optionally list the frame arguments and locals too."""
     def attributes(self):
         return {
             'limit': {
+                'default': 2,
                 'name': 'frame_limit',
                 'type': int,
                 'check': lambda x: x >= 0
             },
             'arguments': {
+                'default': True,
                 'name': 'show_arguments',
                 'type': convert_bool
             },
             'locals': {
+                'default': False,
                 'name': 'show_locals',
                 'type': convert_bool
             }
@@ -723,9 +720,6 @@ location, if available. Optionally list the frame arguments and locals too."""
 
 class History(Dashboard.Module):
     """List the last entries of the value history."""
-
-    def __init__(self):
-        self.limit = 3
 
     def label(self):
         return 'History'
@@ -746,6 +740,7 @@ class History(Dashboard.Module):
     def attributes(self):
         return {
             'limit': {
+                'default': 3,
                 'type': int,
                 'check': lambda x: x >= 0
             }
