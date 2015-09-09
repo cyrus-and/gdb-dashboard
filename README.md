@@ -126,9 +126,10 @@ toggle the enable flag and to redisplay the dashboard.
 Modules may also declare additional subcommands, see `help dashboard <module>`
 from GDB.
 
-Moreover, if a module declare stylable attributes then the command `dashboard
-<module> -style` is available. Its functioning is equivalent to the [`dashboard
--style`](#dashboard--style-name-value) command but it does apply to a module.
+Moreover, if a module declare some stylable attributes then the command
+`dashboard <module> -style` will be available. Its functioning is equivalent to
+the [`dashboard -style`](#dashboard--style-name-value) command but it does apply
+to a module.
 
 Configuration
 -------------
@@ -150,93 +151,29 @@ Stylable attributes
 -------------------
 
 There is number of attributes that can be used to customize the aspect of the
-dashboard.
+dashboard and of its modules. They are documented within the GDB help system.
+For what concerns the dashbord itself it can be reached with:
+
+    help dashboard -style
+
+Whereas for modules:
+
+    help dashboard <module> -style
+
+### ANSI escape codes
 
 Colors and text styles are specified using [ANSI][ansi] escape codes. For
 example setting a style to `1;31` will produce `^[[1;31m`, which will result in
-displaying the text red (`31`) and bright (`1`).
-
-### Miscellaneous
-
- * `no_ansi`
-
-    When set to `on` (default) enables [ANSI][ansi] output. The command prompt,
-    however, is unaffected.
-
-### Prompt
-
- * `prompt`
-
-    GDB command prompt. This value is parsed as a [Python format string][format]
-    and the following optional field names are available:
-
-     * `status` is expanded with the substitution of either `prompt_running` or
-       `prompt_not_running`, according to the target program status.
-
-    The resulting string must be a valid [GDB prompt][prompt]. For example:
-
-        dashboard -style prompt {status}:
-        dashboard -style prompt_running R
-        dashboard -style prompt_not_running S
-
- * `prompt_running`
-
-    Value of `status` (see the `prompt` attribute) when the target program is
-    running. This value is parsed as a [Python format string][format] and the
-    following optional field names are available:
-
-     * `pid` is expanded with the process identifier of the target program.
-
- * `prompt_not_running`
-
-    Value of `status` (see the `prompt` attribute) when the target program is
-    not running.
+displaying the text red (`31`) and bright (`1`). The ansi output can be disabled
+by setting the `ansi` attribute (note that this will not affect the command
+prompt).
 
 ### Dividers
 
-A divider is basically a terminal-wide horizontal line with an optional label. A
-left-aligned divider will look like:
-
-    >   < skip
-     --- Label ----------[...]
-             > < margin
-    - = filling character
-
+A divider is basically a terminal-wide horizontal line with an optional label.
 Primary dividers are those used to separate the modules, whereas secondary
 dividers may be used inside modules to logically separate different sections.
 When a section or module is empty then the style is set to `off`.
-
-Dividers are used in several places and these are the styles controlling their
-appearance.
-
- * `divider_fill_char_primary`
-   `divider_fill_char_secondary`
-
-    Single character used to fill the empty space around the label.
-
- * `divider_fill_style_primary`
-   `divider_fill_style_secondary`
-
-    Style of the filling character.
-
- * `divider_label_style_on_primary`
-   `divider_label_style_on_secondary`
-   `divider_label_style_off_primary`
-   `divider_label_style_off_secondary`
-
-    Style of the text label.
-
- * `divider_label_skip`
-
-    Number of characters between the aligning border and the label.
-
- * `divider_label_margin`
-
-    Number of spaces around the label.
-
- * `divider_label_align_right`
-
-    When set to `off` (default) the title is aligned to left.
 
 ### Common styles
 
@@ -283,14 +220,17 @@ value is another dictionary:
 
  1. `default` is the initial value for this attribute.
 
- 2. `name` is the name of the attribute of the Python object, defaults to the
+ 2. `doc` is the documentation of this attribute which will appear in the GDB
+    help system. This key can be omitted.
+
+ 3. `name` is the name of the attribute of the Python object, defaults to the
     key value.
 
- 3. `type` is the conversion callback which accepts the string value and produce
+ 4. `type` is the conversion callback which accepts the string value and produce
     a value in another type, or raise an exception. This key defaults to the
     type `str`.
 
- 4. `check` is a control callback which accept the converted value and returns
+ 5. `check` is a control callback which accept the converted value and returns
     `True` if the value satisfies the constraint and `False` otherwise. This key
     is optional, when omitted no check is performed.
 
@@ -366,6 +306,7 @@ class Notes(Dashboard.Module):
     def attributes(self):
         return {
             'divider': {
+                'doc': 'Divider visibility flag.',
                 'default': True,
                 'type': convert_bool
             }

@@ -16,55 +16,76 @@ class R():
         return {
             # miscellaneous
             'ansi': {
+                'doc': 'Control the ANSI output of the dashboard.',
                 'default': True,
                 'type': convert_bool
             },
             # prompt
             'prompt': {
+                'doc': """Command prompt.
+This value is parsed as a Python format string in which `{status}` is expanded
+with the substitution of either `prompt_running` or `prompt_not_running`
+attributes, according to the target program status. The resulting string must be
+a valid GDB prompt, see the command `python print(gdb.prompt.prompt_help())`""",
                 'default': '{status}'
             },
             'prompt_running': {
+                'doc': """`{status}` when the target program is running.
+See the `prompt` attribute. This value is parsed as a Python format string in
+which `{pid}` is expanded with the process identifier of the target program.""",
                 'default': '\[\e[1;35m\]>>>\[\e[0m\]'
             },
             'prompt_not_running': {
+                'doc': '`{status}` when the target program is not running.',
                 'default': '\[\e[1;30m\]>>>\[\e[0m\]'
             },
             # divider
             'divider_fill_char_primary': {
+                'doc': 'Filler around the label for primary dividers',
                 'default': '─'
             },
             'divider_fill_char_secondary': {
+                'doc': 'Filler around the label for secondary dividers',
                 'default': '─'
             },
             'divider_fill_style_primary': {
+                'doc': 'Style for `divider_fill_char_primary`',
                 'default': '36'
             },
             'divider_fill_style_secondary': {
+                'doc': 'Style for `divider_fill_char_secondary`',
                 'default': '1;30'
             },
             'divider_label_style_on_primary': {
+                'doc': 'Label style for non-empty primary dividers',
                 'default': '1;33'
             },
             'divider_label_style_on_secondary': {
+                'doc': 'Label style for non-empty secondary dividers',
                 'default': '0'
             },
             'divider_label_style_off_primary': {
+                'doc': 'Label style for empty primary dividers',
                 'default': '33'
             },
             'divider_label_style_off_secondary': {
+                'doc': 'Label style for empty secondary dividers',
                 'default': '1;30'
             },
             'divider_label_skip': {
+                'doc': 'Gap between the aligning border and the label.',
                 'default': 3,
                 'type': int,
                 'check': check_ge_zero
             },
             'divider_label_margin': {
+                'doc': 'Number of spaces around the label.',
                 'default': 1,
                 'type': int,
                 'check': check_ge_zero
             },
             'divider_label_align_right': {
+                'doc': 'Label alignment flag.',
                 'default': False,
                 'type': convert_bool
             },
@@ -472,8 +493,9 @@ current layout is shown; enabled and disabled modules are properly marked."""
             return Dashboard.complete(word, all_modules)
 
     class StyleCommand(gdb.Command):
-        """Access style attributes.
-Print all the stylable attributes."""
+        """Access the stylable attributes.
+Without arguments print all the stylable attributes. Subcommands are used to set
+or print (when the value is omitted) individual attributes."""
 
         def __init__(self, dashboard, prefix, obj, attributes):
             self.prefix = prefix + ' -style'
@@ -510,7 +532,7 @@ Print all the stylable attributes."""
                             Dashboard.err(e)
                 # create the command
                 prefix = self.prefix + ' ' + name
-                doc = 'Set or display the value of the attribute.'
+                doc = attribute.get('doc', 'This style is self-documenting')
                 Dashboard.create_command(prefix, invoke, doc, False)
                 # set the default value
                 value = attribute['default']
@@ -575,6 +597,7 @@ class Source(Dashboard.Module):
     def attributes(self):
         return {
             'context': {
+                'doc': 'Number of context lines.',
                 'default': 5,
                 'type': int,
                 'check': check_ge_zero
@@ -667,16 +690,19 @@ instructions constituting the current statement are marked, if available."""
     def attributes(self):
         return {
             'context': {
+                'doc': 'Number of context instructions.',
                 'default': 3,
                 'type': int,
                 'check': check_ge_zero
             },
             'opcodes': {
+                'doc': 'Opcodes visibility flag.',
                 'default': False,
                 'name': 'show_opcodes',
                 'type': convert_bool
             },
             'function': {
+                'doc': 'Function information visibility flag.',
                 'default': True,
                 'name': 'show_function',
                 'type': convert_bool
@@ -756,16 +782,19 @@ location, if available. Optionally list the frame arguments and locals too."""
     def attributes(self):
         return {
             'limit': {
+                'doc': 'Maximum number of displayed frames (0 means no limit).',
                 'default': 2,
                 'type': int,
                 'check': check_ge_zero
             },
             'arguments': {
+                'doc': 'Frame arguments visibility flag.',
                 'default': True,
                 'name': 'show_arguments',
                 'type': convert_bool
             },
             'locals': {
+                'doc': 'Frame locals visibility flag.',
                 'default': False,
                 'name': 'show_locals',
                 'type': convert_bool
@@ -794,6 +823,7 @@ class History(Dashboard.Module):
     def attributes(self):
         return {
             'limit': {
+                'doc': 'Maximum number of values to show.',
                 'default': 3,
                 'type': int,
                 'check': check_gt_zero
