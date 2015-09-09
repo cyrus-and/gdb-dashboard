@@ -244,10 +244,9 @@ another dictionary:
 
  2. `doc` is the command documentation.
 
- 2. `completion` is the completion policy, one of the `gdb.COMPLETE_*` constants
+ 3. `completion` is the completion policy, one of the `gdb.COMPLETE_*` constants
     defined in the [reference manual][completion]. This key is optional and
     defaults to `None` which is equivalent to `gdb.COMPLETE_NONE`.
-
 
 ### Common functions
 
