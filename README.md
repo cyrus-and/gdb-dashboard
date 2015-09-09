@@ -12,18 +12,20 @@ the control flow instead.
 Screenshot
 ----------
 
-![Screenshot](TODO)
+![Screenshot](http://i.imgur.com/BytstYD.png)
 
 Features
 --------
+
+ * Single GDB init file.
 
  * Interaction with GDB using the native [Python API][api].
 
  * Several default modules are included to address the most basic
    needs: source code, assembly, registers, etc.).
 
- * User-defined modules can be easily developed by extending the
-   [proper Python class](#custom-modules).
+ * User-defined modules can be easily developed by extending a
+   [Python class](#custom-modules).
 
  * Additional configuration files (both [GDB][commands] and Python) are read
    from `~/.gdbinit.d/`.
@@ -46,31 +48,20 @@ Default modules
 Follows the list of bundled default modules. Refer to the GDB help system for
 the full syntax.
 
- * `assembly`
+ * `assembly` shows the disassembled code surrounding the program counter. The
+   instructions constituting the current statement are marked, if available.
 
-    Show the disassembled code surrounding the program counter. The instructions
-    constituting the current statement are marked, if available.
+ * `history` lists the last entries of the GDB value history.
 
- * `history`
+ * `memory` allows to inspect memory regions.
 
-    List the last entries of the value history.
+ * `registers` shows the CPU registers and their values.
 
- * `memory`
+ * `source` shows the program source code, if available.
 
-    Allow to inspect memory regions.
-
- * `registers`
-
-    Show the CPU registers and their values.
-
- * `source`
-
-    Show the program source code, if available.
-
- * `stack`
-
-    Show the current stack trace including the function name and the file
-    location, if available. Optionally list the frame arguments and locals too.
+ * `stack` shows the current stack trace including the function name and the
+   file location, if available. Optionally list the frame arguments and locals
+   too.
 
 Commands
 --------
@@ -109,8 +100,8 @@ When executed without arguments, this command lists all the available modules.
 ### dashboard -style [`<name>` [`<value>`]]
 
 Access to the stylable attributes of the dashboard, see [Stylable
-attributes](stylable-attributes). For example, to change the prompt to something
-more familiar:
+attributes](#stylable-attributes). For example, to change the prompt to
+something more familiar:
 
     dashboard -style prompt (gdb)
 
@@ -152,7 +143,7 @@ Stylable attributes
 
 There is number of attributes that can be used to customize the aspect of the
 dashboard and of its modules. They are documented within the GDB help system.
-For what concerns the dashbord itself it can be reached with:
+For what concerns the dashboard itself it can be reached with:
 
     help dashboard -style
 
@@ -196,15 +187,11 @@ will be queried during the program execution only.
 Custom modules must inherit the `Dashboard.Module` class and define some
 methods:
 
- * `label`
+ * `label` returns the module label which will appear in the divider.
 
-    Return the module label which will appear in the divider.
-
- * `lines`
-
-    Return a list of strings which will form the module content. When a module
-    is temporarily unable to produce its content, it should return an empty
-    list; its divider will then use the `off` style.
+ * `lines` return a list of strings which will form the module content. When a
+    module is temporarily unable to produce its content, it should return an
+    empty list; its divider will then use the `off` style.
 
 The name of a module is automatically obtained by the class name.
 
