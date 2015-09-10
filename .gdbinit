@@ -4,6 +4,7 @@ python
 #
 # https://github.com/cyrus-and/gdb-dashboard
 
+import ast
 import os
 import subprocess
 
@@ -18,7 +19,7 @@ class R():
             'ansi': {
                 'doc': 'Control the ANSI output of the dashboard.',
                 'default': True,
-                'type': convert_bool
+                'type': bool
             },
             # prompt
             'prompt': {
@@ -87,7 +88,7 @@ which `{pid}` is expanded with the process identifier of the target program.""",
             'divider_label_align_right': {
                 'doc': 'Label alignment flag.',
                 'default': False,
-                'type': convert_bool
+                'type': bool
             },
             # common styles
             'style_selected_1': {
@@ -146,15 +147,6 @@ def divider(label='', primary=False, active=True):
         return ''.join([before, ' ' * margin, middle, ' ' * margin, after])
     else:
         return ansi(divider_fill_char * width, divider_fill_style)
-
-def convert_bool(string):
-    if string == 'on':
-        return True
-    elif string == 'off':
-        return False
-    else:
-        msg = 'Wrong argument "{}"; expecting "on", "off"'
-        raise Exception(msg.format(string))
 
 def check_gt_zero(x):
     return x > 0
@@ -510,19 +502,27 @@ or print (when the value is omitted) individual attributes."""
         def add_styles(self):
             this = self
             for name, attribute in self.attributes.items():
-                def invoke(self, arg, from_tty, name=name, attribute=attribute):
+                # fetch fields
+                attr_name = attribute.get('name', name)
+                attr_type = attribute.get('type', str)
+                attr_check = attribute.get('check', lambda _: True)
+                attr_default = attribute['default']
+                # set the default value (coerced to the type)
+                value = attr_type(attr_default)
+                setattr(self.obj, attr_name, value)
+                # create the command
+                def invoke(self, arg, from_tty, name=name, attr_name=attr_name,
+                           attr_type=attr_type, attr_check=attr_check):
                     new_value = Dashboard.parse_arg(arg)
-                    attr_name = attribute.get('name', name)
-                    attr_type = attribute.get('type', str)
-                    attr_check = attribute.get('check', lambda _: True)
                     if new_value == '':
                         # print the current value
                         value = getattr(this.obj, attr_name)
-                        print('{} = {}'.format(name, value))
+                        print('{} = {!r}'.format(name, value))
                     else:
                         try:
                             # convert and check the new value
-                            value = attr_type(new_value)
+                            parsed = ast.literal_eval(new_value)
+                            value = attr_type(parsed)
                             if not attr_check(value):
                                 msg = 'Invalid value "{}" for "{}"'
                                 raise Exception(msg.format(new_value, name))
@@ -531,20 +531,16 @@ or print (when the value is omitted) individual attributes."""
                             this.dashboard.redisplay()
                         except Exception as e:
                             Dashboard.err(e)
-                # create the command
                 prefix = self.prefix + ' ' + name
                 doc = attribute.get('doc', 'This style is self-documenting')
                 Dashboard.create_command(prefix, invoke, doc, False)
-                # set the default value
-                value = attribute['default']
-                setattr(self.obj, attribute.get('name', name), value)
 
         def invoke(self, arg, from_tty):
             # print all the pairs
             for name, attribute in self.attributes.items():
                 attr_name = attribute.get('name', name)
                 value = getattr(self.obj, attr_name)
-                print('{} = {}'.format(name, value))
+                print('{} = {!r}'.format(name, value))
 
 # Base module ------------------------------------------------------------------
 
@@ -700,13 +696,13 @@ instructions constituting the current statement are marked, if available."""
                 'doc': 'Opcodes visibility flag.',
                 'default': False,
                 'name': 'show_opcodes',
-                'type': convert_bool
+                'type': bool
             },
             'function': {
                 'doc': 'Function information visibility flag.',
                 'default': True,
                 'name': 'show_function',
-                'type': convert_bool
+                'type': bool
             }
         }
 
@@ -792,13 +788,13 @@ location, if available. Optionally list the frame arguments and locals too."""
                 'doc': 'Frame arguments visibility flag.',
                 'default': True,
                 'name': 'show_arguments',
-                'type': convert_bool
+                'type': bool
             },
             'locals': {
                 'doc': 'Frame locals visibility flag.',
                 'default': False,
                 'name': 'show_locals',
-                'type': convert_bool
+                'type': bool
             }
         }
 

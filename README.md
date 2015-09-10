@@ -103,10 +103,11 @@ Access to the stylable attributes of the dashboard, see [Stylable
 attributes](#stylable-attributes). For example, to change the prompt to
 something more familiar:
 
-    dashboard -style prompt (gdb)
+    dashboard -style prompt '(gdb)'
 
-Note that no quotation mechanism is present, strings are treated verbatim by
-GDB. When only the name is specified this command shows the current value,
+The argument is parsed as a Python literal and converted to the proper type.
+
+When only the name is specified this command shows the current value,
 whereas without arguments prints all the attributes.
 
 ### Modules subcommands
@@ -213,11 +214,11 @@ value is another dictionary:
  3. `name` is the name of the attribute of the Python object, defaults to the
     key value.
 
- 4. `type` is the conversion callback which accepts the string value and produce
-    a value in another type, or raise an exception. This key defaults to the
-    type `str`.
+ 4. `type` is the type of this attribute, it is used to coerce the value passed
+    as an argument to the proper type, or raise an exception. This key defaults
+    to the `str` type.
 
- 5. `check` is a control callback which accept the converted value and returns
+ 5. `check` is a control callback which accept the coerced value and returns
     `True` if the value satisfies the constraint and `False` otherwise. This key
     is optional, when omitted no check is performed.
 
@@ -294,7 +295,7 @@ class Notes(Dashboard.Module):
             'divider': {
                 'doc': 'Divider visibility flag.',
                 'default': True,
-                'type': convert_bool
+                'type': bool
             }
         }
 ```
