@@ -9,6 +9,13 @@ during the program execution. Its main goal is to reduce the number of GDB
 commands issued to inspect the current program status allowing the programmer to
 focus on the control flow instead.
 
+Installation
+------------
+
+Just place [`.gdbinit`][raw] in your home directory, for example:
+
+    wget -P ~ http://git.io/.gdbinit
+
 Screenshot
 ----------
 
@@ -34,13 +41,6 @@ Features
 
  * No GDB command has been redefined, instead all the
    features are available as subcommands of the main `dashboard` command.
-
-Installation
-------------
-
-Just place [`.gdbinit`][raw] in your home directory, for example:
-
-    wget -P ~ http://git.io/.gdbinit
 
 Default modules
 ---------------
