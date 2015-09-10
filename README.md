@@ -40,7 +40,7 @@ Installation
 
 Just place [`.gdbinit`][raw] in your home directory, for example:
 
-    cd; wget https://raw.githubusercontent.com/cyrus-and/gdb-dashboard/master/.gdbinit
+    wget -P ~ http://git.io/.gdbinit
 
 Default modules
 ---------------
