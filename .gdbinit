@@ -431,9 +431,10 @@ The current status is printed if no argument is present."""
         """Set or show the dashboard layout.
 Accepts a space-separated list of directive. Each directive is in the form
 "[!]<module>". Modules in the list are placed in the dashboard in the same order
-as they appear and those prefixed by "!" are visible by default. Omitted modules
-are hidden and placed at the bottom in alphabetical order. Without arguments the
-current layout is shown; enabled and disabled modules are properly marked."""
+as they appear and those prefixed by "!" are disabled by default. Omitted
+modules are hidden and placed at the bottom in alphabetical order. Without
+arguments the current layout is shown; enabled and disabled modules are properly
+marked."""
 
         def __init__(self, dashboard):
             gdb.Command.__init__(self, 'dashboard -layout', gdb.COMMAND_USER)
@@ -464,8 +465,8 @@ current layout is shown; enabled and disabled modules are properly marked."""
             n_enabled = 0
             for directive in directives:
                 # parse next directive
-                enabled = (directive[0] == '!')
-                name = directive[enabled:]
+                enabled = (directive[0] != '!')
+                name = directive[not enabled:]
                 try:
                     # it may actually start from last, but in this way repeated
                     # modules can be handler transparently and without error

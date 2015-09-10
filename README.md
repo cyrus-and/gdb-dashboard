@@ -87,10 +87,10 @@ alphabetical order. As the number of modules grows, it is important to decide
 which modules will be part of the dashboard, and where.
 
 Each directive is in the form `[!]<module>`, when the `!` is present then the
-corresponding module is enabled by default. The order of directives denotes the
+corresponding module is disabled by default. The order of directives denotes the
 display order within the dashboard. For example:
 
-    dashboard -layout !source assembly !stack
+    dashboard -layout source !assembly stack
 
 Modules which do not appear in the list are disabled and placed after the last
 element in alphabetical order.
