@@ -165,7 +165,8 @@ prompt).
 A divider is basically a terminal-wide horizontal line with an optional label.
 Primary dividers are those used to separate the modules, whereas secondary
 dividers may be used inside modules to logically separate different sections.
-When a section or module is empty then the style is set to `off`.
+When a section or module is empty then the styles used for the divider are those
+with the `off` qualifier.
 
 ### Common styles
 
@@ -192,7 +193,7 @@ methods:
 
  * `lines` return a list of strings which will form the module content. When a
     module is temporarily unable to produce its content, it should return an
-    empty list; its divider will then use the `off` style.
+    empty list; its divider will then use the styles with the `off` qualifier.
 
 The name of a module is automatically obtained by the class name.
 
