@@ -14,7 +14,7 @@ Installation
 
 Just place [`.gdbinit`][raw] in your home directory, for example:
 
-    wget -P ~ http://git.io/.gdbinit
+    wget -P ~ git.io/.gdbinit
 
 Screenshot
 ----------
