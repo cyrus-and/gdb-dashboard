@@ -3,11 +3,11 @@ GDB dashboard
 
 Modular visual interface for GDB in Python.
 
-This comes as a standalone single-file `.gdbinit` which, among the other things,
-enables a configurable dashboard showing the most relevant information during
-the program execution. Its main goal is to reduce the number of GDB commands
-issued to inspect the current program status allowing the programmer to focus on
-the control flow instead.
+This comes as a standalone single-file [`.gdbinit`][raw] which, among the other
+things, enables a configurable dashboard showing the most relevant information
+during the program execution. Its main goal is to reduce the number of GDB
+commands issued to inspect the current program status allowing the programmer to
+focus on the control flow instead.
 
 Screenshot
 ----------
@@ -38,7 +38,7 @@ Features
 Installation
 ------------
 
-Just place `.gdbinit` in your home directory, for example:
+Just place [`.gdbinit`][raw] in your home directory, for example:
 
     cd; wget https://raw.githubusercontent.com/cyrus-and/gdb-dashboard/master/.gdbinit
 
@@ -135,8 +135,8 @@ The main configuration file can be placed in `~/.gdbinit.d/` (say
 `~/.gdbinit.d/init`) and should be used to tune the dashboard styles and modules
 configuration but also the usual GDB parameters.
 
-The alternative is to hard code changes in the provided `.gdbinit`, to do so
-just add new modules and GDB settings under `# Default modules` and `# Better
+The alternative is to hard code changes in the provided [`.gdbinit`][raw], to do
+so just add new modules and GDB settings under `# Default modules` and `# Better
 GDB defaults` respectively.
 
 Stylable attributes
@@ -240,10 +240,10 @@ another dictionary:
 ### Common functions
 
 A number of auxiliary common functions are defined in the global scope, they can
-be found in the provided `.gdbinit` and concern topics like [ANSI][ansi] output,
-divider formatting, conversion callbacks, etc. They should be more or less
-self-documented, some usage examples can be found within the bundled default
-modules.
+be found in the provided [`.gdbinit`][raw] and concern topics like [ANSI][ansi]
+output, divider formatting, conversion callbacks, etc. They should be more or
+less self-documented, some usage examples can be found within the bundled
+default modules.
 
 ### Example
 
@@ -337,6 +337,7 @@ COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+[raw]: https://raw.githubusercontent.com/cyrus-and/gdb-dashboard/master/.gdbinit
 [api]: https://sourceware.org/gdb/onlinedocs/gdb/Python-API.html
 [commands]: https://sourceware.org/gdb/onlinedocs/gdb/Command-Files.html
 [ansi]: https://en.wikipedia.org/wiki/ANSI_escape_code
