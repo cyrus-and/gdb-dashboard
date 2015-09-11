@@ -63,6 +63,8 @@ the full syntax.
    file location, if available. Optionally list the frame arguments and locals
    too.
 
+ * `threads` lists the currently available threads.
+
 Commands
 --------
 

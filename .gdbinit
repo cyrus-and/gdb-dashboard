@@ -722,25 +722,8 @@ location, if available. Optionally list the frame arguments and locals too."""
             selected = (frame == gdb.selected_frame())
             style = R.style_selected_1 if selected else R.style_selected_2
             frame_id = ansi(str(number), style)
-            frame_pc = ansi(format_address(frame.pc()), style)
-            info = '[{}] from {}'.format(frame_id, frame_pc)
-            if frame.name():
-                frame_name = ansi(frame.name(), style)
-                try:
-                    # try to compute the offset relative to the current function
-                    value = gdb.parse_and_eval(frame.name()).address
-                    func_start = to_unsigned(value)
-                    offset = frame.pc() - func_start
-                    frame_name += '+' + ansi(str(offset), style)
-                except gdb.error:
-                    pass  # e.g., @plt
-                info += ' in {}()'.format(frame_name)
-                sal = frame.find_sal()
-                if sal.symtab:
-                    file_name = ansi(sal.symtab.filename, style)
-                    file_line = ansi(str(sal.line), style)
-                    info += ' at {}:{}'.format(file_name, file_line)
-            lines.append(info)
+            info = Stack.get_pc_line(frame, style)
+            lines.append('[{}] {}'.format(frame_id, info))
             # fetch frame arguments and locals
             decorator = gdb.FrameDecorator.FrameDecorator(frame)
             if self.show_arguments:
@@ -775,6 +758,28 @@ location, if available. Optionally list the frame arguments and locals too."""
             value = elem.sym.value(frame)
             lines.append('{} {} = {}'.format(prefix, name, value))
         return lines
+
+    @staticmethod
+    def get_pc_line(frame, style):
+        frame_pc = ansi(format_address(frame.pc()), style)
+        info = 'from {}'.format(frame_pc)
+        if frame.name():
+            frame_name = ansi(frame.name(), style)
+            try:
+                # try to compute the offset relative to the current function
+                value = gdb.parse_and_eval(frame.name()).address
+                func_start = to_unsigned(value)
+                offset = frame.pc() - func_start
+                frame_name += '+' + ansi(str(offset), style)
+            except gdb.error:
+                pass  # e.g., @plt
+            info += ' in {}()'.format(frame_name)
+            sal = frame.find_sal()
+            if sal.symtab:
+                file_name = ansi(sal.symtab.filename, style)
+                file_line = ansi(str(sal.line), style)
+                info += ' at {}:{}'.format(file_name, file_line)
+        return info
 
     def attributes(self):
         return {
@@ -979,6 +984,32 @@ class Registers(Dashboard.Module):
             # convert to unsigned but preserve code and flags information
             pass
         return str(value)
+
+class Threads(Dashboard.Module):
+    """List the currently available threads."""
+
+    def label(self):
+        return 'Threads'
+
+    def lines(self):
+        out = []
+        selected = gdb.selected_thread()
+        for thread in gdb.Inferior.threads(gdb.selected_inferior()):
+            is_selected = (thread.ptid == selected.ptid)
+            style = R.style_selected_1 if is_selected else R.style_selected_2
+            number = ansi(str(thread.num), style)
+            tid = ansi(str(thread.ptid[1] or thread.ptid[2]), style)
+            info = '[{}] id {}'.format(number, tid)
+            if thread.name:
+                info += ' name {}'.format(ansi(thread.name, style))
+            # switch thread to fetch frame info
+            thread.switch()
+            frame = gdb.newest_frame()
+            info += ' ' + Stack.get_pc_line(frame, style)
+            out.append(info)
+        # restore selected thread
+        selected.switch()
+        return out
 
 end
 
