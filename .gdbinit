@@ -890,19 +890,25 @@ class Memory(Dashboard.Module):
         return out
 
     def watch(self, arg):
-        address, _, length = arg.partition(' ')
-        address = Memory.parse_as_address(address)
-        if length:
-            length = Memory.parse_as_address(length)
+        if arg:
+            address, _, length = arg.partition(' ')
+            address = Memory.parse_as_address(address)
+            if length:
+                length = Memory.parse_as_address(length)
+            else:
+                length = self.row_length
+            self.table[address] = length
         else:
-            length = self.row_length
-        self.table[address] = length
+            raise Exception('Specify an address')
 
     def unwatch(self, arg):
-        try:
-            del self.table[Memory.parse_as_address(arg)]
-        except KeyError:
-            raise Exception('Memory region not watched')
+        if arg:
+            try:
+                del self.table[Memory.parse_as_address(arg)]
+            except KeyError:
+                raise Exception('Memory region not watched')
+        else:
+            raise Exception('Specify an address')
 
     def clear(self, arg):
         self.table.clear()
