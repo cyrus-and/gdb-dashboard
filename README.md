@@ -19,7 +19,7 @@ Just place [`.gdbinit`][raw] in your home directory, for example:
 Screenshot
 ----------
 
-![Screenshot](http://i.imgur.com/BytstYD.png)
+![Screenshot](http://i.imgur.com/IsXp0RK.png)
 
 Features
 --------
