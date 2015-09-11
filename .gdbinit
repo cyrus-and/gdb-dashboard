@@ -875,7 +875,7 @@ class Memory(Dashboard.Module):
     def lines(self):
         out = []
         inferior = gdb.selected_inferior()
-        for address, length in self.table.items():
+        for address, length in sorted(self.table.items()):
             try:
                 memory = inferior.read_memory(address, length)
                 out.extend(self.format_memory(address, memory))
