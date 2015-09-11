@@ -1011,6 +1011,65 @@ class Threads(Dashboard.Module):
         selected.switch()
         return out
 
+class Expressions(Dashboard.Module):
+    """Watch user expressions."""
+
+    def __init__(self):
+        self.number = 1
+        self.table = {}
+
+    def label(self):
+        return 'Expressions'
+
+    def lines(self):
+        out = []
+        for number, expression in sorted(self.table.items()):
+            try:
+                value = gdb.parse_and_eval(expression)
+            except gdb.error as e:
+                value = ansi(e, R.style_error)
+            number = ansi(number, R.style_selected_2)
+            expression = ansi(expression, R.style_low)
+            out.append('[{}] {} = {}'.format(number, expression, value))
+        return out
+
+    def watch(self, arg):
+        if arg:
+            self.table[self.number] = arg
+            self.number += 1
+        else:
+            raise Exception('Specify an expression')
+
+    def unwatch(self, arg):
+        if arg:
+            try:
+                del self.table[int(arg)]
+            except Exception:
+                raise Exception('Expression not watched')
+        else:
+            raise Exception('Specify an identifier')
+
+    def clear(self, arg):
+        self.table.clear()
+
+    def commands(self):
+        return {
+            'watch': {
+                'action': self.watch,
+                'doc': 'Watch an expression.',
+                'complete': gdb.COMPLETE_EXPRESSION
+            },
+            'unwatch': {
+                'action': self.unwatch,
+                'doc': 'Stop watching an expression by id.',
+                'complete': gdb.COMPLETE_EXPRESSION
+            },
+            'clear': {
+                'action': self.clear,
+                'doc': 'Clear all the watched expressions.'
+            }
+        }
+
 end
 
 # Better GDB defaults ----------------------------------------------------------

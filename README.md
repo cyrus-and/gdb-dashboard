@@ -65,6 +65,8 @@ the full syntax.
 
  * `threads` lists the currently available threads.
 
+ * `expressions` watches user expressions.
+
 Commands
 --------
 
