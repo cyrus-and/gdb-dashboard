@@ -42,6 +42,14 @@ Features
  * No GDB command has been redefined, instead all the
    features are available as subcommands of the main `dashboard` command.
 
+Minimal requirements
+--------------------
+
+GDB dashboard requires at least GDB 7.7 compiled with Python 2.7 in order to
+work properly.
+
+See #1 for more details/workarounds.
+
 Default modules
 ---------------
 
