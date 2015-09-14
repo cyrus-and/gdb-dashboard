@@ -558,7 +558,7 @@ class Source(Dashboard.Module):
 
     def lines(self):
         # try to fetch the current line (skip if no line information)
-        pc = gdb.newest_frame().pc()
+        pc = gdb.selected_frame().pc()
         current_line = gdb.find_pc_line(pc).line
         if current_line == 0:
             return []
@@ -999,9 +999,10 @@ class Threads(Dashboard.Module):
 
     def lines(self):
         out = []
-        selected = gdb.selected_thread()
+        selected_thread = gdb.selected_thread()
+        selected_frame = gdb.selected_frame()
         for thread in gdb.Inferior.threads(gdb.selected_inferior()):
-            is_selected = (thread.ptid == selected.ptid)
+            is_selected = (thread.ptid == selected_thread.ptid)
             style = R.style_selected_1 if is_selected else R.style_selected_2
             number = ansi(str(thread.num), style)
             tid = ansi(str(thread.ptid[1] or thread.ptid[2]), style)
@@ -1013,8 +1014,9 @@ class Threads(Dashboard.Module):
             frame = gdb.newest_frame()
             info += ' ' + Stack.get_pc_line(frame, style)
             out.append(info)
-        # restore selected thread
-        selected.switch()
+        # restore thread and frame
+        selected_thread.switch()
+        selected_frame.select()
         return out
 
 class Expressions(Dashboard.Module):
