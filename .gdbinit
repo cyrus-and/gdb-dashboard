@@ -573,7 +573,7 @@ class Source(Dashboard.Module):
             try:
                 with open(self.file_name) as source:
                     self.source_lines = source.readlines()
-            except Exception:
+            except:
                 msg = 'Cannot access "{}"'.format(self.file_name)
                 return [ansi(msg, R.style_error)]
         # compute the line range
@@ -1055,7 +1055,7 @@ class Expressions(Dashboard.Module):
         if arg:
             try:
                 del self.table[int(arg)]
-            except Exception:
+            except:
                 raise Exception('Expression not watched')
         else:
             raise Exception('Specify an identifier')
