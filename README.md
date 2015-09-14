@@ -185,7 +185,7 @@ Whereas for modules:
 
 Colors and text styles are specified using [ANSI][ansi] escape codes. For
 example setting a style to `1;31` will produce `^[[1;31m`, which will result in
-displaying the text red (`31`) and bright (`1`). The ansi output can be disabled
+displaying the text red (`31`) and bright (`1`). The ANSI output can be disabled
 by setting the `ansi` attribute (note that this will not affect the command
 prompt).
 
@@ -212,8 +212,8 @@ Custom modules
 --------------
 
 The idea of custom modules is that they provide ways to access readonly
-information from the the target program status; it is safe to assume that they
-will be queried during the program execution only.
+information from the target program status; it is safe to assume that they will
+be queried during the program execution only.
 
 Custom modules must inherit the `Dashboard.Module` class and define some
 methods:
@@ -331,7 +331,7 @@ class Notes(Dashboard.Module):
 ```
 
 To use the above just save it in a Python file, say `notes.py`, inside
-`~/.gdbinit.d/`, the the following commands (together with the help) will be
+`~/.gdbinit.d/`, the following commands (together with the help) will be
 available:
 
     dashboard notes
