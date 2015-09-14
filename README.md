@@ -93,6 +93,22 @@ Enable or disable the automatic display of the dashboard whenever the target
 program stops. The dashboard is enabled by default and even when it is disabled,
 it can be manually displayed with `dashboard`.
 
+Sometimes it may be convenient to redraw the dashboard even if the target
+program has not changed its execution status, for example when the programmer
+switches the currently selected frame with the `up` or `down` commands. It is
+possible to do so by setting up some GDB hooks in the [user-defined init
+file](#configuration), for example:
+
+```
+define hookpost-up
+dashboard
+end
+
+define hookpost-down
+dashboard
+end
+```
+
 ### dashboard -layout [`<directive>`...]
 
 By default, all the modules are enabled and placed within the dashboard in
