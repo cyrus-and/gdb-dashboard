@@ -553,38 +553,40 @@ or print (when the value is omitted) individual attributes."""
 class Source(Dashboard.Module):
     """Show the program source code, if available."""
 
+    def __init__(self):
+        self.file_name = None
+        self.source_lines = []
+
     def label(self):
         return 'Source'
 
     def lines(self):
         # try to fetch the current line (skip if no line information)
-        pc = gdb.selected_frame().pc()
-        current_line = gdb.find_pc_line(pc).line
+        sal = gdb.selected_frame().find_sal()
+        current_line = sal.line
         if current_line == 0:
             return []
-        # try to fetch the source code in the range
-        try:
-            start = max(current_line - self.context, 1)
-            end = current_line + self.context
-            source = run('list {},{}'.format(start, end)).split('\n')[:-1]
-        except gdb.error:
-            # e.g., start and end are in different *system* files; it is not
-            # a matter of file bounds anyway
-            return []
-        # omit useless 'list' output when no source code is available
-        if len(source) == 1:
-            if not source[0].startswith(str(current_line) + '\t'):
+        # reload the source file if changed
+        file_name = sal.symtab.fullname()
+        if file_name != self.file_name:
+            self.file_name = file_name
+            try:
+                with open(self.file_name) as source:
+                    self.source_lines = source.readlines()
+            except Exception:
                 return []
-        # return the source code
+        # compute the line range
+        start = max(current_line - 1 - self.context, 0)
+        end = min(current_line - 1 + self.context, len(self.source_lines))
+        # return the source code listing
         out = []
         number_format = '{{:>{}}}'.format(len(str(end)))
-        for line in source:
-            number, _, code = line.partition('\t')
+        for number, line in enumerate(self.source_lines[start:end], start + 1):
             if int(number) == current_line:
                 line_format = ansi(number_format + ' {}', R.style_selected_1)
             else:
                 line_format = ansi(number_format, R.style_low) + ' {}'
-            out.append(line_format.format(number, code))
+            out.append(line_format.format(number, line.rstrip('\n')))
         return out
 
     def set_context(self, arg):
