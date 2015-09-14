@@ -574,7 +574,8 @@ class Source(Dashboard.Module):
                 with open(self.file_name) as source:
                     self.source_lines = source.readlines()
             except Exception:
-                return []
+                msg = 'Cannot access "{}"'.format(self.file_name)
+                return [ansi(msg, R.style_error)]
         # compute the line range
         start = max(current_line - 1 - self.context, 0)
         end = min(current_line - 1 + self.context, len(self.source_lines))
