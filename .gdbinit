@@ -115,7 +115,7 @@ def run(command):
 
 def ansi(string, style):
     if R.ansi:
-        return '[{}m{}[0m'.format(style, string)
+        return '\x1b[{}m{}\x1b[0m'.format(style, string)
     else:
         return string
 
@@ -322,7 +322,7 @@ class Dashboard(gdb.Command):
 
     @staticmethod
     def clear_screen():
-        gdb.write('[H[2J')
+        gdb.write('\x1b[H\x1b[2J')
 
 # Module descriptor ------------------------------------------------------------
 
