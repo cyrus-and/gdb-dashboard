@@ -533,11 +533,12 @@ or print (when the value is omitted) individual attributes."""
                             if not attr_check(value):
                                 msg = 'Invalid value "{}" for "{}"'
                                 raise Exception(msg.format(new_value, name))
+                        except Exception as e:
+                            Dashboard.err(e)
+                        else:
                             # set and redisplay
                             setattr(this.obj, attr_name, value)
                             this.dashboard.redisplay()
-                        except Exception as e:
-                            Dashboard.err(e)
                 prefix = self.prefix + ' ' + name
                 doc = attribute.get('doc', 'This style is self-documenting')
                 Dashboard.create_command(prefix, invoke, doc, False)
