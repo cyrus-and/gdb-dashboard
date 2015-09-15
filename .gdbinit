@@ -5,8 +5,10 @@ python
 # https://github.com/cyrus-and/gdb-dashboard
 
 import ast
+import fcntl
 import os
-import subprocess
+import struct
+import termios
 
 # Common attributes ------------------------------------------------------------
 
@@ -250,8 +252,10 @@ class Dashboard(gdb.Command):
         run('alias -a db = dashboard')
 
     @staticmethod
-    def update_term_width():
-        height, width = subprocess.check_output(['stty', 'size']).split()
+    def update_term_width(fd=0):  # defaults to stdin
+        # first 2 shorts (4 byte) of struct winsize
+        raw = fcntl.ioctl(fd, termios.TIOCGWINSZ, ' ' * 4)
+        height, width = struct.unpack('hh', raw)
         Dashboard.term_width = int(width)
 
     @staticmethod
