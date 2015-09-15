@@ -185,6 +185,7 @@ class Dashboard(gdb.Command):
 
     def on_continue(self):
         if self.enabled and self.is_running():
+            Dashboard.update_term_width()
             Dashboard.clear_screen()
             print(divider('Output/messages', True))
 
@@ -239,7 +240,6 @@ class Dashboard(gdb.Command):
     @staticmethod
     def start():
         # initialize the dashboard
-        Dashboard.update_term_width()
         dashboard = Dashboard()
         Dashboard.set_custom_prompt(dashboard)
         # parse Python inits, load modules then parse GDB inits
