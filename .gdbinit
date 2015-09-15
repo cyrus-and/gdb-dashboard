@@ -185,7 +185,6 @@ class Dashboard(gdb.Command):
         if self.enabled and self.is_running():
             Dashboard.clear_screen()
             print(divider('Output/messages', True))
-        self.pre_display = False
 
     def on_stop(self):
         if self.enabled and self.is_running():
