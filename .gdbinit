@@ -183,7 +183,7 @@ class Dashboard(gdb.Command):
 
     def on_continue(self):
         if self.enabled and self.is_running():
-            os.system('clear')
+            Dashboard.clear_screen()
             print(divider('Output/messages', True))
         self.pre_display = False
 
@@ -202,7 +202,7 @@ class Dashboard(gdb.Command):
 
     def redisplay(self):
         if self.is_running():
-            os.system('clear')
+            Dashboard.clear_screen()
             self.display()
 
     def inferior_pid(self):
@@ -319,6 +319,10 @@ class Dashboard(gdb.Command):
         if type(arg) is not str:
             arg = arg.encode('utf8')
         return arg
+
+    @staticmethod
+    def clear_screen():
+        gdb.write('[H[2J')
 
 # Module descriptor ------------------------------------------------------------
 
