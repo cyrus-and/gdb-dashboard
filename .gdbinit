@@ -247,7 +247,7 @@ class Dashboard(gdb.Command):
         modules = Dashboard.get_modules()
         dashboard.load_modules(modules)
         Dashboard.parse_inits(False)
-        # GDB override
+        # GDB overrides
         run('set pagination off')
         run('alias -a db = dashboard')
 
