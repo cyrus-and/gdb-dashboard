@@ -253,10 +253,13 @@ class Dashboard(gdb.Command):
 
     def display(self, *data):
         # gdb module has both write() and flush()
-        output = self.output or gdb
-        for string in data:
-            output.write(string)
-        output.flush()
+        try:
+            output = self.output or gdb
+            for string in data:
+                output.write(string)
+            output.flush()
+        except:
+            Dashboard.err('Cannot write the dashboard')
 
 # Utility methods --------------------------------------------------------------
 
