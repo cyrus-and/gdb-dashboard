@@ -26,6 +26,8 @@ Features
 
  * Single GDB init file.
 
+ * Write the dashboard to the main GDB console or to an external file/TTY.
+
  * Interaction with GDB using the native [Python API][api].
 
  * Several default modules are included to address the most basic
@@ -86,6 +88,28 @@ command, abbreviations are possible. Moreover, the alias `db` resolves to
 ### dashboard
 
 This is the root command and it is used to manually redisplay the dashboard.
+
+### dashboard -output [`<file>`]
+
+By default the dashboard is written to the GDB console but it is possible to
+redirect its output to a file or even to another terminal. If the target is a
+valid terminal TTY then its width is used to format the dashboard, otherwise
+fall back to the width of the main GDB console. For example:
+
+ 1. start GDB in one terminal;
+
+ 2. open another terminal (e.g. [tmux][tmux] pane) and get its TTY with the
+    `tty` command (e.g. `/dev/ttys001`, the name may be different for a variety
+    of reasons);
+
+ 3. issue the command `dashboard -output /dev/ttys001` to redirect the dashboard
+    output to the newly created terminal;
+
+ 4. debug as usual.
+
+![Auxiliary terminal](http://i.imgur.com/ZTc4Wjq.png)
+
+Without argument reset this setting to the default.
 
 ### dashboard -enabled [on|off]
 
@@ -373,3 +397,4 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 [format]: https://docs.python.org/2/library/string.html#format-string-syntax
 [prompt]: https://sourceware.org/gdb/onlinedocs/gdb/gdb_002eprompt.html
 [completion]: https://sourceware.org/gdb/onlinedocs/gdb/Commands-In-Python.html
+[tmux]: https://github.com/tmux/tmux

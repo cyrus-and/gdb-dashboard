@@ -172,8 +172,10 @@ class Dashboard(gdb.Command):
     def __init__(self):
         gdb.Command.__init__(self, 'dashboard',
                              gdb.COMMAND_USER, gdb.COMPLETE_NONE, True)
+        self.output = None  # main terminal
         self.enabled = True
         # setup subcommands
+        Dashboard.OutputCommand(self)
         Dashboard.EnabledCommand(self)
         Dashboard.LayoutCommand(self)
         # setup style commands
@@ -184,14 +186,22 @@ class Dashboard(gdb.Command):
         gdb.events.exited.connect(lambda _: self.on_exit())
 
     def on_continue(self):
-        if self.enabled and self.is_running():
+        # try to contain the GDB messages is a specified are unless the
+        # dashboard is printed to a separate file
+        if self.enabled and self.is_running() and not self.output:
             Dashboard.update_term_width()
-            Dashboard.clear_screen()
-            print(divider('Output/messages', True))
+            gdb.write(Dashboard.clear_screen())
+            gdb.write(divider('Output/messages', True))
+            gdb.write('\n')
+            gdb.flush()
 
     def on_stop(self):
+        # redisplay the dashboard when the target program stops (the screen is
+        # cleared by on_continue when the dashboard is printed to a separate
+        # file)
         if self.enabled and self.is_running():
-            self.display()
+            clear = Dashboard.clear_screen() if self.output else ''
+            self.display(clear, self.build(), '\n')
 
     def on_exit(self):
         pass
@@ -203,9 +213,9 @@ class Dashboard(gdb.Command):
             self.modules.append(info)
 
     def redisplay(self):
+        # manually redisplay the dashboard
         if self.is_running():
-            Dashboard.clear_screen()
-            self.display()
+            self.display(Dashboard.clear_screen(), self.build(), '')
 
     def inferior_pid(self):
         return gdb.selected_inferior().pid
@@ -213,8 +223,14 @@ class Dashboard(gdb.Command):
     def is_running(self):
         return self.inferior_pid() != 0
 
-    def display(self):
-        Dashboard.update_term_width()
+    def build(self):
+        # fetch the output width
+        try:
+            fd = self.output.fileno() if self.output else 1  # main terminal
+            Dashboard.update_term_width(fd)
+        except:
+            # fall back to the main terminal
+            Dashboard.update_term_width()
         # fetch lines
         lines = []
         for module in self.modules:
@@ -233,7 +249,14 @@ class Dashboard(gdb.Command):
                 lines.append('No module to display (see `help dashboard`)')
         lines.append(divider(primary=True))
         # print the dashboard
-        print('\n'.join(lines))
+        return '\n'.join(lines)
+
+    def display(self, *data):
+        # gdb module has both write() and flush()
+        output = self.output or gdb
+        for string in data:
+            output.write(string)
+        output.flush()
 
 # Utility methods --------------------------------------------------------------
 
@@ -252,7 +275,7 @@ class Dashboard(gdb.Command):
         run('alias -a db = dashboard')
 
     @staticmethod
-    def update_term_width(fd=0):  # defaults to stdin
+    def update_term_width(fd=1):  # defaults to the main terminal
         # first 2 shorts (4 byte) of struct winsize
         raw = fcntl.ioctl(fd, termios.TIOCGWINSZ, ' ' * 4)
         height, width = struct.unpack('hh', raw)
@@ -325,7 +348,7 @@ class Dashboard(gdb.Command):
 
     @staticmethod
     def clear_screen():
-        gdb.write('\x1b[H\x1b[2J')
+        return '\x1b[H\x1b[2J'
 
 # Module descriptor ------------------------------------------------------------
 
@@ -400,6 +423,35 @@ class Dashboard(gdb.Command):
                 Dashboard.err('Is the target program running?')
         else:
             Dashboard.err('Wrong argument "{}"'.format(arg))
+
+    class OutputCommand(gdb.Command):
+        """Set the dashboard output file/TTY.
+The dashboard will be appended to the specified file, which will be created if
+it does not exists. If the specified file identifies a terminal then its width
+will be used to format the dashboard, otherwise falls back to the width of the
+main GDB terminal. Without argument the dashboard will be printed on standard
+output (default)."""
+
+        def __init__(self, dashboard):
+            gdb.Command.__init__(self, 'dashboard -output',
+                                 gdb.COMMAND_USER, gdb.COMPLETE_FILENAME)
+            self.dashboard = dashboard
+
+        def invoke(self, arg, from_tty):
+            arg = Dashboard.parse_arg(arg)
+            # close the previous output file, if any
+            if self.dashboard.output:
+                self.dashboard.output.close()
+            # set or open the output file
+            if arg == '':
+                self.dashboard.output = None
+            else:
+                try:
+                    self.dashboard.output = open(arg, 'w')
+                except:
+                    Dashboard.err('Cannot open "{}"'.format(arg))
+            # redisplay the dashboard in the new output
+            self.dashboard.redisplay()
 
     class EnabledCommand(gdb.Command):
         """Enable or disable the dashboard [on|off].
