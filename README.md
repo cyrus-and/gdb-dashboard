@@ -94,7 +94,13 @@ This is the root command and it is used to manually redisplay the dashboard.
 By default the dashboard is written to the GDB console but it is possible to
 redirect its output to a file or even to another terminal. If the target is a
 valid terminal TTY then its width is used to format the dashboard, otherwise
-fall back to the width of the main GDB console. For example:
+fall back to the width of the main GDB console.
+
+Without argument reset this setting to the default.
+
+#### Display the dashboard in another terminal
+
+![Dashboard in another terminal](http://i.imgur.com/ZTc4Wjq.png)
 
  1. start GDB in one terminal;
 
@@ -107,9 +113,23 @@ fall back to the width of the main GDB console. For example:
 
  4. debug as usual.
 
-![Auxiliary terminal](http://i.imgur.com/ZTc4Wjq.png)
+#### Display the dashboard in a web browser
 
-Without argument reset this setting to the default.
+Pushing this even further, one could use a web browser as an auxiliary terminal
+using [gotty][gotty].
+
+![Dashboard in a web browser](http://i.imgur.com/qIco9e0.png)
+
+ 1. start GDB in one terminal;
+
+ 2. open another terminal and execute `gotty sh -c 'tty; cat'`;
+
+ 3. open a web browser, navigate to `http://localhost:8080` and note the TTY;
+
+ 4. issue the command `dashboard -output /dev/ttys001` to redirect the dashboard
+    output to the web browser;
+
+ 5. debug as usual.
 
 ### dashboard -enabled [on|off]
 
@@ -398,3 +418,4 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 [prompt]: https://sourceware.org/gdb/onlinedocs/gdb/gdb_002eprompt.html
 [completion]: https://sourceware.org/gdb/onlinedocs/gdb/Commands-In-Python.html
 [tmux]: https://github.com/tmux/tmux
+[gotty]: https://github.com/yudai/gotty
