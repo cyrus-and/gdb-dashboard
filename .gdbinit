@@ -270,7 +270,7 @@ class Dashboard(gdb.Command):
         Dashboard.set_custom_prompt(dashboard)
         # parse Python inits, load modules then parse GDB inits
         Dashboard.parse_inits(True)
-        modules = Dashboard.get_modules()
+        modules = Dashboard.get_modules(exclude = [])
         dashboard.load_modules(modules)
         Dashboard.parse_inits(False)
         # GDB overrides
@@ -311,13 +311,13 @@ class Dashboard(gdb.Command):
                     gdb.execute('source ' + path)
 
     @staticmethod
-    def get_modules():
+    def get_modules(exclude = []):
         # scan the scope for modules
         modules = []
         for name in globals():
             obj = globals()[name]
             try:
-                if issubclass(obj, Dashboard.Module):
+                if issubclass(obj, Dashboard.Module) and (not name in exclude):
                     modules.append(obj)
             except TypeError:
                 continue
