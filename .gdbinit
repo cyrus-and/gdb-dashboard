@@ -855,7 +855,7 @@ location, if available. Optionally list the frame arguments and locals too."""
                 frame_name += '+' + ansi(str(offset), style)
             except gdb.error:
                 pass  # e.g., @plt
-            info += ' in {}()'.format(frame_name)
+            info += ' in {}'.format(frame_name)
             sal = frame.find_sal()
             if sal.symtab:
                 file_name = ansi(sal.symtab.filename, style)
