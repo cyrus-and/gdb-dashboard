@@ -696,8 +696,8 @@ instructions constituting the current statement are marked, if available."""
             line_info = line_info if line_info.last else None
         except gdb.error:
             # if it is not possible (stripped binary) start from PC and end
-            # after a fixed number of instructions
-            asm = disassemble(frame.pc(), count=self.context)
+            # after twice the context
+            asm = disassemble(frame.pc(), count=2 * self.context + 1)
         # fetch function start if available
         func_start = None
         if self.show_function and frame.name():
