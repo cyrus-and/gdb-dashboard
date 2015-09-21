@@ -9,6 +9,7 @@ import fcntl
 import os
 import struct
 import termios
+import re
 
 # Common attributes ------------------------------------------------------------
 
@@ -681,8 +682,8 @@ instructions constituting the current statement are marked, if available."""
         try:
             # try to fetch the function boundaries using the disassemble command
             output = run('disassemble').split('\n')
-            start = int(output[1][3:].partition(' ')[0], 16)
-            end = int(output[-3][3:].partition(' ')[0], 16)
+            start = int(re.findall('(0x[0-9a-zA-Z]+):', output[1])[0],  16)
+            end   = int(re.findall('(0x[0-9a-zA-Z]+):', output[-3])[0], 16)
             asm = disassemble(start, end_pc=end)
             # find the location of the PC
             pc_index = next(index for index, instr in enumerate(asm)
