@@ -850,9 +850,11 @@ location, if available. Optionally list the frame arguments and locals too."""
             try:
                 # try to compute the offset relative to the current function
                 value = gdb.parse_and_eval(frame.name()).address
-                func_start = to_unsigned(value)
-                offset = frame.pc() - func_start
-                frame_name += '+' + ansi(str(offset), style)
+                # it can be None even if it is part of the "stack" (C++)
+                if value:
+                    func_start = to_unsigned(value)
+                    offset = frame.pc() - func_start
+                    frame_name += '+' + ansi(str(offset), style)
             except gdb.error:
                 pass  # e.g., @plt
             info += ' in {}'.format(frame_name)
