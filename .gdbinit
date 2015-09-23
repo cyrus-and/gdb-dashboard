@@ -163,7 +163,8 @@ def to_unsigned(value, size=8):
     return int(value.cast(gdb.Value(0).type)) % (2 ** (size * 8))
 
 def format_address(address):
-    return '0x{:016x}'.format(address)
+    pointer_size = gdb.parse_and_eval('$pc').type.sizeof
+    return ('0x{{:0{}x}}').format(word_size).format(address)
 
 # Dashboard --------------------------------------------------------------------
 
