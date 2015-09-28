@@ -631,6 +631,7 @@ class Source(Dashboard.Module):
     def __init__(self):
         self.file_name = None
         self.source_lines = []
+        self.ts = None
 
     def label(self):
         return 'Source'
@@ -643,8 +644,14 @@ class Source(Dashboard.Module):
             return []
         # reload the source file if changed
         file_name = sal.symtab.fullname()
-        if file_name != self.file_name:
+        ts = None
+        try:
+            ts = os.path.getmtime(file_name)
+        except:
+            pass  # delay error check to open()
+        if file_name != self.file_name or ts and ts > self.ts:
             self.file_name = file_name
+            self.ts = ts
             try:
                 with open(self.file_name) as source:
                     self.source_lines = source.readlines()
