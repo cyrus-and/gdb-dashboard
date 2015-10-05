@@ -198,7 +198,7 @@ class Dashboard(gdb.Command):
         gdb.events.exited.connect(lambda _: self.on_exit())
 
     def on_continue(self):
-        # try to contain the GDB messages is a specified are unless the
+        # try to contain the GDB messages in a specified area unless the
         # dashboard is printed to a separate file
         if self.enabled and self.is_running() and not self.output:
             Dashboard.update_term_width()
