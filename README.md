@@ -53,6 +53,24 @@ work properly.
 See [#1](https://github.com/cyrus-and/gdb-dashboard/issues/1) for more
 details/workarounds.
 
+Additional GDB front ends
+-------------------------
+
+GDB dashboard is not meant to work seamlessly with additional front ends, e.g.,
+TUI, Nemiver, etc. There are basically two options to work around this:
+
+ * Prevent the front from loading the `.gdbinit` file. For example, start TUI
+   with `gdbtui --nx`.
+
+ * Load GDB dashboard manually (only recommended if the front end is the
+   most used option). Install as usual, then:
+
+        mv ~/.gdbinit ~/.gdb-dashboard
+
+   Finally from the GDB shell:
+
+        source ~/.gdb-dashboard
+
 Default modules
 ---------------
 
