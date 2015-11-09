@@ -1218,7 +1218,7 @@ python Dashboard.start()
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 # ------------------------------------------------------------------------------
-# vi:syntax=python
+# vim: filetype=python
 # Local Variables:
 # mode: python
 # End:
