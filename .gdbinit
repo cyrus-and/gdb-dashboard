@@ -442,7 +442,7 @@ class Dashboard(gdb.Command):
     class OutputCommand(gdb.Command):
         """Set the dashboard output file/TTY.
 The dashboard will be appended to the specified file, which will be created if
-it does not exists. If the specified file identifies a terminal then its width
+it does not exist. If the specified file identifies a terminal then its width
 will be used to format the dashboard, otherwise falls back to the width of the
 main GDB terminal. Without argument the dashboard will be printed on standard
 output (default)."""
