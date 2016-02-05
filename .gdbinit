@@ -227,7 +227,7 @@ class Dashboard(gdb.Command):
     def redisplay(self):
         # manually redisplay the dashboard
         if self.is_running():
-            self.display(Dashboard.clear_screen(), self.build(), '')
+            self.display(Dashboard.clear_screen(), self.build())
 
     def inferior_pid(self):
         return gdb.selected_inferior().pid
