@@ -224,10 +224,10 @@ class Dashboard(gdb.Command):
             info = Dashboard.ModuleInfo(self, module)
             self.modules.append(info)
 
-    def redisplay(self):
+    def redisplay(self, style_changed=False):
         # manually redisplay the dashboard
         if self.is_running():
-            self.display(Dashboard.clear_screen(), self.build())
+            self.display(Dashboard.clear_screen(), self.build(style_changed))
 
     def inferior_pid(self):
         return gdb.selected_inferior().pid
@@ -235,7 +235,7 @@ class Dashboard(gdb.Command):
     def is_running(self):
         return self.inferior_pid() != 0
 
-    def build(self):
+    def build(self, style_changed=False):
         # fetch the output width
         try:
             fd = self.output.fileno() if self.output else 1  # main terminal
@@ -250,7 +250,7 @@ class Dashboard(gdb.Command):
                 continue
             module = module.instance
             # active if more than zero lines
-            module_lines = module.lines()
+            module_lines = module.lines(style_changed)
             lines.append(divider(module.label(), True, module_lines))
             lines.extend(module_lines)
         if len(lines) == 0:
@@ -605,7 +605,7 @@ or print (when the value is omitted) individual attributes."""
                         else:
                             # set and redisplay
                             setattr(this.obj, attr_name, value)
-                            this.dashboard.redisplay()
+                            this.dashboard.redisplay(True)
                 prefix = self.prefix + ' ' + name
                 doc = attribute.get('doc', 'This style is self-documenting')
                 Dashboard.create_command(prefix, invoke, doc, False)
@@ -636,7 +636,7 @@ class Source(Dashboard.Module):
     def label(self):
         return 'Source'
 
-    def lines(self):
+    def lines(self, style_changed):
         # try to fetch the current line (skip if no line information)
         sal = gdb.selected_frame().find_sal()
         current_line = sal.line
@@ -689,7 +689,7 @@ instructions constituting the current statement are marked, if available."""
     def label(self):
         return 'Assembly'
 
-    def lines(self):
+    def lines(self, style_changed):
         line_info = None
         frame = gdb.selected_frame()  # PC is here
         disassemble = frame.architecture().disassemble
@@ -794,7 +794,7 @@ location, if available. Optionally list the frame arguments and locals too."""
     def label(self):
         return 'Stack'
 
-    def lines(self):
+    def lines(self, style_changed):
         frames = []
         number = 0
         selected_index = 0
@@ -908,7 +908,7 @@ class History(Dashboard.Module):
     def label(self):
         return 'History'
 
-    def lines(self):
+    def lines(self, style_changed):
         out = []
         # fetch last entries
         for i in range(-self.limit + 1, 1):
@@ -971,7 +971,7 @@ class Memory(Dashboard.Module):
     def label(self):
         return 'Memory'
 
-    def lines(self):
+    def lines(self, style_changed):
         out = []
         inferior = gdb.selected_inferior()
         for address, length in sorted(self.table.items()):
@@ -1040,7 +1040,7 @@ class Registers(Dashboard.Module):
     def label(self):
         return 'Registers'
 
-    def lines(self):
+    def lines(self, style_changed):
         # fetch registers status
         registers = []
         for reg_info in run('info registers').strip().split('\n'):
@@ -1096,7 +1096,7 @@ class Threads(Dashboard.Module):
     def label(self):
         return 'Threads'
 
-    def lines(self):
+    def lines(self, style_changed):
         out = []
         selected_thread = gdb.selected_thread()
         selected_frame = gdb.selected_frame()
@@ -1128,7 +1128,7 @@ class Expressions(Dashboard.Module):
     def label(self):
         return 'Expressions'
 
-    def lines(self):
+    def lines(self, style_changed):
         out = []
         for number, expression in sorted(self.table.items()):
             try:
