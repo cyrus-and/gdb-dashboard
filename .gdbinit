@@ -672,10 +672,6 @@ class Source(Dashboard.Module):
             out.append(line_format.format(number, line.rstrip('\n')))
         return out
 
-    def set_context(self, arg):
-        msg = 'expecting a positive integer'
-        self.context = parse_value(arg, int, check_ge_zero, msg)
-
     def attributes(self):
         return {
             'context': {
