@@ -660,7 +660,7 @@ class Source(Dashboard.Module):
                 return [ansi(msg, R.style_error)]
         # compute the line range
         start = max(current_line - 1 - self.context, 0)
-        end = min(current_line - 1 + self.context, len(self.source_lines))
+        end = min(current_line - 1 + self.context + 1, len(self.source_lines))
         # return the source code listing
         out = []
         number_format = '{{:>{}}}'.format(len(str(end)))
