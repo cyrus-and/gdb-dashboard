@@ -19,7 +19,7 @@ Just place [`.gdbinit`][raw] in your home directory, for example:
 Screenshot
 ----------
 
-![Screenshot](http://i.imgur.com/IsXp0RK.png)
+![Screenshot](http://i.imgur.com/3t0CVg6.png)
 
 Features
 --------
@@ -86,7 +86,9 @@ the full syntax.
 
  * `registers` shows the CPU registers and their values.
 
- * `source` shows the program source code, if available.
+ * `source` show the program source code, if available. If the
+   [Pygments][pygments] library is installed then it may be used for syntax
+   highlighting.
 
  * `stack` shows the current stack trace including the function name and the
    file location, if available. Optionally list the frame arguments and locals
@@ -118,7 +120,7 @@ Without argument reset this setting to the default.
 
 #### Display the dashboard in another terminal
 
-![Dashboard in another terminal](http://i.imgur.com/ZTc4Wjq.png)
+![Dashboard in another terminal](http://i.imgur.com/aH8YrMc.png)
 
  1. start GDB in one terminal;
 
@@ -136,7 +138,7 @@ Without argument reset this setting to the default.
 Pushing this even further, one could use a web browser as an auxiliary terminal
 using [gotty][gotty].
 
-![Dashboard in a web browser](http://i.imgur.com/qIco9e0.png)
+![Dashboard in a web browser](http://i.imgur.com/UK6UkaO.png)
 
  1. start GDB in one terminal;
 
@@ -431,6 +433,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 [raw]: https://raw.githubusercontent.com/cyrus-and/gdb-dashboard/master/.gdbinit
 [api]: https://sourceware.org/gdb/onlinedocs/gdb/Python-API.html
 [commands]: https://sourceware.org/gdb/onlinedocs/gdb/Command-Files.html
+[pygments]: http://pygments.org/
 [ansi]: https://en.wikipedia.org/wiki/ANSI_escape_code
 [format]: https://docs.python.org/2/library/string.html#format-string-syntax
 [prompt]: https://sourceware.org/gdb/onlinedocs/gdb/gdb_002eprompt.html

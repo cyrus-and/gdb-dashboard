@@ -626,12 +626,25 @@ or print (when the value is omitted) individual attributes."""
 # Default modules --------------------------------------------------------------
 
 class Source(Dashboard.Module):
-    """Show the program source code, if available."""
+    """Show the program source code, if available. If the Pygments library is
+installed then it may be used for syntax highlighting."""
 
     def __init__(self):
         self.file_name = None
         self.source_lines = []
         self.ts = None
+        self.ansi = R.ansi  # store the preference to check for changes
+        # try to import Pygments for syntax highlighting
+        try:
+            import pygments
+            import pygments.lexers
+            from pygments.formatters.terminal256 \
+                import Terminal256Formatter as formatter
+            self.pygments = pygments
+            self.get_lexer = pygments.lexers.get_lexer_for_filename
+            self.formatter = formatter
+        except ImportError:
+            self.pygments = None
 
     def label(self):
         return 'Source'
@@ -649,12 +662,32 @@ class Source(Dashboard.Module):
             ts = os.path.getmtime(file_name)
         except:
             pass  # delay error check to open()
-        if file_name != self.file_name or ts and ts > self.ts:
+        if (style_changed or
+                file_name != self.file_name or  # different file name
+                ts and ts > self.ts or  # file modified in the meanwhile
+                R.ansi != self.ansi):  # ansi output preference changed
             self.file_name = file_name
             self.ts = ts
+            self.ansi = R.ansi
             try:
-                with open(self.file_name) as source:
-                    self.source_lines = source.readlines()
+                with open(self.file_name) as source_file:
+                    if self.pygments and self.ansi:
+                        try:
+                            formatter = self.formatter(style=self.colorscheme)
+                            lexer = self.get_lexer(self.file_name)
+                            source = source_file.read()
+                            source = self.pygments.highlight(
+                                source, lexer, formatter)
+                            self.source_lines = source.split('\n')
+                            if self.source_lines[-1] == '':
+                                self.source_lines.pop()
+                            self.can_highlight = True
+                        except self.pygments.util.ClassNotFound:
+                            # no lexer for the current file, fall back
+                            self.source_lines = source_file.readlines()
+                            self.can_highlight = False
+                    else:
+                        self.source_lines = source_file.readlines()
             except:
                 msg = 'Cannot access "{}"'.format(self.file_name)
                 return [ansi(msg, R.style_error)]
@@ -666,7 +699,17 @@ class Source(Dashboard.Module):
         number_format = '{{:>{}}}'.format(len(str(end)))
         for number, line in enumerate(self.source_lines[start:end], start + 1):
             if int(number) == current_line:
-                line_format = ansi(number_format + ' {}', R.style_selected_1)
+                # the current line has a different style without ANSI
+                if self.ansi:
+                    if self.pygments and self.can_highlight:
+                        line_format = ansi(number_format,
+                                           R.style_selected_1) + ' {}'
+                    else:
+                        line_format = ansi(number_format + ' {}',
+                                           R.style_selected_1)
+                else:
+                    # just show a plain text indicator
+                    line_format = number_format + '>{}'
             else:
                 line_format = ansi(number_format, R.style_low) + ' {}'
             out.append(line_format.format(number, line.rstrip('\n')))
@@ -679,6 +722,11 @@ class Source(Dashboard.Module):
                 'default': 5,
                 'type': int,
                 'check': check_ge_zero
+            },
+            'colorscheme': {
+                'doc': 'Pygments style to use (empty string to disable).',
+                'default': 'vim',
+                'type': str
             }
         }
 
