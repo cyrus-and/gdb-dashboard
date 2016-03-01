@@ -86,9 +86,7 @@ the full syntax.
 
  * `registers` shows the CPU registers and their values.
 
- * `source` show the program source code, if available. If the
-   [Pygments][pygments] library is installed then it may be used for syntax
-   highlighting.
+ * `source` show the program source code, if available.
 
  * `stack` shows the current stack trace including the function name and the
    file location, if available. Optionally list the frame arguments and locals
@@ -250,8 +248,17 @@ Whereas for modules:
 Colors and text styles are specified using [ANSI][ansi] escape codes. For
 example setting a style to `1;31` will produce `^[[1;31m`, which will result in
 displaying the text red (`31`) and bright (`1`). The ANSI output can be disabled
-by setting the `ansi` attribute (note that this will not affect the command
-prompt).
+by setting the `ansi` attribute to `False` (note that this will not affect the
+command prompt).
+
+### Syntax highlighting
+
+When the `ansi` attribute is set to `True` the Python [Pygments][pygments]
+library may be used by modules to provide syntax highlighting of the source
+code.
+
+The `syntax_highlighting` stylable attribute is a string which defines the
+Pygments [style][pygments-styles] to use.
 
 ### Dividers
 
@@ -434,6 +441,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 [api]: https://sourceware.org/gdb/onlinedocs/gdb/Python-API.html
 [commands]: https://sourceware.org/gdb/onlinedocs/gdb/Command-Files.html
 [pygments]: http://pygments.org/
+[pygments-styles]: http://pygments.org/docs/styles
 [ansi]: https://en.wikipedia.org/wiki/ANSI_escape_code
 [format]: https://docs.python.org/2/library/string.html#format-string-syntax
 [prompt]: https://sourceware.org/gdb/onlinedocs/gdb/gdb_002eprompt.html

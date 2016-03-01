@@ -24,6 +24,17 @@ class R():
                 'default': True,
                 'type': bool
             },
+            'syntax_highlighting': {
+                'doc': """Pygments style to use for syntax highlighting.
+Using an empty string (or a name not in the list) disables this feature.
+The list of all the available styles can be obtained with (from GDB itself):
+
+    python from pygments.styles import get_all_styles as styles
+    python for s in styles(): print(s)
+""",
+                'default': 'vim',
+                'type': str
+            },
             # prompt
             'prompt': {
                 'doc': """Command prompt.
@@ -175,6 +186,26 @@ def to_string(value):
 def format_address(address):
     pointer_size = gdb.parse_and_eval('$pc').type.sizeof
     return ('0x{{:0{}x}}').format(pointer_size * 2).format(address)
+
+def highlight(source, filename):
+    if not R.ansi:
+        highlighted = False
+    else:
+        try:
+            import pygments.lexers
+            import pygments.formatters
+            formatter_class = pygments.formatters.Terminal256Formatter
+            formatter = formatter_class(style=R.syntax_highlighting)
+            lexer = pygments.lexers.get_lexer_for_filename(filename)
+            source = pygments.highlight(source, lexer, formatter)
+            highlighted = True
+        except ImportError:
+            # Pygments not available
+            highlighted = False
+        except pygments.util.ClassNotFound:
+            # no lexer for this file or invalid style
+            highlighted = False
+    return highlighted, source.rstrip('\n')
 
 # Dashboard --------------------------------------------------------------------
 
@@ -631,25 +662,13 @@ or print (when the value is omitted) individual attributes."""
 # Default modules --------------------------------------------------------------
 
 class Source(Dashboard.Module):
-    """Show the program source code, if available. If the Pygments library is
-installed then it may be used for syntax highlighting."""
+    """Show the program source code, if available."""
 
     def __init__(self):
         self.file_name = None
         self.source_lines = []
         self.ts = None
-        self.ansi = R.ansi  # store the preference to check for changes
-        # try to import Pygments for syntax highlighting
-        try:
-            import pygments
-            import pygments.lexers
-            from pygments.formatters.terminal256 \
-                import Terminal256Formatter as formatter
-            self.pygments = pygments
-            self.get_lexer = pygments.lexers.get_lexer_for_filename
-            self.formatter = formatter
-        except ImportError:
-            self.pygments = None
+        self.highlighted = False
 
     def label(self):
         return 'Source'
@@ -669,30 +688,14 @@ installed then it may be used for syntax highlighting."""
             pass  # delay error check to open()
         if (style_changed or
                 file_name != self.file_name or  # different file name
-                ts and ts > self.ts or  # file modified in the meanwhile
-                R.ansi != self.ansi):  # ansi output preference changed
+                ts and ts > self.ts):  # file modified in the meanwhile
             self.file_name = file_name
             self.ts = ts
-            self.ansi = R.ansi
             try:
                 with open(self.file_name) as source_file:
-                    if self.pygments and self.ansi:
-                        try:
-                            formatter = self.formatter(style=self.colorscheme)
-                            lexer = self.get_lexer(self.file_name)
-                            source = source_file.read()
-                            source = self.pygments.highlight(
-                                source, lexer, formatter)
-                            self.source_lines = source.split('\n')
-                            if self.source_lines[-1] == '':
-                                self.source_lines.pop()
-                            self.can_highlight = True
-                        except self.pygments.util.ClassNotFound:
-                            # no lexer for the current file, fall back
-                            self.source_lines = source_file.readlines()
-                            self.can_highlight = False
-                    else:
-                        self.source_lines = source_file.readlines()
+                    self.highlighted, source = highlight(source_file.read(),
+                                                         self.file_name)
+                    self.source_lines = source.split('\n')
             except:
                 msg = 'Cannot access "{}"'.format(self.file_name)
                 return [ansi(msg, R.style_error)]
@@ -705,8 +708,8 @@ installed then it may be used for syntax highlighting."""
         for number, line in enumerate(self.source_lines[start:end], start + 1):
             if int(number) == current_line:
                 # the current line has a different style without ANSI
-                if self.ansi:
-                    if self.pygments and self.can_highlight:
+                if R.ansi:
+                    if self.highlighted:
                         line_format = ansi(number_format,
                                            R.style_selected_1) + ' {}'
                     else:
@@ -727,11 +730,6 @@ installed then it may be used for syntax highlighting."""
                 'default': 5,
                 'type': int,
                 'check': check_ge_zero
-            },
-            'colorscheme': {
-                'doc': 'Pygments style to use (empty string to disable).',
-                'default': 'vim',
-                'type': str
             }
         }
 
