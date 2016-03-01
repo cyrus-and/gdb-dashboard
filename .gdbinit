@@ -612,6 +612,10 @@ or print (when the value is omitted) individual attributes."""
                 Dashboard.create_command(prefix, invoke, doc, False)
 
         def invoke(self, arg, from_tty):
+            # an argument here means that the provided attribute is invalid
+            if arg:
+                Dashboard.err('Invalid argument "{}"'.format(arg))
+                return
             # print all the pairs
             for name, attribute in self.attributes.items():
                 attr_name = attribute.get('name', name)
