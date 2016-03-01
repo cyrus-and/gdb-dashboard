@@ -19,7 +19,7 @@ Just place [`.gdbinit`][raw] in your home directory, for example:
 Screenshot
 ----------
 
-![Screenshot](http://i.imgur.com/3t0CVg6.png)
+![Screenshot](http://i.imgur.com/g8I3suo.png)
 
 Features
 --------
@@ -118,7 +118,7 @@ Without argument reset this setting to the default.
 
 #### Display the dashboard in another terminal
 
-![Dashboard in another terminal](http://i.imgur.com/aH8YrMc.png)
+![Dashboard in another terminal](http://i.imgur.com/6TIKXh0.png)
 
  1. start GDB in one terminal;
 
@@ -136,7 +136,7 @@ Without argument reset this setting to the default.
 Pushing this even further, one could use a web browser as an auxiliary terminal
 using [gotty][gotty].
 
-![Dashboard in a web browser](http://i.imgur.com/UK6UkaO.png)
+![Dashboard in a web browser](http://i.imgur.com/5uncF7e.png)
 
  1. start GDB in one terminal;
 

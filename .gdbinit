@@ -772,6 +772,12 @@ instructions constituting the current statement are marked, if available."""
                 func_start = to_unsigned(value)
             except gdb.error:
                 pass  # e.g., @plt
+        # fetch the assembly flavor and the extension used by Pygments
+        # TODO save the lexer and reuse it if performance becomes a problem
+        filename = {
+            'att': '.s',
+            'intel': '.asm'
+        }.get(gdb.parameter('disassembly-flavor'), '.s')
         # return the machine code
         max_length = max(instr['length'] for instr in asm)
         inferior = gdb.selected_inferior()
@@ -800,16 +806,19 @@ instructions constituting the current statement are marked, if available."""
             else:
                 func_info = ''
             format_string = '{} {}{}{}'
+            highlighted, text = highlight(text, filename)
             if addr == frame.pc():
                 addr_str = ansi(addr_str, R.style_selected_1)
                 opcodes = ansi(opcodes, R.style_selected_1)
                 func_info = ansi(func_info, R.style_selected_1)
-                text = ansi(text, R.style_selected_1)
+                if not highlighted:
+                    text = ansi(text, R.style_selected_1)
             elif line_info and line_info.pc <= addr < line_info.last:
                 addr_str = ansi(addr_str, R.style_selected_2)
                 opcodes = ansi(opcodes, R.style_selected_2)
                 func_info = ansi(func_info, R.style_selected_2)
-                text = ansi(text, R.style_selected_2)
+                if not highlighted:
+                    text = ansi(text, R.style_selected_2)
             else:
                 addr_str = ansi(addr_str, R.style_low)
                 func_info = ansi(func_info, R.style_low)
