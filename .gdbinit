@@ -363,7 +363,8 @@ class Dashboard(gdb.Command):
 
     @staticmethod
     def clear_screen():
-        return '\x1b[H\x1b[2J'
+        # ANSI: move the cursor to top-left corner and clear the screen
+        return '\x1b[H\x1b[J'
 
 # Module descriptor ------------------------------------------------------------
 
