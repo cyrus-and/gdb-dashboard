@@ -805,15 +805,20 @@ instructions constituting the current statement are marked, if available."""
                     func_info = '? '
             else:
                 func_info = ''
-            format_string = '{} {}{}{}'
+            format_string = '{}{}{}{}{}'
+            indicator = ' '
             highlighted, text = highlight(text, filename)
             if addr == frame.pc():
+                if not R.ansi:
+                    indicator = '>'
                 addr_str = ansi(addr_str, R.style_selected_1)
                 opcodes = ansi(opcodes, R.style_selected_1)
                 func_info = ansi(func_info, R.style_selected_1)
                 if not highlighted:
                     text = ansi(text, R.style_selected_1)
             elif line_info and line_info.pc <= addr < line_info.last:
+                if not R.ansi:
+                    indicator = ':'
                 addr_str = ansi(addr_str, R.style_selected_2)
                 opcodes = ansi(opcodes, R.style_selected_2)
                 func_info = ansi(func_info, R.style_selected_2)
@@ -822,7 +827,8 @@ instructions constituting the current statement are marked, if available."""
             else:
                 addr_str = ansi(addr_str, R.style_low)
                 func_info = ansi(func_info, R.style_low)
-            out.append(format_string.format(addr_str, opcodes, func_info, text))
+            out.append(format_string.format(addr_str, indicator,
+                                            opcodes, func_info, text))
         return out
 
     def attributes(self):
