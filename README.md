@@ -41,6 +41,9 @@ Features
 
  * Fully stylable user interface and dynamic command prompt.
 
+ * Optional syntax highlighting using the [Pygments][pygments] Python
+   library.
+
  * No GDB command has been redefined, instead all the
    features are available as subcommands of the main `dashboard` command.
 
@@ -253,12 +256,17 @@ command prompt).
 
 ### Syntax highlighting
 
-When the `ansi` attribute is set to `True` the Python [Pygments][pygments]
+When the `ansi` attribute is set to `True` the [Pygments][pygments] Python
 library may be used by modules to provide syntax highlighting of the source
 code.
 
 The `syntax_highlighting` stylable attribute is a string which defines the
 Pygments [style][pygments-styles] to use.
+
+The list of all the available styles can be obtained with (from GDB itself):
+
+    python from pygments.styles import get_all_styles as styles
+    python for s in styles(): print(s)
 
 ### Dividers
 
