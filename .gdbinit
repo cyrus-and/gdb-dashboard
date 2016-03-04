@@ -696,8 +696,8 @@ class Source(Dashboard.Module):
                     self.highlighted, source = highlight(source_file.read(),
                                                          self.file_name)
                     self.source_lines = source.split('\n')
-            except:
-                msg = 'Cannot access "{}"'.format(self.file_name)
+            except Exception as e:
+                msg = 'Cannot display "{}" ({})'.format(self.file_name, e)
                 return [ansi(msg, R.style_error)]
         # compute the line range
         start = max(current_line - 1 - self.context, 0)
