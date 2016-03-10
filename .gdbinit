@@ -224,11 +224,11 @@ class Dashboard(gdb.Command):
         # setup style commands
         Dashboard.StyleCommand(self, 'dashboard', R, R.attributes())
         # setup events
-        gdb.events.cont.connect(lambda _: self.on_continue())
-        gdb.events.stop.connect(lambda _: self.on_stop())
-        gdb.events.exited.connect(lambda _: self.on_exit())
+        gdb.events.cont.connect(self.on_continue)
+        gdb.events.stop.connect(self.on_stop)
+        gdb.events.exited.connect(self.on_exit)
 
-    def on_continue(self):
+    def on_continue(self, _):
         # try to contain the GDB messages in a specified area unless the
         # dashboard is printed to a separate file
         if self.enabled and self.is_running() and not self.output:
@@ -238,7 +238,7 @@ class Dashboard(gdb.Command):
             gdb.write('\n')
             gdb.flush()
 
-    def on_stop(self):
+    def on_stop(self, _):
         # redisplay the dashboard when the target program stops (the screen is
         # cleared by on_continue when the dashboard is printed to a separate
         # file)
@@ -246,7 +246,7 @@ class Dashboard(gdb.Command):
             clear = Dashboard.clear_screen() if self.output else ''
             self.display(clear, self.build(), '\n')
 
-    def on_exit(self):
+    def on_exit(self, _):
         pass
 
     def load_modules(self, modules):
