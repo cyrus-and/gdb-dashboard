@@ -216,22 +216,19 @@ class Dashboard(gdb.Command):
         gdb.Command.__init__(self, 'dashboard',
                              gdb.COMMAND_USER, gdb.COMPLETE_NONE, True)
         self.output = None  # main terminal
-        self.enabled = True
         # setup subcommands
         Dashboard.OutputCommand(self)
         Dashboard.EnabledCommand(self)
         Dashboard.LayoutCommand(self)
         # setup style commands
         Dashboard.StyleCommand(self, 'dashboard', R, R.attributes())
-        # setup events
-        gdb.events.cont.connect(self.on_continue)
-        gdb.events.stop.connect(self.on_stop)
-        gdb.events.exited.connect(self.on_exit)
+        # enable by default
+        self.enable()
 
     def on_continue(self, _):
         # try to contain the GDB messages in a specified area unless the
         # dashboard is printed to a separate file
-        if self.enabled and self.is_running() and not self.output:
+        if self.is_running() and not self.output:
             Dashboard.update_term_width()
             gdb.write(Dashboard.clear_screen())
             gdb.write(divider('Output/messages', True))
@@ -242,12 +239,26 @@ class Dashboard(gdb.Command):
         # redisplay the dashboard when the target program stops (the screen is
         # cleared by on_continue when the dashboard is printed to a separate
         # file)
-        if self.enabled and self.is_running():
+        if self.is_running():
             clear = Dashboard.clear_screen() if self.output else ''
             self.display(clear, self.build(), '\n')
 
     def on_exit(self, _):
         pass
+
+    def enable(self):
+        self.enabled = True
+        # setup events
+        gdb.events.cont.connect(self.on_continue)
+        gdb.events.stop.connect(self.on_stop)
+        gdb.events.exited.connect(self.on_exit)
+
+    def disable(self):
+        self.enabled = False
+        # setup events
+        gdb.events.cont.disconnect(self.on_continue)
+        gdb.events.stop.disconnect(self.on_stop)
+        gdb.events.exited.disconnect(self.on_exit)
 
     def load_modules(self, modules):
         self.modules = []
@@ -514,10 +525,10 @@ The current status is printed if no argument is present."""
                 status = 'enabled' if self.dashboard.enabled else 'disabled'
                 print('The dashboard is {}'.format(status))
             elif arg == 'on':
-                self.dashboard.enabled = True
+                self.dashboard.enable()
                 self.dashboard.redisplay()
             elif arg == 'off':
-                self.dashboard.enabled = False
+                self.dashboard.disable()
             else:
                 msg = 'Wrong argument "{}"; expecting "on" or "off"'
                 Dashboard.err(msg.format(arg))
