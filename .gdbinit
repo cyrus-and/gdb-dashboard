@@ -762,8 +762,10 @@ instructions constituting the current statement are marked, if available."""
             end = int(re.split('[ :]', output[-3][3:], 1)[0], 16)
             asm = disassemble(start, end_pc=end)
             # find the location of the PC
-            pc_index = next(index for index, instr in enumerate(asm)
-                            if instr['addr'] == frame.pc())
+            pc_index = next((index for index, instr in enumerate(asm)
+                if instr['addr'] == frame.pc()), None)
+            if pc_index is None:
+                return ["Assembly not available"]
             start = max(pc_index - self.context, 0)
             end = pc_index + self.context + 1
             asm = asm[start:end]
