@@ -119,6 +119,12 @@ which `{pid}` is expanded with the process identifier of the target program.""",
             },
             'style_error': {
                 'default': '31'
+            },
+            'style_break': {
+                'default': '1;33;41'
+            },
+            'style_break_selected': {
+                'default': '1;32;41'
             }
         }
 
@@ -206,6 +212,26 @@ def highlight(source, filename):
             # no lexer for this file or invalid style
             highlighted = False
     return highlighted, source.rstrip('\n')
+
+def find_breakpoint_locations(filename):
+    output = run('info breakpoints')
+    output_lines = output.split('\n')
+
+    basename = os.path.basename(filename)
+
+    breakpoints = []
+
+    for line in output_lines:
+        # find string of type 'main.c:' located in the end of the line
+        filename_and_num_pos = line.find(basename + ':')
+        if filename_and_num_pos != -1:
+            loc = line[filename_and_num_pos:]
+            curr_filename, linenum = loc.split(':')
+
+            breakpoints.append(linenum)
+
+    return breakpoints
+
 
 # Dashboard --------------------------------------------------------------------
 
@@ -716,22 +742,44 @@ class Source(Dashboard.Module):
         # return the source code listing
         out = []
         number_format = '{{:>{}}}'.format(len(str(end)))
+
+        # find line numbers where the breakpoints are
+        break_nums = find_breakpoint_locations(file_name)
+
         for number, line in enumerate(self.source_lines[start:end], start + 1):
-            if int(number) == current_line:
-                # the current line has a different style without ANSI
-                if R.ansi:
-                    if self.highlighted:
-                        line_format = ansi(number_format,
-                                           R.style_selected_1) + ' {}'
-                    else:
-                        line_format = ansi(number_format + ' {}',
-                                           R.style_selected_1)
-                else:
-                    # just show a plain text indicator
-                    line_format = number_format + '>{}'
+            # if the line contains breakpoint
+            is_breakpoint = str(number) in break_nums
+            is_currentline = int(number) == current_line
+
+            if R.ansi:
+                # defaults, may be overriden
+                line_f = ' {}'
+                number_f  = ansi(number_format, R.style_low)
+
+                if is_currentline and is_breakpoint:
+                    number_f  = ansi(number_format, R.style_break_selected)
+                elif is_currentline:
+                    number_f  = ansi(number_format, R.style_selected_1)
+                    if not self.highlighted:
+                        line_f = ansi(' {}', R.style_selected_1)
+                elif is_breakpoint:
+                    number_f  = ansi(number_format, R.style_break)
             else:
-                line_format = ansi(number_format, R.style_low) + ' {}'
-            out.append(line_format.format(number, line.rstrip('\n')))
+                # defaults, may be overriden
+                # note the additional space before line for breakpoint sign
+                line_f = '  {}'
+                number_f  = number_format
+
+                if is_currentline and is_breakpoint:
+                    line_f = 'B>{}'
+                elif is_currentline:
+                    line_f = '>>{}'
+                elif is_breakpoint:
+                    line_f = 'B {}'
+
+            out.append(number_f.format(number) +
+                       line_f.format(line.rstrip('\n')))
+
         return out
 
     def attributes(self):
