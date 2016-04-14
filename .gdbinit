@@ -125,6 +125,9 @@ which `{pid}` is expanded with the process identifier of the target program.""",
             },
             'style_break_selected': {
                 'default': '1;32;41'
+            },
+            'style_selected_current_line': {
+                'default': '7'
             }
         }
 
@@ -760,10 +763,16 @@ class Source(Dashboard.Module):
                     number_f  = ansi(number_format, R.style_break_selected)
                 elif is_currentline:
                     number_f  = ansi(number_format, R.style_selected_1)
-                    if not self.highlighted:
-                        line_f = ansi(' {}', R.style_selected_1)
+
                 elif is_breakpoint:
                     number_f  = ansi(number_format, R.style_break)
+
+                if is_currentline:
+                    if not self.highlighted:
+                        line_f = ansi(' {}', R.style_selected_1)
+                    else:
+                        line_f = ansi(ansi(' {}', R.style_selected_1),
+                                      R.style_selected_current_line)
             else:
                 # defaults, may be overriden
                 # note the additional space before line for breakpoint sign
