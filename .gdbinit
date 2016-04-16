@@ -771,9 +771,10 @@ instructions constituting the current statement are marked, if available."""
             # line_info is not None but line_info.last is None
             line_info = gdb.find_pc_line(frame.pc())
             line_info = line_info if line_info.last else None
-        except gdb.error:
-            # if it is not possible (stripped binary) start from PC and end
-            # after twice the context
+        except (gdb.error, StopIteration):
+            # if it is not possible (stripped binary or the PC is not present in
+            # the output of `disassemble` as per issue #31) start from PC and
+            # end after twice the context
             asm = disassemble(frame.pc(), count=2 * self.context + 1)
         # fetch function start if available
         func_start = None
