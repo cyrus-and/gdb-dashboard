@@ -786,10 +786,15 @@ instructions constituting the current statement are marked, if available."""
                 pass  # e.g., @plt
         # fetch the assembly flavor and the extension used by Pygments
         # TODO save the lexer and reuse it if performance becomes a problem
-        filename = {
-            'att': '.s',
-            'intel': '.asm'
-        }.get(gdb.parameter('disassembly-flavor'), '.s')
+        try:
+            filename = {
+                'att': '.s',
+                'intel': '.asm'
+            }.get(gdb.parameter('disassembly-flavor'), '.s')
+        except RuntimeError:
+            # disassembly-flavor is not always defined. If it's not, default
+            # to '.s'.
+            filename = '.s'
         # return the machine code
         max_length = max(instr['length'] for instr in asm)
         inferior = gdb.selected_inferior()
