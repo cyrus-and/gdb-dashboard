@@ -1261,6 +1261,7 @@ class Expressions(Dashboard.Module):
             }
         }
 
+# XXX traceback line numbers in this Python block must be increased by 1
 end
 
 # Better GDB defaults ----------------------------------------------------------
