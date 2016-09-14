@@ -717,6 +717,8 @@ class Source(Dashboard.Module):
         out = []
         number_format = '{{:>{}}}'.format(len(str(end)))
         for number, line in enumerate(self.source_lines[start:end], start + 1):
+            # properly handle UTF-8 source files
+            line = to_string(line)
             if int(number) == current_line:
                 # the current line has a different style without ANSI
                 if R.ansi:
