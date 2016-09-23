@@ -225,13 +225,23 @@ is given to Python files. If there are subdirectories, they are walked
 recursively. The idea is to keep separated the custom modules definition from
 the configuration itself.
 
-The main configuration file can be placed in `~/.gdbinit.d/` (say
-`~/.gdbinit.d/init`) and should be used to tune the dashboard styles and modules
-configuration but also the usual GDB parameters.
+By convention, the *main* configuration file should be placed in `~/.gdbinit.d/`
+(say `~/.gdbinit.d/init`) and can be used to tune the dashboard styles and
+modules configuration but also the usual GDB parameters.
 
 The alternative is to hard code changes in the provided [`.gdbinit`][raw], to do
 so just add new modules and GDB settings under `# Default modules` and `# Better
 GDB defaults` respectively.
+
+### Per-project configuration
+
+GDB natively support the auto-loading of `.gdbinit` files, this can come in
+handy to set up a different dashboard style according to the current project
+type (e.g., C++ development, reverse engineering, etc.). This feature is
+disabled by default for security reasons. To enable the auto-loading everywhere
+in the file system add this line to the main configuration file:
+
+    set auto-load safe-path /
 
 Stylable attributes
 -------------------
