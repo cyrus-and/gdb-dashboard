@@ -390,11 +390,7 @@ class Dashboard(gdb.Command):
 
     @staticmethod
     def complete(word, candidates):
-        matching = []
-        for candidate in candidates:
-            if candidate.startswith(word):
-                matching.append(candidate)
-        return matching
+        return filter(lambda candidate: candidate.startswith(word), candidates)
 
     @staticmethod
     def parse_arg(arg):
