@@ -299,8 +299,9 @@ class Dashboard(gdb.Command):
             module = module.instance
             # active if more than zero lines
             module_lines = module.lines(style_changed)
-            lines.append(divider(module.label(), True, module_lines))
-            lines.extend(module_lines)
+            if module_lines is not None:
+                lines.append(divider(module.label(), True, module_lines))
+                lines.extend(module_lines)
         if len(lines) == 0:
             lines.append(divider('Error', True))
             if len(self.modules) == 0:
