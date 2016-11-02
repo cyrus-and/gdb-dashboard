@@ -189,7 +189,8 @@ display order within the dashboard. For example:
 Modules which do not appear in the list are disabled and placed after the last
 element in alphabetical order.
 
-When executed without arguments, this command lists all the available modules.
+When executed without arguments, this command lists all the available modules in
+the form of a list of directives.
 
 ### dashboard -style [`<name>` [`<value>`]]
 

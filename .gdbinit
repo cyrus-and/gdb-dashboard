@@ -549,8 +549,8 @@ Accepts a space-separated list of directive. Each directive is in the form
 "[!]<module>". Modules in the list are placed in the dashboard in the same order
 as they appear and those prefixed by "!" are disabled by default. Omitted
 modules are hidden and placed at the bottom in alphabetical order. Without
-arguments the current layout is shown; enabled and disabled modules are properly
-marked."""
+arguments the current layout is shown using the same form expected by the
+input."""
 
         def __init__(self, dashboard):
             gdb.Command.__init__(self, 'dashboard -layout', gdb.COMMAND_USER)
@@ -567,9 +567,16 @@ marked."""
                 self.show()
 
         def show(self):
+            modules = []
             for module in self.dashboard.modules:
-                style = R.style_high if module.enabled else R.style_low
-                print(ansi(module.name, style))
+                if module.enabled:
+                    mark = ''
+                    style = R.style_high
+                else:
+                    mark = '!'
+                    style = R.style_low
+                modules.append(ansi('{}{}'.format(mark, module.name), style))
+            print(' '.join(modules))
 
         def layout(self, directives):
             modules = self.dashboard.modules
