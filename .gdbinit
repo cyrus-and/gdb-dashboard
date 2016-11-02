@@ -229,6 +229,7 @@ class Dashboard(gdb.Command):
         # setup style commands
         Dashboard.StyleCommand(self, 'dashboard', R, R.attributes())
         # enable by default
+        self.enabled = None
         self.enable()
 
     def on_continue(self, _):
@@ -253,6 +254,8 @@ class Dashboard(gdb.Command):
         pass
 
     def enable(self):
+        if self.enabled:
+            return
         self.enabled = True
         # setup events
         gdb.events.cont.connect(self.on_continue)
@@ -260,6 +263,8 @@ class Dashboard(gdb.Command):
         gdb.events.exited.connect(self.on_exit)
 
     def disable(self):
+        if not self.enabled:
+            return
         self.enabled = False
         # setup events
         gdb.events.cont.disconnect(self.on_continue)
