@@ -99,6 +99,66 @@ the full syntax.
 
  * `expressions` watches user expressions.
 
+Dashboard output
+----------------
+
+By default the dashboard is displayed in the GDB terminal but the `-output`
+command of both the dashboard and modules can change this behavior. When the
+output of a module is not specified then the global output is used.
+
+### Display each module in a separate terminal
+
+![Modules distributed in multiple terminals](http://i.imgur.com/BF7lpzV.png)
+
+It is possible to display the output of one or more modules to individual
+terminals. If two or more modules share the same output, they will be stacked as
+usual.
+
+ 1. start GDB in one terminal;
+
+ 2. open another terminal (e.g. [tmux][tmux] pane) and get its TTY with the
+    `tty` command (e.g. `/dev/ttys001`, the name may be different for a variety
+    of reasons);
+
+ 3. pick a module, say `source`, then issue the command `dashboard source
+    -output /dev/ttys001` to redirect its output to the newly created terminal;
+
+ 4. optionally repeat and tune;
+
+ 5. debug as usual.
+
+### Display the whole dashboard in another terminal
+
+![Dashboard in another terminal](http://i.imgur.com/6TIKXh0.png)
+
+ 1. start GDB in one terminal;
+
+ 2. open another terminal and get its TTY with the `tty` command;
+
+ 3. issue the command `dashboard -output /dev/ttys001` to redirect the dashboard
+    output to the newly created terminal;
+
+ 4. debug as usual.
+
+### Display the whole dashboard in a web browser
+
+Pushing this even further, one could use a web browser as an auxiliary terminal
+using [gotty][gotty]. Of course, using the method described above, one can also
+display the output of individual modules in one or more web browser instances.
+
+![Dashboard in a web browser](http://i.imgur.com/5uncF7e.png)
+
+ 1. start GDB in one terminal;
+
+ 2. open another terminal and execute `gotty sh -c 'tty; cat'`;
+
+ 3. open a web browser, navigate to `http://localhost:8080` and note the TTY;
+
+ 4. issue the command `dashboard -output /dev/ttys001` to redirect the dashboard
+    output to the web browser;
+
+ 5. debug as usual.
+
 Commands
 --------
 
@@ -118,39 +178,6 @@ valid terminal TTY then its width is used to format the dashboard, otherwise
 fall back to the width of the main GDB console.
 
 Without argument reset this setting to the default.
-
-#### Display the dashboard in another terminal
-
-![Dashboard in another terminal](http://i.imgur.com/6TIKXh0.png)
-
- 1. start GDB in one terminal;
-
- 2. open another terminal (e.g. [tmux][tmux] pane) and get its TTY with the
-    `tty` command (e.g. `/dev/ttys001`, the name may be different for a variety
-    of reasons);
-
- 3. issue the command `dashboard -output /dev/ttys001` to redirect the dashboard
-    output to the newly created terminal;
-
- 4. debug as usual.
-
-#### Display the dashboard in a web browser
-
-Pushing this even further, one could use a web browser as an auxiliary terminal
-using [gotty][gotty].
-
-![Dashboard in a web browser](http://i.imgur.com/5uncF7e.png)
-
- 1. start GDB in one terminal;
-
- 2. open another terminal and execute `gotty sh -c 'tty; cat'`;
-
- 3. open a web browser, navigate to `http://localhost:8080` and note the TTY;
-
- 4. issue the command `dashboard -output /dev/ttys001` to redirect the dashboard
-    output to the web browser;
-
- 5. debug as usual.
 
 ### dashboard -enabled [on|off]
 
@@ -190,7 +217,8 @@ Modules which do not appear in the list are disabled and placed after the last
 element in alphabetical order.
 
 When executed without arguments, this command lists all the available modules in
-the form of a list of directives.
+the form of a list of directives followed by the status of the output files of
+the modules.
 
 ### dashboard -style [`<name>` [`<value>`]]
 
@@ -213,10 +241,20 @@ toggle the enable flag and to redisplay the dashboard.
 Modules may also declare additional subcommands, see `help dashboard <module>`
 from GDB.
 
-Moreover, if a module declare some stylable attributes then the command
-`dashboard <module> -style` will be available. Its functioning is equivalent to
+There are two additional predefined subcommands: `-style` and `-output`.
+
+#### -style
+
+If a module declares some stylable attributes then the command `dashboard
+<module> -style` will be available. Its functioning is equivalent to
 the [`dashboard -style`](#dashboard--style-name-value) command but it does apply
 to a module.
+
+#### -output
+
+Similarly, the `dashboard <module> -output` mimics
+the [`dashboard -style`](#dashboard--output-file) command but allows a finer
+grain of operation.
 
 Configuration
 -------------
@@ -381,7 +419,7 @@ class Notes(Dashboard.Module):
     def label(self):
         return 'Notes'
 
-    def lines(self, style_changed):
+    def lines(self, term_width, style_changed):
         out = []
         for note in self.notes:
             out.append(note)

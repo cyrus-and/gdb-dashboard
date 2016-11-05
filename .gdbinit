@@ -133,8 +133,7 @@ def ansi(string, style):
     else:
         return string
 
-def divider(label='', primary=False, active=True):
-    width = Dashboard.term_width
+def divider(width, label='', primary=False, active=True):
     if primary:
         divider_fill_style = R.divider_fill_style_primary
         divider_fill_char = R.divider_fill_char_primary
@@ -234,21 +233,17 @@ class Dashboard(gdb.Command):
 
     def on_continue(self, _):
         # try to contain the GDB messages in a specified area unless the
-        # dashboard is printed to a separate file
+        # dashboard is printed to a separate file (dashboard -output ...)
         if self.is_running() and not self.output:
-            Dashboard.update_term_width()
+            width = Dashboard.get_term_width()
             gdb.write(Dashboard.clear_screen())
-            gdb.write(divider('Output/messages', True))
+            gdb.write(divider(width, 'Output/messages', True))
             gdb.write('\n')
             gdb.flush()
 
     def on_stop(self, _):
-        # redisplay the dashboard when the target program stops (the screen is
-        # cleared by on_continue when the dashboard is printed to a separate
-        # file)
         if self.is_running():
-            clear = Dashboard.clear_screen() if self.output else ''
-            self.display(clear, self.build(), '\n')
+            self.render(clear_screen=False)
 
     def on_exit(self, _):
         pass
@@ -280,7 +275,7 @@ class Dashboard(gdb.Command):
     def redisplay(self, style_changed=False):
         # manually redisplay the dashboard
         if self.is_running():
-            self.display(Dashboard.clear_screen(), self.build(style_changed))
+            self.render(True, style_changed)
 
     def inferior_pid(self):
         return gdb.selected_inferior().pid
@@ -288,43 +283,75 @@ class Dashboard(gdb.Command):
     def is_running(self):
         return self.inferior_pid() != 0
 
-    def build(self, style_changed=False):
-        # fetch the output width
-        try:
-            fd = self.output.fileno() if self.output else 1  # main terminal
-            Dashboard.update_term_width(fd)
-        except:
-            # fall back to the main terminal
-            Dashboard.update_term_width()
-        # fetch lines
-        lines = []
+    def render(self, clear_screen, style_changed=False):
+        # fetch module content and info
+        display_map = dict()
         for module in self.modules:
             if not module.enabled:
                 continue
-            module = module.instance
-            # active if more than zero lines
-            module_lines = module.lines(style_changed)
-            lines.append(divider(module.label(), True, module_lines))
-            lines.extend(module_lines)
-        if len(lines) == 0:
-            lines.append(divider('Error', True))
-            if len(self.modules) == 0:
-                lines.append('No module loaded')
+            output = module.output or self.output
+            display_map.setdefault(output, []).append(module.instance)
+        # notify the user if the output is empty, on the main terminal
+        if not display_map:
+            # write the error message
+            width = Dashboard.get_term_width()
+            gdb.write(divider(width, 'Error', True))
+            gdb.write('\n')
+            if self.modules:
+                gdb.write('No module to display (see `help dashboard`)')
             else:
-                lines.append('No module to display (see `help dashboard`)')
-        lines.append(divider(primary=True))
-        # print the dashboard
-        return '\n'.join(lines)
-
-    def display(self, *data):
-        # gdb module has both write() and flush()
-        try:
-            output = self.output or gdb
-            for string in data:
-                output.write(string)
-            output.flush()
-        except:
-            Dashboard.err('Cannot write the dashboard')
+                gdb.write('No module loaded')
+            # write the terminator
+            gdb.write('\n')
+            gdb.write(divider(width, primary=True))
+            gdb.write('\n')
+            gdb.flush()
+            return
+        # process each display info
+        for output, instances in display_map.iteritems():
+            try:
+                fs = None
+                # use GDB stream by default
+                if output:
+                    fs = open(output, 'w')
+                    fd = fs.fileno()
+                else:
+                    fs = gdb
+                    fd = 1
+                # get the terminal width (default main terminal if either
+                # the output is not a file)
+                try:
+                    width = Dashboard.get_term_width(fd)
+                except:
+                    width = Dashboard.get_term_width()
+                # clear the "screen" if requested for the main terminal,
+                # auxiliary terminals are always cleared
+                if fs is not gdb or clear_screen:
+                    fs.write(Dashboard.clear_screen())
+                # process all the modules for that output
+                for n, instance in enumerate(instances, 1):
+                    # ask the module to generate the content
+                    lines = instance.lines(width, style_changed)
+                    # write the divider
+                    fs.write(divider(width, instance.label(),
+                                     True, len(lines) > 0))
+                    fs.write('\n')
+                    # write the data
+                    fs.write('\n'.join(lines))
+                    # write the newline for all but last
+                    if n != len(instances):
+                        fs.write('\n')
+                # write the final newline and the terminator only if it is the
+                # main terminal to allow the prompt to display correctly
+                if fs is gdb:
+                    fs.write(divider(width, primary=True))
+                    fs.write('\n')
+                fs.flush()
+            except Exception as e:
+                Dashboard.err('Cannot write the dashboard: {}'.format(e))
+            finally:
+                if fs is file:
+                    fs.close()
 
 # Utility methods --------------------------------------------------------------
 
@@ -343,11 +370,11 @@ class Dashboard(gdb.Command):
         run('alias -a db = dashboard')
 
     @staticmethod
-    def update_term_width(fd=1):  # defaults to the main terminal
+    def get_term_width(fd=1):  # defaults to the main terminal
         # first 2 shorts (4 byte) of struct winsize
         raw = fcntl.ioctl(fd, termios.TIOCGWINSZ, ' ' * 4)
         height, width = struct.unpack('hh', raw)
-        Dashboard.term_width = int(width)
+        return int(width)
 
     @staticmethod
     def set_custom_prompt(dashboard):
@@ -422,11 +449,13 @@ class Dashboard(gdb.Command):
         def __init__(self, dashboard, module):
             self.name = module.__name__.lower()  # from class to module name
             self.enabled = True
+            self.output = None  # value from the dashboard by default
             self.instance = module()
             self.doc = self.instance.__doc__ or '(no documentation)'
             self.prefix = 'dashboard {}'.format(self.name)
             # add GDB commands
             self.add_main_command(dashboard)
+            self.add_output_command(dashboard)
             self.add_style_command(dashboard)
             self.add_subcommands(dashboard)
 
@@ -447,6 +476,9 @@ class Dashboard(gdb.Command):
             doc_extended = 'Toggle the module visibility.'
             doc = '{}\n{}\n\n{}'.format(doc_brief, doc_extended, self.doc)
             Dashboard.create_command(self.prefix, invoke, doc, True)
+
+        def add_output_command(self, dashboard):
+            Dashboard.OutputCommand(dashboard, self.prefix, self)
 
         def add_style_command(self, dashboard):
             if 'attributes' in dir(self.instance):
@@ -490,31 +522,33 @@ class Dashboard(gdb.Command):
             Dashboard.err('Wrong argument "{}"'.format(arg))
 
     class OutputCommand(gdb.Command):
-        """Set the dashboard output file/TTY.
-The dashboard will be appended to the specified file, which will be created if
-it does not exist. If the specified file identifies a terminal then its width
-will be used to format the dashboard, otherwise falls back to the width of the
-main GDB terminal. Without argument the dashboard will be printed on standard
-output (default)."""
+        """Set the output file/TTY for both the dashboard and modules.
+The dashboard/module will be written to the specified file, which will be
+created if it does not exist. If the specified file identifies a terminal then
+its width will be used to format the dashboard, otherwise falls back to the
+width of the main GDB terminal. Without argument the dashboard, the
+output/messages and modules which do not specify the output will be printed on
+standard output (default). Without argument the module will be printed where the
+dashboard will be printed."""
 
-        def __init__(self, dashboard):
-            gdb.Command.__init__(self, 'dashboard -output',
+        def __init__(self, dashboard, prefix=None, obj=None):
+            if not prefix:
+                prefix = 'dashboard'
+            if not obj:
+                obj = dashboard
+            prefix = prefix + ' -output'
+            gdb.Command.__init__(self, prefix,
                                  gdb.COMMAND_USER, gdb.COMPLETE_FILENAME)
             self.dashboard = dashboard
+            self.obj = obj  # None means the dashboard itself
 
         def invoke(self, arg, from_tty):
             arg = Dashboard.parse_arg(arg)
-            # close the previous output file, if any
-            if self.dashboard.output:
-                self.dashboard.output.close()
             # set or open the output file
             if arg == '':
-                self.dashboard.output = None
+                self.obj.output = None
             else:
-                try:
-                    self.dashboard.output = open(arg, 'w')
-                except:
-                    Dashboard.err('Cannot open "{}"'.format(arg))
+                self.obj.output = arg
             # redisplay the dashboard in the new output
             self.dashboard.redisplay()
 
@@ -549,8 +583,9 @@ Accepts a space-separated list of directive. Each directive is in the form
 "[!]<module>". Modules in the list are placed in the dashboard in the same order
 as they appear and those prefixed by "!" are disabled by default. Omitted
 modules are hidden and placed at the bottom in alphabetical order. Without
-arguments the current layout is shown using the same form expected by the
-input."""
+arguments the current layout is shown where the first line uses the same form
+expected by the input while the remaining depict the current status of output
+files."""
 
         def __init__(self, dashboard):
             gdb.Command.__init__(self, 'dashboard -layout', gdb.COMMAND_USER)
@@ -567,16 +602,24 @@ input."""
                 self.show()
 
         def show(self):
+            global_str = 'Global'
+            max_name_len = len(global_str)
+            # print directives
             modules = []
             for module in self.dashboard.modules:
-                if module.enabled:
-                    mark = ''
-                    style = R.style_high
-                else:
-                    mark = '!'
-                    style = R.style_low
-                modules.append(ansi('{}{}'.format(mark, module.name), style))
+                max_name_len = max(max_name_len, len(module.name))
+                mark = '' if module.enabled else '!'
+                modules.append('{}{}'.format(mark, module.name))
             print(' '.join(modules))
+            # print outputs
+            default = '(default)'
+            fmt = '{{:{}s}}{{}}'.format(max_name_len + 2)
+            print(('\n' + fmt + '\n').format(global_str,
+                                             self.dashboard.output or default))
+            for module in self.dashboard.modules:
+                style = R.style_high if module.enabled else R.style_low
+                line = fmt.format(module.name, module.output or default)
+                print(ansi(line, style))
 
         def layout(self, directives):
             modules = self.dashboard.modules
@@ -698,7 +741,7 @@ class Source(Dashboard.Module):
     def label(self):
         return 'Source'
 
-    def lines(self, style_changed):
+    def lines(self, term_width, style_changed):
         # try to fetch the current line (skip if no line information)
         sal = gdb.selected_frame().find_sal()
         current_line = sal.line
@@ -768,7 +811,7 @@ instructions constituting the current statement are marked, if available."""
     def label(self):
         return 'Assembly'
 
-    def lines(self, style_changed):
+    def lines(self, term_width, style_changed):
         line_info = None
         frame = gdb.selected_frame()  # PC is here
         disassemble = frame.architecture().disassemble
@@ -894,7 +937,7 @@ location, if available. Optionally list the frame arguments and locals too."""
     def label(self):
         return 'Stack'
 
-    def lines(self, style_changed):
+    def lines(self, term_width, style_changed):
         frames = []
         number = 0
         selected_index = 0
@@ -1008,7 +1051,7 @@ class History(Dashboard.Module):
     def label(self):
         return 'History'
 
-    def lines(self, style_changed):
+    def lines(self, term_width, style_changed):
         out = []
         # fetch last entries
         for i in range(-self.limit + 1, 1):
@@ -1071,7 +1114,7 @@ class Memory(Dashboard.Module):
     def label(self):
         return 'Memory'
 
-    def lines(self, style_changed):
+    def lines(self, term_width, style_changed):
         out = []
         inferior = gdb.selected_inferior()
         for address, length in sorted(self.table.items()):
@@ -1082,7 +1125,7 @@ class Memory(Dashboard.Module):
                 msg = 'Cannot access {} bytes starting at {}'
                 msg = msg.format(length, format_address(address))
                 out.append(ansi(msg, R.style_error))
-            out.append(divider())
+            out.append(divider(term_width))
         # drop last divider
         if out:
             del out[-1]
@@ -1140,7 +1183,7 @@ class Registers(Dashboard.Module):
     def label(self):
         return 'Registers'
 
-    def lines(self, style_changed):
+    def lines(self, term_width, style_changed):
         # fetch registers status
         registers = []
         for reg_info in run('info registers').strip().split('\n'):
@@ -1157,10 +1200,9 @@ class Registers(Dashboard.Module):
         max_name = max(len(name) for name, _, _ in registers)
         max_value = max(len(value) for _, value, _ in registers)
         max_width = max_name + max_value + 2
-        per_line = int((Dashboard.term_width + 1) / max_width) or 1
+        per_line = int((term_width + 1) / max_width) or 1
         # redistribute extra space among columns
-        extra = int((Dashboard.term_width + 1 -
-                     max_width * per_line) / per_line)
+        extra = int((term_width + 1 - max_width * per_line) / per_line)
         if per_line == 1:
             # center when there is only one column
             max_name += int(extra / 2)
@@ -1196,7 +1238,7 @@ class Threads(Dashboard.Module):
     def label(self):
         return 'Threads'
 
-    def lines(self, style_changed):
+    def lines(self, term_width, style_changed):
         out = []
         selected_thread = gdb.selected_thread()
         selected_frame = gdb.selected_frame()
@@ -1228,7 +1270,7 @@ class Expressions(Dashboard.Module):
     def label(self):
         return 'Expressions'
 
-    def lines(self, style_changed):
+    def lines(self, term_width, style_changed):
         out = []
         for number, expression in sorted(self.table.items()):
             try:
