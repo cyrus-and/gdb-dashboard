@@ -337,8 +337,9 @@ class Dashboard(gdb.Command):
                     fs.write('\n')
                     # write the data
                     fs.write('\n'.join(lines))
-                    # write the newline for all but last
-                    if n != len(instances):
+                    # write the newline for all but last unless main terminal
+                    # provided that the module contains some lines
+                    if lines and (fs is gdb or n != len(instances)):
                         fs.write('\n')
                 # write the final newline and the terminator only if it is the
                 # main terminal to allow the prompt to display correctly
