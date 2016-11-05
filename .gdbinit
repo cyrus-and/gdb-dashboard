@@ -333,8 +333,7 @@ class Dashboard(gdb.Command):
                     # ask the module to generate the content
                     lines = instance.lines(width, style_changed)
                     # write the divider
-                    fs.write(divider(width, instance.label(),
-                                     True, len(lines) > 0))
+                    fs.write(divider(width, instance.label(), True, lines))
                     fs.write('\n')
                     # write the data
                     fs.write('\n'.join(lines))
