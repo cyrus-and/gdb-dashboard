@@ -289,6 +289,7 @@ class Dashboard(gdb.Command):
         for module in self.modules:
             if not module.enabled:
                 continue
+            # fall back to the global value
             output = module.output or self.output
             display_map.setdefault(output, []).append(module.instance)
         # notify the user if the output is empty, on the main terminal
@@ -350,6 +351,7 @@ class Dashboard(gdb.Command):
             except Exception as e:
                 Dashboard.err('Cannot write the dashboard: {}'.format(e))
             finally:
+                # don't close gdb stream
                 if fs is file:
                     fs.close()
 
