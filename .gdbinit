@@ -257,6 +257,7 @@ class Dashboard(gdb.Command):
         for output in outputs:
             try:
                 with open(output, 'w') as fs:
+                    fs.write(Dashboard.reset_terminal())
                     fs.write(Dashboard.clear_screen())
                     fs.write('--- EXITED ---')
             except:
@@ -331,6 +332,8 @@ class Dashboard(gdb.Command):
                 if output:
                     fs = open(output, 'w')
                     fd = fs.fileno()
+                    # setup the terminal
+                    fs.write(Dashboard.hide_cursor())
                 else:
                     fs = gdb
                     fd = 1
@@ -458,6 +461,16 @@ class Dashboard(gdb.Command):
     def clear_screen():
         # ANSI: move the cursor to top-left corner and clear the screen
         return '\x1b[H\x1b[J'
+
+    @staticmethod
+    def hide_cursor():
+        # ANSI: hide cursor
+        return '\x1b[?25l'
+
+    @staticmethod
+    def reset_terminal():
+        # ANSI: reset to initial state
+        return '\x1bc'
 
 # Module descriptor ------------------------------------------------------------
 
