@@ -246,7 +246,22 @@ class Dashboard(gdb.Command):
             self.render(clear_screen=False)
 
     def on_exit(self, _):
-        pass
+        if not self.is_running():
+            return
+        # collect all the outputs
+        outputs = set()
+        outputs.add(self.output)
+        outputs.update(module.output for module in self.modules)
+        outputs.remove(None)
+        # clean the screen and notify to avoid confusion
+        for output in outputs:
+            try:
+                with open(output, 'w') as fs:
+                    fs.write(Dashboard.clear_screen())
+                    fs.write('--- EXITED ---')
+            except:
+                # skip cleanup for invalid outputs
+                pass
 
     def enable(self):
         if self.enabled:
