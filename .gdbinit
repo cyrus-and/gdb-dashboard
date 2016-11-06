@@ -351,14 +351,12 @@ class Dashboard(gdb.Command):
                 for n, instance in enumerate(instances, 1):
                     # ask the module to generate the content
                     lines = instance.lines(width, style_changed)
-                    # write the divider
-                    fs.write(divider(width, instance.label(), True, lines))
-                    fs.write('\n')
+                    # create the divider accordingly
+                    div = divider(width, instance.label(), True, lines)
                     # write the data
-                    fs.write('\n'.join(lines))
+                    fs.write('\n'.join([div] + lines))
                     # write the newline for all but last unless main terminal
-                    # provided that the module contains some lines
-                    if lines and (fs is gdb or n != len(instances)):
+                    if n != len(instances) or fs is gdb:
                         fs.write('\n')
                 # write the final newline and the terminator only if it is the
                 # main terminal to allow the prompt to display correctly
