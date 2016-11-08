@@ -325,7 +325,7 @@ class Dashboard(gdb.Command):
             gdb.flush()
             return
         # process each display info
-        for output, instances in display_map.iteritems():
+        for output, instances in display_map.items():
             try:
                 fs = None
                 # use GDB stream by default
@@ -368,7 +368,7 @@ class Dashboard(gdb.Command):
                 Dashboard.err('Cannot write the dashboard: {}'.format(e))
             finally:
                 # don't close gdb stream
-                if fs is file:
+                if fs is not gdb:
                     fs.close()
 
 # Utility methods --------------------------------------------------------------
