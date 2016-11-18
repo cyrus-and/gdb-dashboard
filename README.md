@@ -112,11 +112,11 @@ usual.
 
 ### Display the whole dashboard in a web browser
 
+![Dashboard in a web browser](http://i.imgur.com/5uncF7e.png)
+
 Pushing this even further, one could use a web browser as an auxiliary terminal
 using [gotty][gotty]. Of course, using the method described above, one can also
 display the output of individual modules in one or more web browser instances.
-
-![Dashboard in a web browser](http://i.imgur.com/5uncF7e.png)
 
  1. start GDB in one terminal;
 
