@@ -9,17 +9,14 @@ during the program execution. Its main goal is to reduce the number of GDB
 commands issued to inspect the current program status allowing the programmer to
 focus on the control flow instead.
 
+![Screenshot](http://i.imgur.com/g8I3suo.png)
+
 Installation
 ------------
 
 Just place [`.gdbinit`][raw] in your home directory, for example:
 
     wget -P ~ git.io/.gdbinit
-
-Screenshot
-----------
-
-![Screenshot](http://i.imgur.com/g8I3suo.png)
 
 Features
 --------
@@ -46,33 +43,6 @@ Features
 
  * No GDB command has been redefined, instead all the
    features are available as subcommands of the main `dashboard` command.
-
-Minimal requirements
---------------------
-
-GDB dashboard requires at least GDB 7.7 compiled with Python 2.7 in order to
-work properly.
-
-See [#1](https://github.com/cyrus-and/gdb-dashboard/issues/1) for more
-details/workarounds.
-
-Additional GDB front ends
--------------------------
-
-GDB dashboard is not meant to work seamlessly with additional front ends, e.g.,
-TUI, Nemiver, etc. There are basically two options to work around this:
-
- * Prevent the front from loading the `.gdbinit` file. For example, start TUI
-   with `gdbtui --nx`.
-
- * Load GDB dashboard manually (only recommended if the front end is the
-   most used option). Install as usual, then:
-
-        mv ~/.gdbinit ~/.gdb-dashboard
-
-   Finally from the GDB shell:
-
-        source ~/.gdb-dashboard
 
 Default modules
 ---------------
@@ -466,6 +436,33 @@ available:
     dashboard notes add
     dashboard notes clear
     dashboard notes -style
+
+Minimal requirements
+--------------------
+
+GDB dashboard requires at least GDB 7.7 compiled with Python 2.7 in order to
+work properly.
+
+See [#1](https://github.com/cyrus-and/gdb-dashboard/issues/1) for more
+details/workarounds.
+
+Additional GDB front ends
+-------------------------
+
+GDB dashboard is not meant to work seamlessly with additional front ends, e.g.,
+TUI, Nemiver, etc. There are basically two options to work around this:
+
+ * Prevent the front from loading the `.gdbinit` file. For example, start TUI
+   with `gdbtui --nx`.
+
+ * Load GDB dashboard manually (only recommended if the front end is the
+   most used option). Install as usual, then:
+
+        mv ~/.gdbinit ~/.gdb-dashboard
+
+   Finally from the GDB shell:
+
+        source ~/.gdb-dashboard
 
 Resources
 ---------
