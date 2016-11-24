@@ -1217,6 +1217,9 @@ class Registers(Dashboard.Module):
         for reg_info in run('info registers').strip().split('\n'):
             # fetch register and update the table
             name = reg_info.split(None, 1)[0]
+            # Exclude registers with a dot '.' or parse_and_eval() will fail
+            if '.' in name:
+                continue
             value = gdb.parse_and_eval('${}'.format(name))
             string_value = self.format_value(value)
             changed = self.table and (self.table.get(name, '') != string_value)
