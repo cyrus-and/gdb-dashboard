@@ -10,6 +10,7 @@ import os
 import re
 import struct
 import termios
+import traceback
 
 # Common attributes ------------------------------------------------------------
 
@@ -365,7 +366,8 @@ class Dashboard(gdb.Command):
                     fs.write('\n')
                 fs.flush()
             except Exception as e:
-                Dashboard.err('Cannot write the dashboard: {}'.format(e))
+                cause = traceback.format_exc().strip()
+                Dashboard.err('Cannot write the dashboard\n{}'.format(cause))
             finally:
                 # don't close gdb stream
                 if fs is not gdb:
