@@ -968,19 +968,27 @@ location, if available. Optionally list the frame arguments and locals too."""
         return 'Stack'
 
     def lines(self, term_width, style_changed):
-        frames = []
-        number = 0
+        # find the selected frame (i.e., the first to display)
         selected_index = 0
         frame = gdb.newest_frame()
         while frame:
-            frame_lines = []
+            # print selected_index, gdb.selected_frame()
+            if frame == gdb.selected_frame():
+                break
+            frame = frame.older()
+            selected_index += 1
+        # format up to "limit" frames
+        frames = []
+        number = selected_index
+        more = False
+        while frame:
+            # the first is the selected one
+            selected = (len(frames) == 0)
             # fetch frame info
-            selected = (frame == gdb.selected_frame())
-            if selected:
-                selected_index = number
             style = R.style_selected_1 if selected else R.style_selected_2
             frame_id = ansi(str(number), style)
             info = Stack.get_pc_line(frame, style)
+            frame_lines = []
             frame_lines.append('[{}] {}'.format(frame_id, info))
             # fetch frame arguments and locals
             decorator = gdb.FrameDecorator.FrameDecorator(frame)
@@ -1003,17 +1011,15 @@ location, if available. Optionally list the frame arguments and locals too."""
             # next
             frame = frame.older()
             number += 1
+            # check finished according to the limit
+            if self.limit and len(frames) == self.limit:
+                # more frames to show but limited
+                if frame:
+                    more = True
+                break
         # format the output
-        if not self.limit or self.limit >= len(frames):
-            start = 0
-            end = len(frames)
-            more = False
-        else:
-            start = selected_index
-            end = min(len(frames), start + self.limit)
-            more = (len(frames) - start > self.limit)
         lines = []
-        for frame_lines in frames[start:end]:
+        for frame_lines in frames:
             lines.extend(frame_lines)
         # add the placeholder
         if more:
