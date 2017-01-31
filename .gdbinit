@@ -972,7 +972,6 @@ location, if available. Optionally list the frame arguments and locals too."""
         selected_index = 0
         frame = gdb.newest_frame()
         while frame:
-            # print selected_index, gdb.selected_frame()
             if frame == gdb.selected_frame():
                 break
             frame = frame.older()
