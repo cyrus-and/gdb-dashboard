@@ -993,14 +993,14 @@ location, if available. Optionally list the frame arguments and locals too."""
             decorator = gdb.FrameDecorator.FrameDecorator(frame)
             if self.show_arguments:
                 frame_args = decorator.frame_args()
-                args_lines = self.fetch_frame_info(frame, frame_args, 'arg')
+                args_lines = Stack.fetch_frame_info(frame, frame_args, 'arg')
                 if args_lines:
                     frame_lines.extend(args_lines)
                 else:
                     frame_lines.append(ansi('(no arguments)', R.style_low))
             if self.show_locals:
                 frame_locals = decorator.frame_locals()
-                locals_lines = self.fetch_frame_info(frame, frame_locals, 'loc')
+                locals_lines = Stack.fetch_frame_info(frame, frame_locals, 'loc')
                 if locals_lines:
                     frame_lines.extend(locals_lines)
                 else:
@@ -1025,7 +1025,8 @@ location, if available. Optionally list the frame arguments and locals too."""
             lines.append('[{}]'.format(ansi('+', R.style_selected_2)))
         return lines
 
-    def fetch_frame_info(self, frame, data, prefix):
+    @staticmethod
+    def fetch_frame_info(frame, data, prefix):
         prefix = ansi(prefix, R.style_low)
         lines = []
         for elem in data or []:
@@ -1228,7 +1229,7 @@ class Registers(Dashboard.Module):
             if '.' in name:
                 continue
             value = gdb.parse_and_eval('${}'.format(name))
-            string_value = self.format_value(value)
+            string_value = Registers.format_value(value)
             changed = self.table and (self.table.get(name, '') != string_value)
             self.table[name] = string_value
             registers.append((name, string_value, changed))
@@ -1259,7 +1260,8 @@ class Registers(Dashboard.Module):
             out.append(' '.join(partial[i:i + per_line]).rstrip())
         return out
 
-    def format_value(self, value):
+    @staticmethod
+    def format_value(value):
         try:
             if value.type.code in [gdb.TYPE_CODE_INT, gdb.TYPE_CODE_PTR]:
                 int_value = to_unsigned(value, value.type.sizeof)
