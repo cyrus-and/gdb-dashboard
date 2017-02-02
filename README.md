@@ -453,17 +453,20 @@ Additional GDB front ends
 -------------------------
 
 GDB dashboard is not meant to work seamlessly with additional front ends, e.g.,
-TUI, Nemiver, etc. There are basically two options to work around this:
+TUI, Nemiver, QtCreator, etc.
 
- * Prevent the front from loading the `.gdbinit` file. For example, start TUI
-   with `gdbtui --nx`.
+There are basically two options to work around this:
 
- * Load GDB dashboard manually (only recommended if the front end is the
-   most used option). Install as usual, then:
+ * if the main debugging tool is GDB dashboard then it is recommended to prevent
+   the front end from loading the `.gdbinit` file, they usually have an option
+   to do so;
+
+ * otherwise it is possible to load GDB dashboard manually, that is, install as
+   usual then:
 
         mv ~/.gdbinit ~/.gdb-dashboard
 
-   Finally from the GDB shell:
+   finally load it when needed from the GDB shell:
 
         source ~/.gdb-dashboard
 
