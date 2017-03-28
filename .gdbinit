@@ -1050,8 +1050,9 @@ location, if available. Optionally list the frame arguments and locals too."""
         lines = []
         for elem in data or []:
             name = elem.sym
+            equal = ansi('=', R.style_low)
             value = to_string(elem.sym.value(frame))
-            lines.append('{} = {}'.format(name, value))
+            lines.append('{} {} {}'.format(name, equal, value))
         return lines
 
     @staticmethod
