@@ -991,18 +991,33 @@ location, if available. Optionally list the frame arguments and locals too."""
             frame_lines.append('[{}] {}'.format(frame_id, info))
             # fetch frame arguments and locals
             decorator = gdb.FrameDecorator.FrameDecorator(frame)
+            separator = ansi(', ', R.style_low)
             if self.show_arguments:
+                def prefix(line):
+                    return Stack.format_line('arg', line)
                 frame_args = decorator.frame_args()
-                args_lines = Stack.fetch_frame_info(frame, frame_args, 'arg')
+                args_lines = Stack.fetch_frame_info(frame, frame_args)
                 if args_lines:
-                    frame_lines.extend(args_lines)
+                    if self.compact:
+                        args_line = separator.join(args_lines)
+                        single_line = prefix(args_line)
+                        frame_lines.append(single_line)
+                    else:
+                        frame_lines.extend(map(prefix, args_lines))
                 else:
                     frame_lines.append(ansi('(no arguments)', R.style_low))
             if self.show_locals:
+                def prefix(line):
+                    return Stack.format_line('loc', line)
                 frame_locals = decorator.frame_locals()
-                locals_lines = Stack.fetch_frame_info(frame, frame_locals, 'loc')
+                locals_lines = Stack.fetch_frame_info(frame, frame_locals)
                 if locals_lines:
-                    frame_lines.extend(locals_lines)
+                    if self.compact:
+                        locals_line = separator.join(locals_lines)
+                        single_line = prefix(locals_line)
+                        frame_lines.append(single_line)
+                    else:
+                        frame_lines.extend(map(prefix, locals_lines))
                 else:
                     frame_lines.append(ansi('(no locals)', R.style_low))
             # add frame
@@ -1026,13 +1041,17 @@ location, if available. Optionally list the frame arguments and locals too."""
         return lines
 
     @staticmethod
-    def fetch_frame_info(frame, data, prefix):
+    def format_line(prefix, line):
         prefix = ansi(prefix, R.style_low)
+        return '{} {}'.format(prefix, line)
+
+    @staticmethod
+    def fetch_frame_info(frame, data):
         lines = []
         for elem in data or []:
             name = elem.sym
             value = to_string(elem.sym.value(frame))
-            lines.append('{} {} = {}'.format(prefix, name, value))
+            lines.append('{} = {}'.format(name, value))
         return lines
 
     @staticmethod
@@ -1077,6 +1096,11 @@ location, if available. Optionally list the frame arguments and locals too."""
                 'doc': 'Frame locals visibility flag.',
                 'default': False,
                 'name': 'show_locals',
+                'type': bool
+            },
+            'compact': {
+                'doc': 'Single-line display flag.',
+                'default': False,
                 'type': bool
             }
         }
