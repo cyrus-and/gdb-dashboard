@@ -1247,6 +1247,11 @@ class Registers(Dashboard.Module):
     def lines(self, term_width, style_changed):
         # fetch registers status
         registers = []
+        # append single register
+        single_registers = ["pc","sp"]
+        for sr in single_registers:
+            registers.append((sr,self.format_value(gdb.parse_and_eval('${}'.format(sr))),""))
+
         for reg_info in run('info registers').strip().split('\n'):
             # fetch register and update the table
             name = reg_info.split(None, 1)[0]
