@@ -12,6 +12,16 @@ import struct
 import termios
 import traceback
 
+syntax_highlighting_available = True
+try:
+    from pygments import highlight
+    from pygments.lexers import get_lexer_for_filename
+    from pygments.lexers import CppLexer
+    from pygments.formatters import Terminal256Formatter
+except ImportError:
+    syntax_highlighting_available = False
+
+
 # Common attributes ------------------------------------------------------------
 
 class R():
@@ -820,6 +830,9 @@ class Source(Dashboard.Module):
                     # just show a plain text indicator
                     line_format = number_format + '>{}'
             else:
+                if syntax_highlighting_available:
+                    lexer = get_lexer_for_filename(self.file_name)
+                    line = highlight(line, lexer, Terminal256Formatter())
                 line_format = ansi(number_format, R.style_low) + ' {}'
             out.append(line_format.format(number, line.rstrip('\n')))
         return out
