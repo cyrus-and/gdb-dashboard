@@ -387,7 +387,6 @@ class Dashboard(gdb.Command):
         Dashboard.parse_inits(False)
         # GDB overrides
         run('set pagination off')
-        run('alias -a db = dashboard')
 
     @staticmethod
     def get_term_width(fd=1):  # defaults to the main terminal

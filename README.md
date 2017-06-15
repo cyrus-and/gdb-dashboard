@@ -136,7 +136,7 @@ Commands
 --------
 
 The GDB documentation is available at `help dashboard`. Just like any GDB
-command, abbreviations are possible. Moreover, the alias `db` resolves to
+command, abbreviations are possible, so `da`, `dash`, etc. all resolve to
 `dashboard`.
 
 ### dashboard
