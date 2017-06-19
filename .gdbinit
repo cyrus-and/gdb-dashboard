@@ -991,6 +991,7 @@ location, if available. Optionally list the frame arguments and locals too."""
             # fetch frame arguments and locals
             decorator = gdb.FrameDecorator.FrameDecorator(frame)
             separator = ansi(', ', R.style_low)
+            strip_newlines = re.compile(r'$\s*', re.MULTILINE)
             if self.show_arguments:
                 def prefix(line):
                     return Stack.format_line('arg', line)
@@ -999,6 +1000,7 @@ location, if available. Optionally list the frame arguments and locals too."""
                 if args_lines:
                     if self.compact:
                         args_line = separator.join(args_lines)
+                        args_line = strip_newlines.sub('', args_line)
                         single_line = prefix(args_line)
                         frame_lines.append(single_line)
                     else:
@@ -1013,6 +1015,7 @@ location, if available. Optionally list the frame arguments and locals too."""
                 if locals_lines:
                     if self.compact:
                         locals_line = separator.join(locals_lines)
+                        locals_line = strip_newlines.sub('', locals_line)
                         single_line = prefix(locals_line)
                         frame_lines.append(single_line)
                     else:
