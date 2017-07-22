@@ -11,6 +11,7 @@ import re
 import struct
 import termios
 import traceback
+import math
 
 # Common attributes ------------------------------------------------------------
 
@@ -1284,9 +1285,27 @@ class Registers(Dashboard.Module):
             styled_value = ansi(value.ljust(max_value), value_style)
             partial.append(styled_name + ' ' + styled_value)
         out = []
-        for i in range(0, len(partial), per_line):
-            out.append(' '.join(partial[i:i + per_line]).rstrip())
+        if self.column_major:
+            num_lines = int(math.ceil(float(len(partial)) / per_line))
+            for i in range(num_lines):
+                line = ' '.join(partial[i:len(partial):num_lines]).rstrip()
+                real_n_col = math.ceil(float(len(partial)) / num_lines)
+                line = ' ' * int((per_line - real_n_col) * max_width / 2) + line
+                out.append(line)
+        else:
+            for i in range(0, len(partial), per_line):
+                out.append(' '.join(partial[i:i + per_line]).rstrip())
         return out
+
+    def attributes(self):
+        return {
+            'column-major': {
+                'doc': 'Whether to show registers in columns instead of rows.',
+                'default': False,
+                'name': 'column_major',
+                'type': bool
+            }
+        }
 
     @staticmethod
     def format_value(value):
