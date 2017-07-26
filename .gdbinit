@@ -886,6 +886,10 @@ instructions constituting the current statement are marked, if available."""
         }.get(flavor, '.s')
         # prepare the highlighter
         highlighter = Highlighter(filename)
+        # compute the maximum offset size
+        if func_start:
+            max_offset = max(len(str(abs(asm[0]['addr'] - func_start))),
+                             len(str(abs(asm[-1]['addr'] - func_start))))
         # return the machine code
         max_length = max(instr['length'] for instr in asm)
         inferior = gdb.selected_inferior()
@@ -906,9 +910,9 @@ instructions constituting the current statement are marked, if available."""
             # compute the offset if available
             if self.show_function:
                 if func_start:
-                    max_offset = len(str(asm[-1]['addr'] - func_start))
-                    offset = str(addr - func_start).ljust(max_offset)
-                    func_info = '{}+{} '.format(frame.name(), offset)
+                    offset = '{:+d}'.format(addr - func_start)
+                    offset = offset.ljust(max_offset + 1)  # sign
+                    func_info = '{}{} '.format(frame.name(), offset)
                 else:
                     func_info = '? '
             else:
