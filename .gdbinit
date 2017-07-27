@@ -230,9 +230,9 @@ class Dashboard(gdb.Command):
         Dashboard.LayoutCommand(self)
         # setup style commands
         Dashboard.StyleCommand(self, 'dashboard', R, R.attributes())
-        # enable by default
+        # disabled by default
         self.enabled = None
-        self.enable()
+        self.disable()
 
     def on_continue(self, _):
         # try to contain the GDB messages in a specified area unless the
@@ -293,7 +293,7 @@ class Dashboard(gdb.Command):
 
     def redisplay(self, style_changed=False):
         # manually redisplay the dashboard
-        if self.is_running():
+        if self.is_running() and self.enabled:
             self.render(True, style_changed)
 
     def inferior_pid(self):
@@ -389,6 +389,9 @@ class Dashboard(gdb.Command):
         Dashboard.parse_inits(False)
         # GDB overrides
         run('set pagination off')
+        # enable and display if possible (program running)
+        dashboard.enable()
+        dashboard.redisplay()
 
     @staticmethod
     def get_term_width(fd=1):  # defaults to the main terminal
