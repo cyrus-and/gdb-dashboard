@@ -12,6 +12,7 @@ import struct
 import termios
 import traceback
 import math
+import subprocess
 
 # Common attributes ------------------------------------------------------------
 
@@ -190,7 +191,7 @@ def format_address(address):
     return ('0x{{:0{}x}}').format(pointer_size * 2).format(address)
 
 class Highlighter():
-    def __init__(self, filename):
+    def __init__(self, filename, tabsize=8):
         self.active = False
         if not R.ansi:
             return
@@ -201,6 +202,8 @@ class Highlighter():
             formatter_class = pygments.formatters.Terminal256Formatter
             self.formatter = formatter_class(style=R.syntax_highlighting)
             self.lexer = pygments.lexers.get_lexer_for_filename(filename)
+            from pygments.filters import VisibleWhitespaceFilter
+            self.lexer.add_filter(VisibleWhitespaceFilter(tabsize=tabsize, tabs=' '))
             self.active = True
         except ImportError:
             # Pygments not available
@@ -794,11 +797,16 @@ class Source(Dashboard.Module):
             self.file_name = file_name
             self.ts = ts
             try:
-                highlighter = Highlighter(self.file_name)
+                highlighter = Highlighter(self.file_name, tabsize=self.tabsize)
                 self.highlighted = highlighter.active
-                with open(self.file_name) as source_file:
-                    source = highlighter.process(source_file.read())
+                if (not self.highlighted) and subprocess.call('which expand', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE) == 0:
+                    source = os.popen('expand -t %d < "%s"' % (self.tabsize, self.file_name)).read()
+                    print("source = [%s]" % source)
                     self.source_lines = source.split('\n')
+                else:
+                    with open(self.file_name) as source_file:
+                        source = highlighter.process(source_file.read())
+                        self.source_lines = source.split('\n')
             except Exception as e:
                 msg = 'Cannot display "{}" ({})'.format(self.file_name, e)
                 return [ansi(msg, R.style_error)]
@@ -835,6 +843,12 @@ class Source(Dashboard.Module):
                 'default': 5,
                 'type': int,
                 'check': check_ge_zero
+            },
+            'tabsize': {
+                'doc': 'Number of spaces used for the <Tab> character.',
+                'default': 8,
+                'type': int,
+                'check': check_gt_zero
             }
         }
 
