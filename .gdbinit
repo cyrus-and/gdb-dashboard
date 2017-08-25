@@ -189,7 +189,7 @@ def format_address(address):
     pointer_size = gdb.parse_and_eval('$pc').type.sizeof
     return ('0x{{:0{}x}}').format(pointer_size * 2).format(address)
 
-class Highlighter():
+class Beautifier():
     def __init__(self, filename, tab_size=4):
         self.tab_spaces = ' ' * tab_size
         self.active = False
@@ -797,7 +797,7 @@ class Source(Dashboard.Module):
             self.file_name = file_name
             self.ts = ts
             try:
-                highlighter = Highlighter(self.file_name, self.tab_size)
+                highlighter = Beautifier(self.file_name, self.tab_size)
                 self.highlighted = highlighter.active
                 with open(self.file_name) as source_file:
                     source = highlighter.process(source_file.read())
@@ -898,7 +898,7 @@ instructions constituting the current statement are marked, if available."""
             'intel': '.asm'
         }.get(flavor, '.s')
         # prepare the highlighter
-        highlighter = Highlighter(filename)
+        highlighter = Beautifier(filename)
         # compute the maximum offset size
         if func_start:
             max_offset = max(len(str(abs(asm[0]['addr'] - func_start))),
