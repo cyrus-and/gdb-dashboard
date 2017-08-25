@@ -190,7 +190,8 @@ def format_address(address):
     return ('0x{{:0{}x}}').format(pointer_size * 2).format(address)
 
 class Highlighter():
-    def __init__(self, filename):
+    def __init__(self, filename, tab_size=4):
+        self.tab_spaces = ' ' * tab_size
         self.active = False
         if not R.ansi:
             return
@@ -210,6 +211,8 @@ class Highlighter():
             pass
 
     def process(self, source):
+        # convert tabs anyway
+        source = source.replace('\t', self.tab_spaces)
         if self.active:
             import pygments
             source = pygments.highlight(source, self.lexer, self.formatter)
@@ -794,7 +797,7 @@ class Source(Dashboard.Module):
             self.file_name = file_name
             self.ts = ts
             try:
-                highlighter = Highlighter(self.file_name)
+                highlighter = Highlighter(self.file_name, self.tab_size)
                 self.highlighted = highlighter.active
                 with open(self.file_name) as source_file:
                     source = highlighter.process(source_file.read())
@@ -835,6 +838,13 @@ class Source(Dashboard.Module):
                 'default': 5,
                 'type': int,
                 'check': check_ge_zero
+            },
+            'tab-size': {
+                'doc': 'Number of spaces used to display the tab character.',
+                'default': 4,
+                'name': 'tab_size',
+                'type': int,
+                'check': check_gt_zero
             }
         }
 
