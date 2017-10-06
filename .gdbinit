@@ -1083,8 +1083,12 @@ location, if available. Optionally list the frame arguments and locals too."""
         if frame.name():
             frame_name = ansi(frame.name(), style)
             try:
-                # try to compute the offset relative to the current function
-                value = gdb.parse_and_eval(frame.name()).address
+                # try to compute the offset relative to the current function (it
+                # may happen that the frame name is the whole function
+                # declaration, instead of just the name, e.g., 'getkey()', so it
+                # would be treated as a function call by 'gdb.parse_and_eval',
+                # hence the trim, see #87 and #88)
+                value = gdb.parse_and_eval(frame.name().split('(')[0]).address
                 # it can be None even if it is part of the "stack" (C++)
                 if value:
                     func_start = to_unsigned(value)
