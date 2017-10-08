@@ -884,7 +884,11 @@ instructions constituting the current statement are marked, if available."""
         func_start = None
         if self.show_function and frame.name():
             try:
-                value = gdb.parse_and_eval(frame.name()).address
+                # it may happen that the frame name is the whole function
+                # declaration, instead of just the name, e.g., 'getkey()', so it
+                # would be treated as a function call by 'gdb.parse_and_eval',
+                # hence the trim, see #87 and #88
+                value = gdb.parse_and_eval(frame.name().split('(')[0]).address
                 func_start = to_unsigned(value)
             except gdb.error:
                 pass  # e.g., @plt
