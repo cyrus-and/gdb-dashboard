@@ -884,7 +884,7 @@ instructions constituting the current statement are marked, if available."""
         func_start = None
         if self.show_function and frame.name():
             try:
-                value = gdb.parse_and_eval(frame.name()).address
+                value = gdb.parse_and_eval(frame.name().split('(')[0]).address
                 func_start = to_unsigned(value)
             except gdb.error:
                 pass  # e.g., @plt
