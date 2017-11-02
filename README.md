@@ -143,6 +143,14 @@ command, abbreviations are possible, so `da`, `dash`, etc. all resolve to
 
 This is the root command and it is used to manually redisplay the dashboard.
 
+### dashboard -configuration [`<file>`]
+
+Display and optionally write to `<file>` the current configuration (layout,
+styles, outputs). This command allows to configure the dashboard live then make
+the changes permanent, for example:
+
+    dashboard -configuration ~/.gdbinit.d/auto
+
 ### dashboard -output [`<file>`]
 
 By default the dashboard is written to the GDB console but it is possible to
