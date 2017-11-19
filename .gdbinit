@@ -551,13 +551,13 @@ class Dashboard(gdb.Command):
 
     def invoke(self, arg, from_tty):
         arg = Dashboard.parse_arg(arg)
-        if arg == '':
-            if self.is_running():
-                self.redisplay()
-            else:
-                Dashboard.err('Is the target program running?')
-        else:
+        # show messages for checks in redisplay
+        if arg != '':
             Dashboard.err('Wrong argument "{}"'.format(arg))
+        elif not self.is_running():
+            Dashboard.err('Is the target program running?')
+        else:
+            self.redisplay()
 
     class ConfigurationCommand(gdb.Command):
         """Dump the dashboard configuration (layout, styles, outputs).
