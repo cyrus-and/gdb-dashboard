@@ -1415,10 +1415,13 @@ class Threads(Dashboard.Module):
             info = '[{}] id {}'.format(number, tid)
             if thread.name:
                 info += ' name {}'.format(ansi(thread.name, style))
-            # switch thread to fetch frame info
-            thread.switch()
-            frame = gdb.newest_frame()
-            info += ' ' + Stack.get_pc_line(frame, style)
+            # switch thread to fetch frame info (unless is running in non-stop mode)
+            try:
+                thread.switch()
+                frame = gdb.newest_frame()
+                info += ' ' + Stack.get_pc_line(frame, style)
+            except gdb.error:
+                info += ' (running)'
             out.append(info)
         # restore thread and frame
         selected_thread.switch()
