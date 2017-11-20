@@ -1423,6 +1423,9 @@ class Threads(Dashboard.Module):
         if restore_frame:
             selected_frame = gdb.selected_frame()
         for thread in gdb.Inferior.threads(gdb.selected_inferior()):
+            # skip running threads if requested
+            if self.skip_running and thread.is_running():
+                continue
             is_selected = (thread.ptid == selected_thread.ptid)
             style = R.style_selected_1 if is_selected else R.style_selected_2
             number = ansi(str(thread.num), style)
@@ -1443,6 +1446,16 @@ class Threads(Dashboard.Module):
         if restore_frame:
             selected_frame.select()
         return out
+
+    def attributes(self):
+        return {
+            'skip-running': {
+                'doc': 'Skip running threads.',
+                'default': False,
+                'name': 'skip_running',
+                'type': bool
+            }
+        }
 
 class Expressions(Dashboard.Module):
     """Watch user expressions."""
