@@ -1521,6 +1521,7 @@ end
 
 # Better GDB defaults ----------------------------------------------------------
 
+set breakpoint pending on
 set history save
 set confirm off
 set verbose off
