@@ -600,9 +600,9 @@ file."""
         def dump_style(self, fs, obj, prefix='dashboard'):
             attributes = getattr(obj, 'attributes', lambda: dict())()
             for name, attribute in attributes.items():
-                name = attribute.get('name', name)
+                real_name = attribute.get('name', name)
                 default = attribute.get('default')
-                value = getattr(obj, name)
+                value = getattr(obj, real_name)
                 if value != default:
                     fs.write('{} -style {} {!r}\n'.format(prefix, name, value))
 
