@@ -393,6 +393,7 @@ class Dashboard(gdb.Command):
         Dashboard.parse_inits(False)
         # GDB overrides
         run('set pagination off')
+        run('set breakpoint pending on')
         # enable and display if possible (program running)
         dashboard.enable()
         dashboard.redisplay()
