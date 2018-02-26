@@ -862,8 +862,8 @@ class Source(Dashboard.Module):
                 msg = 'Cannot display "{}" ({})'.format(self.file_name, e)
                 return [ansi(msg, R.style_error)]
         # compute the line range
-        start = max(current_line - 1 - self.context, 0)
-        end = min(current_line - 1 + self.context + 1, len(self.source_lines))
+        start = max(current_line + self.context_offset - 1 - self.context, 0)
+        end = min(current_line + self.context_offset - 1 + self.context + 1, len(self.source_lines))
         # return the source code listing
         out = []
         number_format = '{{:>{}}}'.format(len(str(end)))
@@ -894,6 +894,12 @@ class Source(Dashboard.Module):
                 'default': 5,
                 'type': int,
                 'check': check_ge_zero
+            },
+            'context-offset': {
+                'doc': 'Number of lines to offset context.',
+                'name': 'context_offset',
+                'default': 0,
+                'type': int,
             },
             'tab-size': {
                 'doc': 'Number of spaces used to display the tab character.',
