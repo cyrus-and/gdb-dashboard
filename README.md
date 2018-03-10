@@ -298,6 +298,11 @@ The list of all the available styles can be obtained with (from GDB itself):
     python from pygments.styles import get_all_styles as styles
     python for s in styles(): print(s)
 
+To automatically cycle through and apply each available style (press return to try next style):
+
+    python from pygments.styles import get_all_styles as styles
+    python for s in styles(): gdb.execute('dashboard -style syntax_highlighting \'' + s + '\''); gdb.execute('dashboard'); print(s); input()
+
 ### Dividers
 
 A divider is basically a terminal-wide horizontal line with an optional label.
