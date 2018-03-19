@@ -295,14 +295,23 @@ Pygments [style][pygments-styles] to use.
 
 The list of all the available styles can be obtained with (from GDB itself):
 
-    python from pygments.styles import get_all_styles as styles
-    python for s in styles(): print(s)
+    python
+    from pygments.styles import get_all_styles as styles
+    for s in styles():
+        print(s)
+    end
 
 To conveniently cycle through and try each available style (press `Return` to
 try the next style and `Ctrl-D` to exit):
 
-    python from pygments.styles import get_all_styles as styles
-    python for s in styles(): c = 'dashboard -style syntax_highlighting {!r}'.format(s); gdb.execute(c); print(c); input()
+    python
+    from pygments.styles import get_all_styles as styles
+    for s in styles():
+        c = 'dashboard -style syntax_highlighting {!r}'.format(s)
+        gdb.execute(c)
+        print(c)
+        input()
+    end
 
 ### Dividers
 
