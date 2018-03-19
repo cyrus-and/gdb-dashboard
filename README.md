@@ -172,15 +172,13 @@ switches the currently selected frame with the `up` or `down` commands. It is
 possible to do so by setting up some GDB hooks in the [user-defined init
 file](#configuration), for example:
 
-```
-define hookpost-up
-dashboard
-end
+    define hookpost-up
+    dashboard
+    end
 
-define hookpost-down
-dashboard
-end
-```
+    define hookpost-down
+    dashboard
+    end
 
 ### dashboard -layout [`<directive>`...]
 
@@ -295,23 +293,27 @@ Pygments [style][pygments-styles] to use.
 
 The list of all the available styles can be obtained with (from GDB itself):
 
-    python
-    from pygments.styles import get_all_styles as styles
-    for s in styles():
-        print(s)
-    end
+```python
+python
+from pygments.styles import get_all_styles as styles
+for s in styles():
+    print(s)
+end
+```
 
 To conveniently cycle through and try each available style (press `Return` to
 try the next style and `Ctrl-D` to exit):
 
-    python
-    from pygments.styles import get_all_styles as styles
-    for s in styles():
-        c = 'dashboard -style syntax_highlighting {!r}'.format(s)
-        gdb.execute(c)
-        print(c)
-        input()
-    end
+```python
+python
+from pygments.styles import get_all_styles as styles
+for s in styles():
+    c = 'dashboard -style syntax_highlighting {!r}'.format(s)
+    gdb.execute(c)
+    print(c)
+    input()
+end
+```
 
 ### Dividers
 
