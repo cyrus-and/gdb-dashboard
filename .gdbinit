@@ -1139,6 +1139,17 @@ location, if available. Optionally list the frame arguments and locals too."""
             name = elem.sym
             equal = ansi('=', R.style_low)
             value = to_string(elem.sym.value(frame))
+            if (elem.sym.type.code in (gdb.TYPE_CODE_REF,
+                                       gdb.TYPE_CODE_RVALUE_REF)):
+                try:
+                    ref_value = to_string(
+                        elem.sym.value(frame).referenced_value())
+                except gdb.MemoryError:
+                    ref_value = None
+
+                if ref_value and not ref_value == value:
+                    value += ': {}'.format(ref_value)
+
             lines.append('{} {} {}'.format(name, equal, value))
         return lines
 
