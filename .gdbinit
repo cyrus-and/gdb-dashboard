@@ -189,6 +189,15 @@ def format_address(address):
     pointer_size = gdb.parse_and_eval('$pc').type.sizeof
     return ('0x{{:0{}x}}').format(pointer_size * 2).format(address)
 
+def format_value(value):
+    # format references as referenced values
+    # (TYPE_CODE_RVALUE_REF is not supported by old GDB)
+    if value.type.code in (getattr(gdb, 'TYPE_CODE_REF', None),
+                           getattr(gdb, 'TYPE_CODE_RVALUE_REF', None)):
+        return to_string(value.referenced_value())
+    else:
+        return to_string(value)
+
 class Beautifier():
     def __init__(self, filename, tab_size=4):
         self.tab_spaces = ' ' * tab_size
@@ -1138,7 +1147,7 @@ location, if available. Optionally list the frame arguments and locals too."""
         for elem in data or []:
             name = elem.sym
             equal = ansi('=', R.style_low)
-            value = to_string(elem.sym.value(frame))
+            value = format_value(elem.sym.value(frame))
             lines.append('{} {} {}'.format(name, equal, value))
         return lines
 
@@ -1208,7 +1217,7 @@ class History(Dashboard.Module):
         # fetch last entries
         for i in range(-self.limit + 1, 1):
             try:
-                value = to_string(gdb.history(i))
+                value = format_value(gdb.history(i))
                 value_id = ansi('$${}', R.style_low).format(abs(i))
                 line = '{} = {}'.format(value_id, value)
                 out.append(line)
@@ -1471,7 +1480,7 @@ class Expressions(Dashboard.Module):
         out = []
         for number, expression in sorted(self.table.items()):
             try:
-                value = to_string(gdb.parse_and_eval(expression))
+                value = format_value(gdb.parse_and_eval(expression))
             except gdb.error as e:
                 value = ansi(e, R.style_error)
             number = ansi(number, R.style_selected_2)
