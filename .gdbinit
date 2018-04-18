@@ -1442,7 +1442,7 @@ class Threads(Dashboard.Module):
             info = '[{}] id {}'.format(number, tid)
             if thread.name:
                 info += ' name {}'.format(ansi(thread.name, style))
-            # switch thread to fetch frame info (unless is running in non-stop mode)
+            # switch thread to fetch info (unless is running in non-stop mode)
             try:
                 thread.switch()
                 frame = gdb.newest_frame()
