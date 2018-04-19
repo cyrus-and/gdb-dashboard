@@ -194,7 +194,10 @@ def format_value(value):
     # (TYPE_CODE_RVALUE_REF is not supported by old GDB)
     if value.type.code in (getattr(gdb, 'TYPE_CODE_REF', None),
                            getattr(gdb, 'TYPE_CODE_RVALUE_REF', None)):
-        return to_string(value.referenced_value())
+        try:
+            return to_string(value.referenced_value())
+        except gdb.MemoryError:
+            return to_string(value)
     else:
         return to_string(value)
 
