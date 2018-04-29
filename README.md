@@ -468,8 +468,8 @@ available:
 Minimal requirements
 --------------------
 
-GDB dashboard requires at least GDB 7.7 compiled with Python 2.7 in order to
-work properly.
+GDB dashboard requires at least GDB 7.6.1 compiled with
+Python 2.7 in order to work properly.
 
 See [#1](https://github.com/cyrus-and/gdb-dashboard/issues/1) for more
 details/workarounds.

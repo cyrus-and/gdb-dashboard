@@ -13,6 +13,9 @@ import termios
 import traceback
 import math
 
+if not hasattr(gdb, 'COMPLETE_EXPRESSION'):
+    gdb.COMPLETE_EXPRESSION = gdb.COMPLETE_SYMBOL
+
 # Common attributes ------------------------------------------------------------
 
 class R():
