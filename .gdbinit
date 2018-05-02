@@ -950,7 +950,11 @@ instructions constituting the current statement are marked, if available."""
             # if it is not possible (stripped binary or the PC is not present in
             # the output of `disassemble` as per issue #31) start from PC and
             # end after twice the context
-            asm = disassemble(frame.pc(), count=2 * self.context + 1)
+            try:
+                asm = disassemble(frame.pc(), count=2 * self.context + 1)
+            except gdb.error as e:
+                msg = '{}'.format(e)
+                return [ansi(msg, R.style_error)]
         # fetch function start if available
         func_start = None
         if self.show_function and frame.name():
