@@ -1016,6 +1016,7 @@ instructions constituting the current statement are marked, if available."""
                 if not R.ansi:
                     indicator = '>'
                 addr_str = ansi(addr_str, R.style_selected_1)
+                indicator = ansi(indicator, R.style_selected_1)
                 opcodes = ansi(opcodes, R.style_selected_1)
                 func_info = ansi(func_info, R.style_selected_1)
                 if not highlighter.active:
@@ -1024,6 +1025,7 @@ instructions constituting the current statement are marked, if available."""
                 if not R.ansi:
                     indicator = ':'
                 addr_str = ansi(addr_str, R.style_selected_2)
+                indicator = ansi(indicator, R.style_selected_2)
                 opcodes = ansi(opcodes, R.style_selected_2)
                 func_info = ansi(func_info, R.style_selected_2)
                 if not highlighter.active:
