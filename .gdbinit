@@ -1004,14 +1004,14 @@ instructions constituting the current statement are marked, if available."""
                 if func_start:
                     offset = '{:+d}'.format(addr - func_start)
                     offset = offset.ljust(max_offset + 1)  # sign
-                    func_info = '{}{} '.format(frame.name(), offset)
+                    func_info = '{}{}'.format(frame.name(), offset)
                 else:
-                    func_info = '? '
+                    func_info = '?'
             else:
                 func_info = ''
             format_string = '{}{}{}{}{}'
             indicator = ' '
-            text = highlighter.process(text)
+            text = ' ' + highlighter.process(text)
             if addr == frame.pc():
                 if not R.ansi:
                     indicator = '>'
