@@ -199,7 +199,10 @@ def format_value(value):
         except gdb.MemoryError:
             return to_string(value)
     else:
-        return to_string(value)
+        try:
+            return to_string(value)
+        except gdb.MemoryError as e:
+            return ansi(e, R.style_error)
 
 class Beautifier():
     def __init__(self, filename, tab_size=4):
