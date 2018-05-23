@@ -405,7 +405,7 @@ class Dashboard(gdb.Command):
                 Dashboard.err('Cannot write the dashboard\n{}'.format(cause))
             finally:
                 # don't close gdb stream
-                if fs is not gdb:
+                if fs and fs is not gdb:
                     fs.close()
 
 # Utility methods --------------------------------------------------------------
@@ -668,9 +668,13 @@ dashboard will be printed."""
             # performed since if that's not the case the message will be
             # overwritten)
             if self.obj.output:
-                with open(self.obj.output, 'w') as fs:
-                    fs.write(Dashboard.clear_screen())
-                    fs.write('--- RELEASED ---\n')
+                try:
+                    with open(self.obj.output, 'w') as fs:
+                        fs.write(Dashboard.clear_screen())
+                        fs.write('--- RELEASED ---\n')
+                except:
+                    # just do nothing if the file is not writable
+                    pass
             # set or open the output file
             if arg == '':
                 self.obj.output = None
