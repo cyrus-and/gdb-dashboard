@@ -663,6 +663,14 @@ dashboard will be printed."""
 
         def invoke(self, arg, from_tty):
             arg = Dashboard.parse_arg(arg)
+            # display a message in a separate terminal if released (note that
+            # the check if this is the last module to use the output is not
+            # performed since if that's not the case the message will be
+            # overwritten)
+            if self.obj.output:
+                with open(self.obj.output, 'w') as fs:
+                    fs.write(Dashboard.clear_screen())
+                    fs.write('--- RELEASED ---\n')
             # set or open the output file
             if arg == '':
                 self.obj.output = None
