@@ -358,7 +358,7 @@ class Dashboard(gdb.Command):
                     fs.write(Dashboard.hide_cursor())
                 else:
                     fs = gdb
-                    fd = 1
+                    fd = 1  # stdout
                 # get the terminal width (default main terminal if either
                 # the output is not a file)
                 try:
