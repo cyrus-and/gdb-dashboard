@@ -323,15 +323,20 @@ class Dashboard(gdb.Command):
 
     def render(self, clear_screen, style_changed=False):
         # fetch module content and info
+        all_disabled = True
         display_map = dict()
         for module in self.modules:
-            if not module.enabled:
-                continue
             # fall back to the global value
             output = module.output or self.output
-            display_map.setdefault(output, []).append(module.instance)
+            # add the instance or None if disabled
+            if module.enabled:
+                all_disabled = False
+                instance = module.instance
+            else:
+                instance = None
+            display_map.setdefault(output, []).append(instance)
         # notify the user if the output is empty, on the main terminal
-        if not display_map:
+        if all_disabled:
             # write the error message
             width = Dashboard.get_term_width()
             gdb.write(divider(width, 'Error', True))
@@ -345,7 +350,7 @@ class Dashboard(gdb.Command):
             gdb.write(divider(width, primary=True))
             gdb.write('\n')
             gdb.flush()
-            return
+            # continue to allow separate terminals to update
         # process each display info
         for output, instances in display_map.items():
             try:
@@ -369,8 +374,16 @@ class Dashboard(gdb.Command):
                 # auxiliary terminals are always cleared
                 if fs is not gdb or clear_screen:
                     fs.write(Dashboard.clear_screen())
+                # show message in separate terminals if all the modules are
+                # disabled
+                if output != self.output and not any(instances):
+                    fs.write('--- NO MODULE TO DISPLAY ---\n')
+                    continue
                 # process all the modules for that output
                 for n, instance in enumerate(instances, 1):
+                    # skip disabled modules
+                    if not instance:
+                        continue
                     # ask the module to generate the content
                     lines = instance.lines(width, style_changed)
                     # create the divider accordingly
@@ -381,8 +394,9 @@ class Dashboard(gdb.Command):
                     if n != len(instances) or fs is gdb:
                         fs.write('\n')
                 # write the final newline and the terminator only if it is the
-                # main terminal to allow the prompt to display correctly
-                if fs is gdb:
+                # main terminal to allow the prompt to display correctly (unless
+                # there are no modules to display)
+                if fs is gdb and not all_disabled:
                     fs.write(divider(width, primary=True))
                     fs.write('\n')
                 fs.flush()
