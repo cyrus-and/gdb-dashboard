@@ -1391,14 +1391,32 @@ class Registers(Dashboard.Module):
         for reg_info in run('info registers').strip().split('\n'):
             # fetch register and update the table
             name = reg_info.split(None, 1)[0]
+
             # Exclude registers with a dot '.' or parse_and_eval() will fail
             if '.' in name:
                 continue
             value = gdb.parse_and_eval('${}'.format(name))
             string_value = Registers.format_value(value)
+
             changed = self.table and (self.table.get(name, '') != string_value)
             self.table[name] = string_value
+
+            if name == "cpsr":
+                name = "xPSR"
+
+                indicator = []
+                int_value = int(string_value[2:], 16)
+                flags = { 31: 'N', 30: 'Z', 29: 'C', 28: 'V', 27: 'Q'}
+                for bit, flag in flags.items():
+                    bit_value = (1 << bit) & int_value != 0
+                    indicator.append(flag if bit_value else flag.lower())
+
+                registers.append(('flag', " ".join(indicator), changed))
+
+
             registers.append((name, string_value, changed))
+
+
         # split registers in rows and columns, each column is composed of name,
         # space, value and another trailing space which is skipped in the last
         # column (hence term_width + 1)
