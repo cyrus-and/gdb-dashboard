@@ -230,6 +230,11 @@ class Beautifier():
         source = source.replace('\t', self.tab_spaces)
         if self.active:
             import pygments
+            #pygments seems to remove leading empty lines in the file, this is not an ideal solution but it should fix it
+            #the problem being addressed: if a source file starts with a bunch of \n\n\n then lines get removed
+            #and the reported line number (and the current line) becomes wrong for the entire file
+            if len(source) and (source[0] == '\n'):
+                source = ' ' + source
             source = pygments.highlight(source, self.lexer, self.formatter)
         return source.rstrip('\n')
 
