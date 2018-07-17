@@ -212,11 +212,10 @@ class Beautifier():
             return
         # attempt to set up Pygments
         try:
-            import pygments.lexers
-            import pygments.formatters
-            formatter_class = pygments.formatters.Terminal256Formatter
-            self.formatter = formatter_class(style=R.syntax_highlighting)
-            self.lexer = pygments.lexers.get_lexer_for_filename(filename)
+            from pygments.lexers import get_lexer_for_filename
+            from pygments.formatters import Terminal256Formatter
+            self.formatter = Terminal256Formatter(style=R.syntax_highlighting)
+            self.lexer = get_lexer_for_filename(filename, stripnl=False)
             self.active = True
         except ImportError:
             # Pygments not available
