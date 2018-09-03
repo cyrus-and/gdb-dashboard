@@ -130,7 +130,7 @@ def run(command):
     return gdb.execute(command, to_string=True)
 
 def ansi(string, style):
-    if R.ansi:
+    if R.ansi and style is not None:
         return '\x1b[{}m{}\x1b[0m'.format(style, string)
     else:
         return string
@@ -1292,36 +1292,39 @@ class Memory(Dashboard.Module):
 
     def __init__(self):
         self.row_length = 16
-        self.table = {}
-
-    def format_memory(self, start, memory):
-        out = []
-        for i in range(0, len(memory), self.row_length):
-            region = memory[i:i + self.row_length]
-            pad = self.row_length - len(region)
-            address = format_address(start + i)
-            hexa = (' '.join('{:02x}'.format(ord(byte)) for byte in region))
-            text = (''.join(Memory.format_byte(byte) for byte in region))
-            out.append('{} {}{} {}{}'.format(ansi(address, R.style_low),
-                                             hexa,
-                                             ansi(pad * ' --', R.style_low),
-                                             ansi(text, R.style_high),
-                                             ansi(pad * '.', R.style_low)))
-        return out
+        self.table = {}        # dict of address to Memdump
 
     def label(self):
         return 'Memory'
 
+    def format_memory(self, mem):
+        for addr in range(mem.start_address, mem.end_address, self.row_length):
+            pad = self.row_length - (mem.end_address - addr)
+            if pad < 0: pad = 0
+            address = format_address(addr)
+            hexa = mem.format_region(addr, self.row_length,
+                                     lambda byte: '{:02x}'.format(ord(byte)),
+                                     ' ',
+                                     self.highlight_changes)
+            text = mem.format_region(addr, self.row_length,
+                                     lambda byte: self.format_byte(byte),
+                                     '',
+                                     self.highlight_changes)
+            yield('{} {}{} {}{}'.format(ansi(address, R.style_low),
+                                             hexa,
+                                             ansi(pad * ' --', R.style_low),
+                                             ansi(text, R.style_high),
+                                             ansi(pad * '.', R.style_low)))
+
     def lines(self, term_width, style_changed):
         out = []
         inferior = gdb.selected_inferior()
-        for address, length in sorted(self.table.items()):
+        for address, mem in sorted(self.table.items()):
             try:
-                memory = inferior.read_memory(address, length)
-                out.extend(self.format_memory(address, memory))
+                out.extend(self.format_memory(mem.read()))
             except gdb.error:
                 msg = 'Cannot access {} bytes starting at {}'
-                msg = msg.format(length, format_address(address))
+                msg = msg.format(mem.length, format_address(mem.start_address))
                 out.append(ansi(msg, R.style_error))
             out.append(divider(term_width))
         # drop last divider
@@ -1337,7 +1340,7 @@ class Memory(Dashboard.Module):
                 length = Memory.parse_as_address(length)
             else:
                 length = self.row_length
-            self.table[address] = length
+            self.table[address] = Memdump(address, length)
         else:
             raise Exception('Specify an address')
 
@@ -1371,6 +1374,78 @@ class Memory(Dashboard.Module):
                 'doc': 'Clear all the watched regions.'
             }
         }
+
+    def attributes(self):
+        return {
+            'highlight-changes': {
+                'doc': """Highlight changes to the memory region.
+One of: False, True, or "cumulative"
+""",
+                'default': True,
+                'name': 'highlight_changes',
+                'type': lambda x: bool(x) if x in ["True","False"] else x,
+                'check': lambda x: x in [True, False, "cumulative"]
+            }
+        }
+
+class Memdump ():
+    def __init__(self, address, length):
+        self.start_address = address
+        self.end_address = address + length
+        self.length = length
+        self.bytes = None
+        self.changes = {}       # map address to Nth iteration it changed
+        self.nreads = 0
+
+    def read(self):
+        inferior = gdb.selected_inferior()
+        bytes_previously = self.bytes
+        self.bytes = inferior.read_memory(self.start_address, self.length)
+        self.nreads = self.nreads + 1
+
+        self.track_changes(bytes_previously)
+
+        return self
+
+    def track_changes(self, bytes_previously):
+        if bytes_previously is None:
+            return
+
+        for i in range(0, self.length):
+            prev = bytes_previously[i]
+            byte = self.bytes[i]
+            if byte != prev:
+                addr = self.start_address + i
+                self.changes[addr] = self.nreads
+
+    def addr_to_style(self, addr, highlight_changes):
+        if highlight_changes == False:
+            return None
+
+        nth_read = self.changes.get(addr, None)
+        if nth_read == None:
+            return None
+        elif nth_read == self.nreads:
+            return R.style_selected_1
+        elif highlight_changes == "cumulative":
+            return R.style_selected_2
+        else:
+            return None
+
+    def region_iter(self, start, length):
+        assert(start >= self.start_address)
+        for addr in range(start, start + length):
+            if addr < self.end_address:
+                idx  = addr - self.start_address
+                byte = self.bytes[idx]
+                yield (addr, byte)
+
+    def format_region(self, start, length, formatter, sep, highlight_changes):
+        formatted = (ansi(formatter(byte),
+                          self.addr_to_style(addr, highlight_changes))
+                     for (addr, byte) in self.region_iter(start, length))
+        return sep.join(formatted)
+
 
 class Registers(Dashboard.Module):
     """Show the CPU registers and their values."""
