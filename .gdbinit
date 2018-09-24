@@ -1292,29 +1292,30 @@ class Memory(Dashboard.Module):
 
     def __init__(self):
         self.row_length = 16
-        self.table = {}        # dict of address to Memdump
+        self.table = {} # dict of address to Memdump
 
     def label(self):
         return 'Memory'
 
     def format_memory(self, mem):
+        highlighting = self.highlight_changes
+        if (self.highlight_changes and self.cumulative_changes):
+            highlighting = "cumulative"
         for addr in range(mem.start_address, mem.end_address, self.row_length):
-            pad = self.row_length - (mem.end_address - addr)
-            if pad < 0: pad = 0
-            address = format_address(addr)
+            pad = max(self.row_length - (mem.end_address - addr), 0)
             hexa = mem.format_region(addr, self.row_length,
                                      lambda byte: '{:02x}'.format(ord(byte)),
                                      ' ',
-                                     self.highlight_changes)
+                                     highlighting)
             text = mem.format_region(addr, self.row_length,
                                      lambda byte: self.format_byte(byte),
                                      '',
-                                     self.highlight_changes)
-            yield('{} {}{} {}{}'.format(ansi(address, R.style_low),
-                                             hexa,
-                                             ansi(pad * ' --', R.style_low),
-                                             ansi(text, R.style_high),
-                                             ansi(pad * '.', R.style_low)))
+                                     highlighting)
+            yield('{} {}{} {}{}'.format(ansi(format_address(addr), R.style_low),
+                                        hexa,
+                                        ansi(pad * ' --', R.style_low),
+                                        ansi(text, R.style_high),
+                                        ansi(pad * '.', R.style_low)))
 
     def lines(self, term_width, style_changed):
         out = []
@@ -1378,13 +1379,23 @@ class Memory(Dashboard.Module):
     def attributes(self):
         return {
             'highlight-changes': {
-                'doc': """Highlight changes to the memory region.
-One of: False, True, or "cumulative"
-""",
+                'doc': 'Whether to highlight changes to memory regions.',
                 'default': True,
                 'name': 'highlight_changes',
-                'type': lambda x: bool(x) if x in ["True","False"] else x,
-                'check': lambda x: x in [True, False, "cumulative"]
+                'type': bool
+            },
+            'cumulative-changes': {
+                'doc': """If disabled, highlight only the changes of the
+very last command. If enabled, highlight all changes since the start of
+the watch.
+
+Requires 'highlight-changes' to be True.
+
+Highlighted changes can be reset by (re)watching a memory region.
+""",
+                'default': False,
+                'name': 'cumulative_changes',
+                'type': bool
             }
         }
 
@@ -1394,7 +1405,7 @@ class Memdump ():
         self.end_address = address + length
         self.length = length
         self.bytes = None
-        self.changes = {}       # map address to Nth iteration it changed
+        self.changes = {} # map address to n-th iteration it changed
         self.nreads = 0
 
     def read(self):
@@ -1402,15 +1413,12 @@ class Memdump ():
         bytes_previously = self.bytes
         self.bytes = inferior.read_memory(self.start_address, self.length)
         self.nreads = self.nreads + 1
-
         self.track_changes(bytes_previously)
-
         return self
 
     def track_changes(self, bytes_previously):
         if bytes_previously is None:
             return
-
         for i in range(0, self.length):
             prev = bytes_previously[i]
             byte = self.bytes[i]
@@ -1418,16 +1426,18 @@ class Memdump ():
                 addr = self.start_address + i
                 self.changes[addr] = self.nreads
 
-    def addr_to_style(self, addr, highlight_changes):
-        if highlight_changes == False:
+    # If a change is due to the last read, highlight it as bold
+    # (R.style_selected_1); older changes highlight only if
+    # 'cumulative-changes' is True.
+    def addr_to_style(self, addr, highlighting):
+        if highlighting == False:
             return None
-
         nth_read = self.changes.get(addr, None)
         if nth_read == None:
             return None
         elif nth_read == self.nreads:
             return R.style_selected_1
-        elif highlight_changes == "cumulative":
+        elif highlighting == "cumulative":
             return R.style_selected_2
         else:
             return None
@@ -1440,12 +1450,11 @@ class Memdump ():
                 byte = self.bytes[idx]
                 yield (addr, byte)
 
-    def format_region(self, start, length, formatter, sep, highlight_changes):
+    def format_region(self, start, length, formatter, sep, highlighting):
         formatted = (ansi(formatter(byte),
-                          self.addr_to_style(addr, highlight_changes))
+                          self.addr_to_style(addr, highlighting))
                      for (addr, byte) in self.region_iter(start, length))
         return sep.join(formatted)
-
 
 class Registers(Dashboard.Module):
     """Show the CPU registers and their values."""
