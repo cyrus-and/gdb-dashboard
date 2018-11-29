@@ -383,8 +383,13 @@ class Dashboard(gdb.Command):
                     # skip disabled modules
                     if not instance:
                         continue
-                    # ask the module to generate the content
-                    lines = instance.lines(width, style_changed)
+                    try:
+                        # ask the module to generate the content
+                        lines = instance.lines(width, style_changed)
+                    except Exception as e:
+                        # allow to continue on exceptions in modules
+                        stacktrace = traceback.format_exc().strip()
+                        lines = [ansi(stacktrace, R.style_error)]
                     # create the divider accordingly
                     div = divider(width, instance.label(), True, lines)
                     # write the data
