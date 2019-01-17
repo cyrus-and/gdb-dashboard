@@ -212,17 +212,19 @@ class Beautifier():
             return
         # attempt to set up Pygments
         try:
+            import pygments
             from pygments.lexers import get_lexer_for_filename
             from pygments.formatters import Terminal256Formatter
-            self.formatter = Terminal256Formatter(style=R.syntax_highlighting)
-            self.lexer = get_lexer_for_filename(filename, stripnl=False)
-            self.active = True
         except ImportError:
             # Pygments not available
-            pass
+            return
+        try:
+            self.formatter = Terminal256Formatter(style=R.syntax_highlighting)
+            self.lexer = get_lexer_for_filename(filename, stripnl=False)
         except pygments.util.ClassNotFound:
-            # no lexer for this file or invalid style
-            pass
+            # no lexer for this file name or invalid style
+            return
+        self.active = True
 
     def process(self, source):
         # convert tabs anyway
