@@ -212,6 +212,7 @@ class Beautifier():
             return
         # attempt to set up Pygments
         try:
+            import pygments
             from pygments.lexers import get_lexer_for_filename
             from pygments.formatters import Terminal256Formatter
             self.formatter = Terminal256Formatter(style=R.syntax_highlighting)
