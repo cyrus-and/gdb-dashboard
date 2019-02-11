@@ -4,14 +4,17 @@ python
 #
 # https://github.com/cyrus-and/gdb-dashboard
 
+import sys
 import ast
-import fcntl
 import os
 import re
 import struct
-import termios
 import traceback
 import math
+
+if sys.platform != 'win32':
+  import fctnl
+  import termios
 
 # Common attributes ------------------------------------------------------------
 
@@ -59,11 +62,11 @@ which `{pid}` is expanded with the process identifier of the target program.""",
             # divider
             'divider_fill_char_primary': {
                 'doc': 'Filler around the label for primary dividers',
-                'default': '─'
+                'default': '─' if sys.platform != 'win32' else '_'
             },
             'divider_fill_char_secondary': {
                 'doc': 'Filler around the label for secondary dividers',
-                'default': '─'
+                'default': '─' if sys.platform != 'win32' else '_'
             },
             'divider_fill_style_primary': {
                 'doc': 'Style for `divider_fill_char_primary`',
@@ -434,8 +437,30 @@ class Dashboard(gdb.Command):
     @staticmethod
     def get_term_width(fd=1):  # defaults to the main terminal
         # first 2 shorts (4 byte) of struct winsize
-        raw = fcntl.ioctl(fd, termios.TIOCGWINSZ, ' ' * 4)
-        height, width = struct.unpack('hh', raw)
+
+        height, width = 0, 0
+        if sys.platform != "win32":
+            raw = fcntl.ioctl(fd, termios.TIOCGWINSZ, ' ' * 4)
+            height, width = struct.unpack('hh', raw)
+        else:
+            if os.environ.get('ANSICON', ''):
+                m = re.match('[0-9]+x[0-9]+ \(([0-9]+)x([0-9]+)\)', os.environ['ANSICON'])
+                if m:
+                    width = int(m.group(1))-1
+                    height = int(m.group(2))-1
+
+            with os.popen('mode CON: CP SELECT=1252') as f:
+                for ln in f.readlines():
+                    m = re.match('[ \t]+Lines:[ \t]*([0-9]+$)', ln)
+                    if m: height=int(m.group(1))-1
+                    m = re.match('[ \t]+Columns:[ \t]*([0-9]+$)', ln)
+                    if m: width=int(m.group(1))-1
+
+            if not height:
+                height = os.environ.get('LINES',25)
+            if not width:
+                width = os.environ.get('COLUMNS',80)
+
         return int(width)
 
     @staticmethod
