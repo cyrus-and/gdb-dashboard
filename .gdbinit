@@ -5,11 +5,9 @@ python
 # https://github.com/cyrus-and/gdb-dashboard
 
 import ast
-import fcntl
 import os
 import re
 import struct
-import termios
 import traceback
 import math
 
@@ -433,10 +431,22 @@ class Dashboard(gdb.Command):
 
     @staticmethod
     def get_term_width(fd=1):  # defaults to the main terminal
-        # first 2 shorts (4 byte) of struct winsize
-        raw = fcntl.ioctl(fd, termios.TIOCGWINSZ, ' ' * 4)
-        height, width = struct.unpack('hh', raw)
-        return int(width)
+        if sys.platform == 'win32':
+            try:
+                import curses
+                # XXX always neglects the fd parameter
+                _, width = curses.initscr().getmaxyx()
+                curses.endwin()
+                return int(width)
+            except ImportError:
+                return 80  # hardcoded fallback value
+        else:
+            import termios
+            import fcntl
+            # first 2 shorts (4 byte) of struct winsize
+            raw = fcntl.ioctl(fd, termios.TIOCGWINSZ, ' ' * 4)
+            _, width = struct.unpack('hh', raw)
+            return int(width)
 
     @staticmethod
     def set_custom_prompt(dashboard):

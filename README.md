@@ -474,6 +474,9 @@ work properly.
 See [#1](https://github.com/cyrus-and/gdb-dashboard/issues/1) for more
 details/workarounds.
 
+On Windows the `windows-curses` Python package is needed in order to obtain the
+correct terminal size.
+
 Additional GDB front ends
 -------------------------
 
