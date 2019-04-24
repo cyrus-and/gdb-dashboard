@@ -213,7 +213,7 @@ def format_value(value, compact=None):
             return ansi(e, R.style_error)
     # compact the value
     if compact is not None and compact or R.compact_values:
-        out = re.sub(r'$\s*', '', out, flags=re.MULTILINE);
+        out = re.sub(r'$\s*', '', out, flags=re.MULTILINE)
     # truncate the value
     if R.max_value_length > 0 and len(out) > R.max_value_length:
         out = out[0:R.max_value_length] + ansi('[...]', R.style_error)
