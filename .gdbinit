@@ -40,6 +40,11 @@ The list of all the available styles can be obtained with (from GDB itself):
                 'default': False,
                 'type': bool
             },
+            'max_value_length': {
+                'doc': 'Maximum length for displayed values.',
+                'default': 0,
+                'type': int
+            },
             # prompt
             'prompt': {
                 'doc': """Command prompt.
@@ -209,6 +214,9 @@ def format_value(value, compact=None):
     # compact the value
     if compact is not None and compact or R.compact_values:
         out = re.sub(r'$\s*', '', out, flags=re.MULTILINE);
+    # truncate the value
+    if R.max_value_length > 0 and len(out) > R.max_value_length:
+        out = out[0:R.max_value_length] + ansi('[...]', R.style_error)
     return out
 
 class Beautifier():
