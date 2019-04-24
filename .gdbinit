@@ -34,6 +34,12 @@ The list of all the available styles can be obtained with (from GDB itself):
 """,
                 'default': 'vim'
             },
+            # values formatting
+            'compact_values': {
+                'doc': 'Display complex objects in a single line.',
+                'default': False,
+                'type': bool
+            },
             # prompt
             'prompt': {
                 'doc': """Command prompt.
@@ -186,20 +192,24 @@ def format_address(address):
     pointer_size = gdb.parse_and_eval('$pc').type.sizeof
     return ('0x{{:0{}x}}').format(pointer_size * 2).format(address)
 
-def format_value(value):
+def format_value(value, compact=None):
     # format references as referenced values
     # (TYPE_CODE_RVALUE_REF is not supported by old GDB)
     if value.type.code in (getattr(gdb, 'TYPE_CODE_REF', None),
                            getattr(gdb, 'TYPE_CODE_RVALUE_REF', None)):
         try:
-            return to_string(value.referenced_value())
+            out = to_string(value.referenced_value())
         except gdb.MemoryError:
-            return to_string(value)
+            out = to_string(value)
     else:
         try:
-            return to_string(value)
+            out = to_string(value)
         except gdb.MemoryError as e:
             return ansi(e, R.style_error)
+    # compact the value
+    if compact is not None and compact or R.compact_values:
+        out = re.sub(r'$\s*', '', out, flags=re.MULTILINE);
+    return out
 
 class Beautifier():
     def __init__(self, filename, tab_size=4):
@@ -1137,16 +1147,14 @@ location, if available. Optionally list the frame arguments and locals too."""
             # fetch frame arguments and locals
             decorator = gdb.FrameDecorator.FrameDecorator(frame)
             separator = ansi(', ', R.style_low)
-            strip_newlines = re.compile(r'$\s*', re.MULTILINE)
             if self.show_arguments:
                 def prefix(line):
                     return Stack.format_line('arg', line)
                 frame_args = decorator.frame_args()
-                args_lines = Stack.fetch_frame_info(frame, frame_args)
+                args_lines = self.fetch_frame_info(frame, frame_args)
                 if args_lines:
                     if self.compact:
                         args_line = separator.join(args_lines)
-                        args_line = strip_newlines.sub('', args_line)
                         single_line = prefix(args_line)
                         frame_lines.append(single_line)
                     else:
@@ -1157,11 +1165,10 @@ location, if available. Optionally list the frame arguments and locals too."""
                 def prefix(line):
                     return Stack.format_line('loc', line)
                 frame_locals = decorator.frame_locals()
-                locals_lines = Stack.fetch_frame_info(frame, frame_locals)
+                locals_lines = self.fetch_frame_info(frame, frame_locals)
                 if locals_lines:
                     if self.compact:
                         locals_line = separator.join(locals_lines)
-                        locals_line = strip_newlines.sub('', locals_line)
                         single_line = prefix(locals_line)
                         frame_lines.append(single_line)
                     else:
@@ -1188,20 +1195,19 @@ location, if available. Optionally list the frame arguments and locals too."""
             lines.append('[{}]'.format(ansi('+', R.style_selected_2)))
         return lines
 
-    @staticmethod
-    def format_line(prefix, line):
-        prefix = ansi(prefix, R.style_low)
-        return '{} {}'.format(prefix, line)
-
-    @staticmethod
-    def fetch_frame_info(frame, data):
+    def fetch_frame_info(self, frame, data):
         lines = []
         for elem in data or []:
             name = elem.sym
             equal = ansi('=', R.style_low)
-            value = format_value(elem.sym.value(frame))
+            value = format_value(elem.sym.value(frame), self.compact)
             lines.append('{} {} {}'.format(name, equal, value))
         return lines
+
+    @staticmethod
+    def format_line(prefix, line):
+        prefix = ansi(prefix, R.style_low)
+        return '{} {}'.format(prefix, line)
 
     @staticmethod
     def get_pc_line(frame, style):
