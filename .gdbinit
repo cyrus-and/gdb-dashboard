@@ -191,6 +191,8 @@ def to_string(value):
         value_string = str(value)
     except UnicodeEncodeError:
         value_string = unicode(value).encode('utf8')
+    except gdb.error as e:
+        value_string = ansi(e, R.style_error)
     return value_string
 
 def format_address(address):
