@@ -1306,6 +1306,61 @@ class History(Dashboard.Module):
 class Memory(Dashboard.Module):
     """Allow to inspect memory regions."""
 
+    class Region():
+        def __init__(self, address, length, module):
+            self.address = address
+            self.length = length
+            self.module = module
+            self.original = None
+            self.latest = None
+
+        def format(self):
+            # fetch the memory content
+            try:
+                inferior = gdb.selected_inferior()
+                memory = inferior.read_memory(self.address, self.length)
+                # set the original memory snapshot if needed
+                if not self.original:
+                    self.original = memory
+            except gdb.error:
+                msg = 'Cannot access {} bytes starting at {}'
+                msg = msg.format(self.length, format_address(self.address))
+                return [ansi(msg, R.style_error)]
+
+            # format the memory content
+            out = []
+            for i in range(0, len(memory), self.module.row_length):
+                region = memory[i:i + self.module.row_length]
+                pad = self.module.row_length - len(region)
+                address = format_address(self.address + i)
+                # compute changes
+                hexa = []
+                text = []
+                for j in range(len(region)):
+                    rel = i + j
+                    byte = memory[rel]
+                    hexa_byte = '{:02x}'.format(ord(byte))
+                    text_byte = Memory.format_byte(byte)
+                    # differences against the latest have the highest priority
+                    if self.latest and memory[rel] != self.latest[rel]:
+                        hexa_byte = ansi(hexa_byte, R.style_selected_1)
+                        text_byte = ansi(text_byte, R.style_selected_1)
+                    # cumulative changes if enabled
+                    elif (self.module.cumulative and
+                          memory[rel] != self.original[rel]):
+                        hexa_byte = ansi(hexa_byte, R.style_selected_2)
+                        text_byte = ansi(text_byte, R.style_selected_2)
+                    hexa.append(hexa_byte)
+                    text.append(text_byte)
+                # output the formatted line
+                out.append('{} {}{} {}{}'.format(
+                    ansi(address, R.style_low),
+                    ' '.join(hexa), ansi(pad * ' --', R.style_low),
+                    ''.join(text), ansi(pad * '.', R.style_low)))
+            # update the latest memory snapshot
+            self.latest = memory
+            return out
+
     @staticmethod
     def format_byte(byte):
         # `type(byte) is bytes` in Python 3
@@ -1325,35 +1380,13 @@ class Memory(Dashboard.Module):
         self.row_length = 16
         self.table = {}
 
-    def format_memory(self, start, memory):
-        out = []
-        for i in range(0, len(memory), self.row_length):
-            region = memory[i:i + self.row_length]
-            pad = self.row_length - len(region)
-            address = format_address(start + i)
-            hexa = (' '.join('{:02x}'.format(ord(byte)) for byte in region))
-            text = (''.join(Memory.format_byte(byte) for byte in region))
-            out.append('{} {}{} {}{}'.format(ansi(address, R.style_low),
-                                             hexa,
-                                             ansi(pad * ' --', R.style_low),
-                                             ansi(text, R.style_high),
-                                             ansi(pad * '.', R.style_low)))
-        return out
-
     def label(self):
         return 'Memory'
 
     def lines(self, term_width, style_changed):
         out = []
-        inferior = gdb.selected_inferior()
-        for address, length in sorted(self.table.items()):
-            try:
-                memory = inferior.read_memory(address, length)
-                out.extend(self.format_memory(address, memory))
-            except gdb.error:
-                msg = 'Cannot access {} bytes starting at {}'
-                msg = msg.format(length, format_address(address))
-                out.append(ansi(msg, R.style_error))
+        for address, region in sorted(self.table.items()):
+            out.extend(region.format())
             out.append(divider(term_width))
         # drop last divider
         if out:
@@ -1368,7 +1401,7 @@ class Memory(Dashboard.Module):
                 length = Memory.parse_as_address(length)
             else:
                 length = self.row_length
-            self.table[address] = length
+            self.table[address] = Memory.Region(address, length, self)
         else:
             raise Exception('Specify an address')
 
@@ -1400,6 +1433,15 @@ class Memory(Dashboard.Module):
             'clear': {
                 'action': self.clear,
                 'doc': 'Clear all the watched regions.'
+            }
+        }
+
+    def attributes(self):
+        return {
+            'cumulative': {
+                'doc': 'Highlight changes cumulatively, watch again to reset.',
+                'default': False,
+                'type': bool
             }
         }
 
