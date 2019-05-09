@@ -41,6 +41,15 @@ Just place [`.gdbinit`][raw] in your home directory, for example:
  * No GDB command has been redefined, instead all the
    features are available as subcommands of the main `dashboard` command.
 
+## Requirements
+
+GDB dashboard requires at least GDB 7.7 compiled with Python 2.7 in order to
+work properly. See [#1](https://github.com/cyrus-and/gdb-dashboard/issues/1) for
+more details/workarounds.
+
+On Windows the `windows-curses` Python package is needed in order to obtain the
+correct terminal size.
+
 ## Default modules
 
 Follows the list of bundled default modules. Refer to the GDB help system for
@@ -455,17 +464,6 @@ available:
     dashboard notes add
     dashboard notes clear
     dashboard notes -style
-
-## Minimal requirements
-
-GDB dashboard requires at least GDB 7.7 compiled with Python 2.7 in order to
-work properly.
-
-See [#1](https://github.com/cyrus-and/gdb-dashboard/issues/1) for more
-details/workarounds.
-
-On Windows the `windows-curses` Python package is needed in order to obtain the
-correct terminal size.
 
 ## Additional GDB front ends
 
