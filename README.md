@@ -47,6 +47,12 @@ GDB dashboard requires at least GDB 7.7 compiled with Python 2.7 in order to
 work properly. See [#1](https://github.com/cyrus-and/gdb-dashboard/issues/1) for
 more details/workarounds.
 
+Make sure that the system locale is configured to use UTF-8, in most cases it
+already is, otherwise (in case of `UnicodeEncodeError` errors) a simple solution
+is to export the following environment variable:
+
+    export LC_CTYPE=C.UTF-8
+
 On Windows the `windows-curses` Python package is needed in order to obtain the
 correct terminal size.
 
