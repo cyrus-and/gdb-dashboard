@@ -18,6 +18,10 @@ Just place [`.gdbinit`][raw] in your home directory, for example:
 
     wget -P ~ git.io/.gdbinit
 
+If using this in a docker environment the correct locale must be set. Run this command within the docker container or add as an environmental variable during the container build.
+
+    export LC_CTYPE=C.UTF-8
+
 Features
 --------
 
