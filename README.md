@@ -1,5 +1,4 @@
-GDB dashboard
-=============
+# GDB dashboard
 
 Modular visual interface for GDB in Python.
 
@@ -11,15 +10,13 @@ focus on the control flow instead.
 
 ![Screenshot](http://i.imgur.com/g8I3suo.png)
 
-Installation
-------------
+## Installation
 
 Just place [`.gdbinit`][raw] in your home directory, for example:
 
     wget -P ~ git.io/.gdbinit
 
-Features
---------
+## Features
 
  * Single GDB init file.
 
@@ -44,8 +41,7 @@ Features
  * No GDB command has been redefined, instead all the
    features are available as subcommands of the main `dashboard` command.
 
-Default modules
----------------
+## Default modules
 
 Follows the list of bundled default modules. Refer to the GDB help system for
 the full syntax.
@@ -69,8 +65,7 @@ the full syntax.
 
  * `expressions` watches user expressions.
 
-Dashboard output
-----------------
+## Dashboard output
 
 By default the dashboard is displayed in the GDB terminal but the `-output`
 command of both the dashboard and modules can change this behavior. When the
@@ -132,8 +127,7 @@ display the output of individual modules in one or more web browser instances.
 
  5. debug as usual.
 
-Commands
---------
+## Commands
 
 The GDB documentation is available at `help dashboard`. Just like any GDB
 command, abbreviations are possible, so `da`, `dash`, etc. all resolve to
@@ -235,8 +229,7 @@ Similarly, the `dashboard <module> -output` mimics
 the [`dashboard -style`](#dashboard--output-file) command but allows a finer
 grain of operation.
 
-Configuration
--------------
+## Configuration
 
 Files in `~/.gdbinit.d/` are executed in alphabetical order, but the preference
 is given to Python files. If there are subdirectories, they are walked
@@ -261,8 +254,7 @@ in the file system add this line to the main configuration file:
 
     set auto-load safe-path /
 
-Stylable attributes
--------------------
+## Stylable attributes
 
 There is number of attributes that can be used to customize the aspect of the
 dashboard and of its modules. They are documented within the GDB help system.
@@ -334,8 +326,7 @@ within the default modules.
  * `style_high`
  * `style_error`
 
-Custom modules
---------------
+## Custom modules
 
 The idea of custom modules is that they provide ways to access readonly
 information from the target program status; it is safe to assume that they will
@@ -465,8 +456,7 @@ available:
     dashboard notes clear
     dashboard notes -style
 
-Minimal requirements
---------------------
+## Minimal requirements
 
 GDB dashboard requires at least GDB 7.7 compiled with Python 2.7 in order to
 work properly.
@@ -477,8 +467,7 @@ details/workarounds.
 On Windows the `windows-curses` Python package is needed in order to obtain the
 correct terminal size.
 
-Additional GDB front ends
--------------------------
+## Additional GDB front ends
 
 GDB dashboard is not meant to work seamlessly with additional front ends, e.g.,
 TUI, Nemiver, QtCreator, etc.
@@ -498,13 +487,11 @@ There are basically two options to work around this:
 
         source ~/.gdb-dashboard
 
-Resources
----------
+## Resources
 
 * [GDB Python API][api]
 
-License
--------
+## License
 
 Copyright (c) 2015-2018 Andrea Cardaci <cyrus.and@gmail.com>
 
