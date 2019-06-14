@@ -222,7 +222,7 @@ def format_value(value, compact=None):
     return out
 
 class Beautifier():
-    def __init__(self, filename, tab_size=4):
+    def __init__(self, hint, tab_size=4):
         self.tab_spaces = ' ' * tab_size
         self.active = False
         if not R.ansi:
@@ -230,10 +230,16 @@ class Beautifier():
         # attempt to set up Pygments
         try:
             import pygments
-            from pygments.lexers import get_lexer_for_filename
+            from pygments.lexers import GasLexer, NasmLexer
             from pygments.formatters import Terminal256Formatter
+            if hint == 'att':
+                self.lexer = GasLexer()
+            elif hint == 'intel':
+                self.lexer = NasmLexer()
+            else:
+                from pygments.lexers import get_lexer_for_filename
+                self.lexer = get_lexer_for_filename(hint, stripnl=False)
             self.formatter = Terminal256Formatter(style=R.syntax_highlighting)
-            self.lexer = get_lexer_for_filename(filename, stripnl=False)
             self.active = True
         except ImportError:
             # Pygments not available
@@ -1030,17 +1036,13 @@ instructions constituting the current statement are marked, if available."""
                 func_start = to_unsigned(value)
             except gdb.error:
                 pass  # e.g., @plt
-        # fetch the assembly flavor and the extension used by Pygments
+        # fetch the assembly flavor anduse it as hint for Pygments
         try:
             flavor = gdb.parameter('disassembly-flavor')
         except:
-            flavor = None  # not always defined (see #36)
-        filename = {
-            'att': '.s',
-            'intel': '.asm'
-        }.get(flavor, '.s')
+            flavor = 'att'  # not always defined (see #36)
         # prepare the highlighter
-        highlighter = Beautifier(filename)
+        highlighter = Beautifier(flavor)
         # compute the maximum offset size
         if func_start:
             max_offset = max(len(str(abs(asm[0]['addr'] - func_start))),
