@@ -199,7 +199,7 @@ def format_address(address):
     pointer_size = gdb.parse_and_eval('$pc').type.sizeof
     return ('0x{{:0{}x}}').format(pointer_size * 2).format(address)
 
-def format_value(value, compact=None):
+def format_value(value, compact=None, deref=None):
     # format references as referenced values
     # (TYPE_CODE_RVALUE_REF is not supported by old GDB)
     if value.type.code in (getattr(gdb, 'TYPE_CODE_REF', None),
@@ -208,6 +208,11 @@ def format_value(value, compact=None):
             out = to_string(value.referenced_value())
         except gdb.MemoryError:
             out = to_string(value)
+    elif deref is not None and deref and value.type.code == gdb.TYPE_CODE_PTR:
+        try:
+            out = to_string(value.dereference())
+        except gdb.MemoryError:
+            out = ansi(to_string(value), R.style_error)
     else:
         try:
             out = to_string(value)
@@ -1212,7 +1217,7 @@ location, if available. Optionally list the frame arguments and locals too."""
         for elem in data or []:
             name = elem.sym
             equal = ansi('=', R.style_low)
-            value = format_value(elem.sym.value(frame), self.compact)
+            value = format_value(elem.sym.value(frame), self.compact, self.dereference)
             lines.append('{} {} {}'.format(name, equal, value))
         return lines
 
@@ -1271,6 +1276,11 @@ location, if available. Optionally list the frame arguments and locals too."""
             },
             'compact': {
                 'doc': 'Single-line display flag.',
+                'default': False,
+                'type': bool
+            },
+            'dereference': {
+                'doc': 'Dereference pointers flag.',
                 'default': False,
                 'type': bool
             }
