@@ -45,6 +45,11 @@ The list of all the available styles can be obtained with (from GDB itself):
                 'default': 0,
                 'type': int
             },
+            'dereference': {
+                'doc': 'Annotate pointers with the pointed value.',
+                'default': True,
+                'type': int
+            },
             # prompt
             'prompt': {
                 'doc': """Command prompt.
@@ -207,6 +212,16 @@ def format_value(value, compact=None):
         value = value.referenced_value()
     # format the value
     out = to_string(value)
+    # dereference up to the actual value if requested
+    if R.dereference and value.type.code == gdb.TYPE_CODE_PTR:
+        while value.type.code == gdb.TYPE_CODE_PTR:
+            try:
+                value = value.dereference()
+            except gdb.error as e:
+                break
+        else:
+            formatted = to_string(value)
+            out += '{} {}'.format(ansi(':', R.style_low), formatted)
     # compact the value
     if compact is not None and compact or R.compact_values:
         out = re.sub(r'$\s*', '', out, flags=re.MULTILINE)
