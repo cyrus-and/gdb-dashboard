@@ -204,15 +204,9 @@ def format_value(value, compact=None):
     # (TYPE_CODE_RVALUE_REF is not supported by old GDB)
     if value.type.code in (getattr(gdb, 'TYPE_CODE_REF', None),
                            getattr(gdb, 'TYPE_CODE_RVALUE_REF', None)):
-        try:
-            out = to_string(value.referenced_value())
-        except gdb.MemoryError:
-            out = to_string(value)
-    else:
-        try:
-            out = to_string(value)
-        except gdb.MemoryError as e:
-            return ansi(e, R.style_error)
+        value = value.referenced_value()
+    # format the value
+    out = to_string(value)
     # compact the value
     if compact is not None and compact or R.compact_values:
         out = re.sub(r'$\s*', '', out, flags=re.MULTILINE)
