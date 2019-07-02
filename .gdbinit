@@ -48,7 +48,7 @@ The list of all the available styles can be obtained with (from GDB itself):
             'dereference': {
                 'doc': 'Annotate pointers with the pointed value.',
                 'default': True,
-                'type': int
+                'type': bool
             },
             # prompt
             'prompt': {
