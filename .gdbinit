@@ -1495,15 +1495,10 @@ class Registers(Dashboard.Module):
         max_name = max(len(name) for name, _, _ in registers)
         max_value = max(len(value) for _, value, _ in registers)
         max_width = max_name + max_value + 2
-        per_line = int((term_width + 1) / max_width) or 1
+        per_line = min(int((term_width + 1) / max_width) or 1, len(registers))
         # redistribute extra space among columns
         extra = int((term_width + 1 - max_width * per_line) / per_line)
-        if per_line == 1:
-            # center when there is only one column
-            max_name += int(extra / 2)
-            max_value += int(extra / 2)
-        else:
-            max_value += extra
+        max_name += int(extra / 2)
         # format registers info
         partial = []
         for name, value, changed in registers:
