@@ -1469,11 +1469,18 @@ class Registers(Dashboard.Module):
         # skip if the current thread is not stopped
         if not gdb.selected_thread().is_stopped():
             return []
+        # obtain the registers to display
+        if style_changed:
+            self.table = {}
+        if self.register_list:
+            register_list = self.register_list.split()
+        else:
+            register_list = list(map(lambda line: line.split(None, 1)[0],
+                                     run('info registers').strip().split('\n')))
+
         # fetch registers status
         registers = []
-        for reg_info in run('info registers').strip().split('\n'):
-            # fetch register and update the table
-            name = reg_info.split(None, 1)[0]
+        for name in register_list:
             # Exclude registers with a dot '.' or parse_and_eval() will fail
             if '.' in name:
                 continue
@@ -1524,6 +1531,12 @@ class Registers(Dashboard.Module):
                 'default': False,
                 'name': 'column_major',
                 'type': bool
+            },
+            'list': {
+                'doc': """String of space-separated register names to display.
+The empty list (default) causes to show all the available registers.""",
+                'default': '',
+                'name': 'register_list',
             }
         }
 
