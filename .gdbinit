@@ -1560,13 +1560,22 @@ class Threads(Dashboard.Module):
         restore_frame = gdb.selected_thread().is_stopped()
         if restore_frame:
             selected_frame = gdb.selected_frame()
-        for thread in gdb.Inferior.threads(gdb.selected_inferior()):
+        # fetch the thread list
+        threads = []
+        for inferior in gdb.inferiors():
+            if self.all_inferiors or inferior == gdb.selected_inferior():
+                threads += gdb.Inferior.threads(inferior)
+        for thread in threads:
             # skip running threads if requested
             if self.skip_running and thread.is_running():
                 continue
             is_selected = (thread.ptid == selected_thread.ptid)
             style = R.style_selected_1 if is_selected else R.style_selected_2
-            number = ansi(str(thread.num), style)
+            if self.all_inferiors:
+                number = '{}.{}'.format(thread.inferior.num, thread.num)
+            else:
+                number = str(thread.num)
+            number = ansi(number, style)
             tid = ansi(str(thread.ptid[1] or thread.ptid[2]), style)
             info = '[{}] id {}'.format(number, tid)
             if thread.name:
@@ -1592,7 +1601,13 @@ class Threads(Dashboard.Module):
                 'default': False,
                 'name': 'skip_running',
                 'type': bool
-            }
+            },
+            'all-inferiors': {
+                'doc': 'Show threads from all inferiors.',
+                'default': False,
+                'name': 'all_inferiors',
+                'type': bool
+            },
         }
 
 class Expressions(Dashboard.Module):
