@@ -2,19 +2,22 @@
 
 Modular visual interface for GDB in Python.
 
-This comes as a standalone single-file [`.gdbinit`][raw] which, among the other
-things, enables a configurable dashboard showing the most relevant information
-during the program execution. Its main goal is to reduce the number of GDB
-commands issued to inspect the current program status allowing the programmer to
-focus on the control flow instead.
+This comes as a standalone single-file [`.gdbinit`][raw] which enables a
+configurable dashboard showing the most relevant information of the program
+being debugged. Its main goal is to reduce the number of GDB commands issued to
+inspect the current program status allowing the programmer to focus on the
+control flow instead.
 
 ![Screenshot](http://i.imgur.com/g8I3suo.png)
 
-## Installation
+## Quickstart
 
-Just place [`.gdbinit`][raw] in your home directory, for example:
+Just place [`.gdbinit`][raw] in your home directory, for example with:
 
     wget -P ~ git.io/.gdbinit
+
+Then use GDB as always, the dashboard can be reached via the `dashboard` command
+and `help dashboard` is a good starting point to learn about all the features.
 
 ## Features
 
