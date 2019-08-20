@@ -1131,6 +1131,84 @@ instructions constituting the current statement are marked, if available."""
             }
         }
 
+class Variables(Dashboard.Module):
+    """Show arguments and locals of the selected frame."""
+
+    def label(self):
+        return 'Variables'
+
+    def lines(self, term_width, style_changed):
+        return Variables.format_variables(
+            gdb.selected_frame(),
+            self.show_arguments, self.show_locals, self.compact)
+
+    def attributes(self):
+        return {
+            'arguments': {
+                'doc': 'Frame arguments visibility flag.',
+                'default': True,
+                'name': 'show_arguments',
+                'type': bool
+            },
+            'locals': {
+                'doc': 'Frame locals visibility flag.',
+                'default': True,
+                'name': 'show_locals',
+                'type': bool
+            },
+            'compact': {
+                'doc': 'Single-line display flag.',
+                'default': False,
+                'type': bool
+            }
+        }
+
+    @staticmethod
+    def format_variables(frame, show_arguments, show_locals, compact):
+        out = []
+        # fetch frame arguments and locals
+        decorator = gdb.FrameDecorator.FrameDecorator(frame)
+        separator = ansi(', ', R.style_low)
+        if show_arguments:
+            def prefix(line):
+                return Stack.format_line('arg', line)
+            frame_args = decorator.frame_args()
+            args_lines = Variables.fetch(frame, frame_args, compact)
+            if args_lines:
+                if compact:
+                    args_line = separator.join(args_lines)
+                    single_line = prefix(args_line)
+                    out.append(single_line)
+                else:
+                    out.extend(map(prefix, args_lines))
+            else:
+                out.append(ansi('(no arguments)', R.style_low))
+        if show_locals:
+            def prefix(line):
+                return Stack.format_line('loc', line)
+            frame_locals = decorator.frame_locals()
+            locals_lines = Variables.fetch(frame, frame_locals, compact)
+            if locals_lines:
+                if compact:
+                    locals_line = separator.join(locals_lines)
+                    single_line = prefix(locals_line)
+                    out.append(single_line)
+                else:
+                    out.extend(map(prefix, locals_lines))
+            else:
+                out.append(ansi('(no locals)', R.style_low))
+        return out
+
+    @staticmethod
+    def fetch(frame, data, compact):
+        lines = []
+        for elem in data or []:
+            name = elem.sym
+            equal = ansi('=', R.style_low)
+            value = format_value(elem.sym.value(frame), compact)
+            lines.append('{} {} {}'.format(name, equal, value))
+        return lines
+
 class Stack(Dashboard.Module):
     """Show the current stack trace including the function name and the file
 location, if available. Optionally list the frame arguments and locals too."""
@@ -1163,37 +1241,9 @@ location, if available. Optionally list the frame arguments and locals too."""
             info = Stack.get_pc_line(frame, style)
             frame_lines = []
             frame_lines.append('[{}] {}'.format(frame_id, info))
-            # fetch frame arguments and locals
-            decorator = gdb.FrameDecorator.FrameDecorator(frame)
-            separator = ansi(', ', R.style_low)
-            if self.show_arguments:
-                def prefix(line):
-                    return Stack.format_line('arg', line)
-                frame_args = decorator.frame_args()
-                args_lines = self.fetch_frame_info(frame, frame_args)
-                if args_lines:
-                    if self.compact:
-                        args_line = separator.join(args_lines)
-                        single_line = prefix(args_line)
-                        frame_lines.append(single_line)
-                    else:
-                        frame_lines.extend(map(prefix, args_lines))
-                else:
-                    frame_lines.append(ansi('(no arguments)', R.style_low))
-            if self.show_locals:
-                def prefix(line):
-                    return Stack.format_line('loc', line)
-                frame_locals = decorator.frame_locals()
-                locals_lines = self.fetch_frame_info(frame, frame_locals)
-                if locals_lines:
-                    if self.compact:
-                        locals_line = separator.join(locals_lines)
-                        single_line = prefix(locals_line)
-                        frame_lines.append(single_line)
-                    else:
-                        frame_lines.extend(map(prefix, locals_lines))
-                else:
-                    frame_lines.append(ansi('(no locals)', R.style_low))
+            # add frame arguments and locals
+            frame_lines.extend(Variables.format_variables(
+                frame, self.show_arguments, self.show_locals, self.compact))
             # add frame
             frames.append(frame_lines)
             # next
@@ -1212,15 +1262,6 @@ location, if available. Optionally list the frame arguments and locals too."""
         # add the placeholder
         if more:
             lines.append('[{}]'.format(ansi('+', R.style_selected_2)))
-        return lines
-
-    def fetch_frame_info(self, frame, data):
-        lines = []
-        for elem in data or []:
-            name = elem.sym
-            equal = ansi('=', R.style_low)
-            value = format_value(elem.sym.value(frame), self.compact)
-            lines.append('{} {} {}'.format(name, equal, value))
         return lines
 
     @staticmethod
@@ -1260,13 +1301,13 @@ location, if available. Optionally list the frame arguments and locals too."""
         return {
             'limit': {
                 'doc': 'Maximum number of displayed frames (0 means no limit).',
-                'default': 2,
+                'default': 10,
                 'type': int,
                 'check': check_ge_zero
             },
             'arguments': {
                 'doc': 'Frame arguments visibility flag.',
-                'default': True,
+                'default': False,
                 'name': 'show_arguments',
                 'type': bool
             },
