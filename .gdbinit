@@ -953,8 +953,20 @@ class Source(Dashboard.Module):
                 msg = 'Cannot display "{}" ({})'.format(self.file_name, e)
                 return [ansi(msg, R.style_error)]
         # compute the line range
-        start = max(current_line - 1 - self.context + self.offset, 0)
-        end = max(min(current_line - 1 + self.context + 1 + self.offset, len(self.source_lines)), 0)
+        start = current_line - 1 - int(self.height / 2) + self.offset
+        end = start + self.height
+        # extra at start
+        extra_start = 0
+        if start < 0:
+            extra_start = min(-start, self.height)
+            start = 0
+        # extra at end
+        extra_end = 0
+        if end > len(self.source_lines):
+            extra_end = min(end - len(self.source_lines), self.height)
+            end = len(self.source_lines)
+        else:
+            end = max(end, 0)
         # return the source code listing
         out = []
         number_format = '{{:>{}}}'.format(len(str(end)))
@@ -976,7 +988,12 @@ class Source(Dashboard.Module):
             else:
                 line_format = ansi(number_format, R.style_low) + ' {}'
             out.append(line_format.format(number, line.rstrip('\n')))
-        return out
+        # return the output along with scroll indicators
+        if len(out) <= self.height:
+            extra = [ansi('~', R.style_low)]
+            return extra_start * extra + out + extra_end * extra
+        else:
+            return out
 
     def scroll(self, arg):
         if arg:
@@ -994,8 +1011,8 @@ class Source(Dashboard.Module):
 
     def attributes(self):
         return {
-            'context': {
-                'doc': 'Number of context lines.',
+            'height': {
+                'doc': 'Height of the module.',
                 'default': 5,
                 'type': int,
                 'check': check_ge_zero
@@ -1033,8 +1050,22 @@ instructions constituting the current statement are marked, if available."""
             # find the location of the PC
             pc_index = next(index for index, instr in enumerate(asm)
                             if instr['addr'] == frame.pc())
-            start = max(pc_index - self.context + self.offset, 0)
-            end = max(min(pc_index + self.context + 1 + self.offset, len(asm)), 0)
+            # compute the instruction range
+            start = pc_index - int(self.height / 2) + self.offset
+            end = start + self.height
+            # extra at start
+            extra_start = 0
+            if start < 0:
+                extra_start = min(-start, self.height)
+                start = 0
+            # extra at end
+            extra_end = 0
+            if end > len(asm):
+                extra_end = min(end - len(asm), self.height)
+                end = len(asm)
+            else:
+                end = max(end, 0)
+            # fetch actual interval
             asm = asm[start:end]
             # if there are line information then use it, it may be that
             # line_info is not None but line_info.last is None
@@ -1042,10 +1073,11 @@ instructions constituting the current statement are marked, if available."""
             line_info = line_info if line_info.last else None
         except (gdb.error, RuntimeError, StopIteration):
             # if it is not possible (stripped binary or the PC is not present in
-            # the output of `disassemble` as per issue #31) start from PC and
-            # end after twice the context
+            # the output of `disassemble` as per issue #31) start from PC
             try:
-                asm = disassemble(frame.pc(), count=2 * self.context + 1 + self.offset)
+                extra_start = 0
+                extra_end = 0
+                asm = disassemble(frame.pc(), count=self.height)
             except gdb.error as e:
                 msg = '{}'.format(e)
                 return [ansi(msg, R.style_error)]
@@ -1125,7 +1157,12 @@ instructions constituting the current statement are marked, if available."""
                 func_info = ansi(func_info, R.style_low)
             out.append(format_string.format(addr_str, indicator,
                                             opcodes, func_info, text))
-        return out
+        # return the output along with scroll indicators
+        if len(out) <= self.height:
+            extra = [ansi('~', R.style_low)]
+            return extra_start * extra + out + extra_end * extra
+        else:
+            return out
 
     def scroll(self, arg):
         if arg:
@@ -1143,9 +1180,9 @@ instructions constituting the current statement are marked, if available."""
 
     def attributes(self):
         return {
-            'context': {
-                'doc': 'Number of context instructions.',
-                'default': 3,
+            'height': {
+                'doc': 'Height of the module.',
+                'default': 10,
                 'type': int,
                 'check': check_ge_zero
             },
