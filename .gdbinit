@@ -1105,7 +1105,7 @@ instructions constituting the current statement are marked, if available."""
             max_offset = max(len(str(abs(asm[0]['addr'] - func_start))),
                              len(str(abs(asm[-1]['addr'] - func_start))))
         # return the machine code
-        max_length = max((instr['length'] for instr in asm), default=0)
+        max_length = max(instr['length'] for instr in asm) if asm else 0
         inferior = gdb.selected_inferior()
         out = []
         for index, instr in enumerate(asm):
