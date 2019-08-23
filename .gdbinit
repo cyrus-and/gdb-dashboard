@@ -1013,7 +1013,7 @@ class Source(Dashboard.Module):
         return {
             'height': {
                 'doc': 'Height of the module.',
-                'default': 5,
+                'default': 10,
                 'type': int,
                 'check': check_ge_zero
             },
