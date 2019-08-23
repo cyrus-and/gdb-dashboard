@@ -917,6 +917,7 @@ class Source(Dashboard.Module):
         self.source_lines = []
         self.ts = None
         self.highlighted = False
+        self.offset = 0
 
     def label(self):
         return 'Source'
@@ -952,8 +953,8 @@ class Source(Dashboard.Module):
                 msg = 'Cannot display "{}" ({})'.format(self.file_name, e)
                 return [ansi(msg, R.style_error)]
         # compute the line range
-        start = max(current_line - 1 - self.context, 0)
-        end = min(current_line - 1 + self.context + 1, len(self.source_lines))
+        start = max(current_line - 1 - self.context + self.offset, 0)
+        end = max(min(current_line - 1 + self.context + 1 + self.offset, len(self.source_lines)), 0)
         # return the source code listing
         out = []
         number_format = '{{:>{}}}'.format(len(str(end)))
@@ -977,6 +978,21 @@ class Source(Dashboard.Module):
             out.append(line_format.format(number, line.rstrip('\n')))
         return out
 
+    def scroll(self, arg):
+        print(arg)
+        if arg:
+            self.offset += int(arg)
+        else:
+            self.offset = 0
+
+    def commands(self):
+        return {
+            'scroll': {
+                'action': self.scroll,
+                'doc': 'Scroll by relative steps or reset if invoked without argument.'
+            }
+        }
+
     def attributes(self):
         return {
             'context': {
@@ -998,6 +1014,9 @@ class Assembly(Dashboard.Module):
     """Show the disassembled code surrounding the program counter. The
 instructions constituting the current statement are marked, if available."""
 
+    def __init__(self):
+        self.offset = 0
+
     def label(self):
         return 'Assembly'
 
@@ -1015,8 +1034,8 @@ instructions constituting the current statement are marked, if available."""
             # find the location of the PC
             pc_index = next(index for index, instr in enumerate(asm)
                             if instr['addr'] == frame.pc())
-            start = max(pc_index - self.context, 0)
-            end = pc_index + self.context + 1
+            start = max(pc_index - self.context + self.offset, 0)
+            end = max(min(pc_index + self.context + 1 + self.offset, len(asm)), 0)
             asm = asm[start:end]
             # if there are line information then use it, it may be that
             # line_info is not None but line_info.last is None
@@ -1027,7 +1046,7 @@ instructions constituting the current statement are marked, if available."""
             # the output of `disassemble` as per issue #31) start from PC and
             # end after twice the context
             try:
-                asm = disassemble(frame.pc(), count=2 * self.context + 1)
+                asm = disassemble(frame.pc(), count=2 * self.context + 1 + self.offset)
             except gdb.error as e:
                 msg = '{}'.format(e)
                 return [ansi(msg, R.style_error)]
@@ -1051,11 +1070,11 @@ instructions constituting the current statement are marked, if available."""
         # prepare the highlighter
         highlighter = Beautifier(flavor)
         # compute the maximum offset size
-        if func_start:
+        if asm and func_start:
             max_offset = max(len(str(abs(asm[0]['addr'] - func_start))),
                              len(str(abs(asm[-1]['addr'] - func_start))))
         # return the machine code
-        max_length = max(instr['length'] for instr in asm)
+        max_length = max((instr['length'] for instr in asm), default=0)
         inferior = gdb.selected_inferior()
         out = []
         for index, instr in enumerate(asm):
@@ -1108,6 +1127,21 @@ instructions constituting the current statement are marked, if available."""
             out.append(format_string.format(addr_str, indicator,
                                             opcodes, func_info, text))
         return out
+
+    def scroll(self, arg):
+        print(arg)
+        if arg:
+            self.offset += int(arg)
+        else:
+            self.offset = 0
+
+    def commands(self):
+        return {
+            'scroll': {
+                'action': self.scroll,
+                'doc': 'Scroll by relative steps or reset if invoked without argument.'
+            }
+        }
 
     def attributes(self):
         return {
