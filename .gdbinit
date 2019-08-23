@@ -979,7 +979,6 @@ class Source(Dashboard.Module):
         return out
 
     def scroll(self, arg):
-        print(arg)
         if arg:
             self.offset += int(arg)
         else:
@@ -1129,7 +1128,6 @@ instructions constituting the current statement are marked, if available."""
         return out
 
     def scroll(self, arg):
-        print(arg)
         if arg:
             self.offset += int(arg)
         else:
