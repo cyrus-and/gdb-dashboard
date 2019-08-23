@@ -1089,7 +1089,8 @@ instructions constituting the current statement are marked, if available."""
                 # declaration, instead of just the name, e.g., 'getkey()', so it
                 # would be treated as a function call by 'gdb.parse_and_eval',
                 # hence the trim, see #87 and #88
-                value = gdb.parse_and_eval(frame.name().split('(')[0]).address
+                func_name = frame.name().split('(')[0]
+                value = gdb.parse_and_eval(func_name).address
                 func_start = to_unsigned(value)
             except gdb.error:
                 pass  # e.g., @plt
