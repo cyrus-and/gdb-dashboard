@@ -234,7 +234,7 @@ class Beautifier():
     def __init__(self, hint, tab_size=4):
         self.tab_spaces = ' ' * tab_size
         self.active = False
-        if not R.ansi:
+        if not R.ansi or not R.syntax_highlighting:
             return
         # attempt to set up Pygments
         try:
