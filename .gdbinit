@@ -271,8 +271,7 @@ class Dashboard(gdb.Command):
     '''Redisplay the dashboard.'''
 
     def __init__(self):
-        gdb.Command.__init__(self, 'dashboard',
-                             gdb.COMMAND_USER, gdb.COMPLETE_NONE, True)
+        gdb.Command.__init__(self, 'dashboard', gdb.COMMAND_USER, gdb.COMPLETE_NONE, True)
         self.output = None  # main terminal
         # setup subcommands
         Dashboard.ConfigurationCommand(self)
@@ -598,8 +597,7 @@ class Dashboard(gdb.Command):
 
         def add_style_command(self, dashboard):
             if 'attributes' in dir(self.instance):
-                Dashboard.StyleCommand(dashboard, self.prefix, self.instance,
-                                       self.instance.attributes())
+                Dashboard.StyleCommand(dashboard, self.prefix, self.instance, self.instance.attributes())
 
         def add_subcommands(self, dashboard):
             if 'commands' in dir(self.instance):
@@ -705,8 +703,7 @@ dashboard will be printed.'''
             if not obj:
                 obj = dashboard
             prefix = prefix + ' -output'
-            gdb.Command.__init__(self, prefix,
-                                 gdb.COMMAND_USER, gdb.COMPLETE_FILENAME)
+            gdb.Command.__init__(self, prefix, gdb.COMMAND_USER, gdb.COMPLETE_FILENAME)
             self.dashboard = dashboard
             self.obj = obj  # None means the dashboard itself
 
@@ -794,8 +791,7 @@ files.'''
             # print outputs
             default = '(default)'
             fmt = '{{:{}s}}{{}}'.format(max_name_len + 2)
-            print(('\n' + fmt + '\n').format(global_str,
-                                             self.dashboard.output or default))
+            print(('\n' + fmt + '\n').format(global_str, self.dashboard.output or default))
             for module in self.dashboard.modules:
                 style = R.style_high if module.enabled else R.style_low
                 line = fmt.format(module.name, module.output or default)
@@ -846,8 +842,7 @@ or print (when the value is omitted) individual attributes.'''
 
         def __init__(self, dashboard, prefix, obj, attributes):
             self.prefix = prefix + ' -style'
-            gdb.Command.__init__(self, self.prefix,
-                                 gdb.COMMAND_USER, gdb.COMPLETE_NONE, True)
+            gdb.Command.__init__(self, self.prefix, gdb.COMMAND_USER, gdb.COMPLETE_NONE, True)
             self.dashboard = dashboard
             self.obj = obj
             self.attributes = attributes
@@ -865,8 +860,11 @@ or print (when the value is omitted) individual attributes.'''
                 value = attr_type(attr_default)
                 setattr(self.obj, attr_name, value)
                 # create the command
-                def invoke(self, arg, from_tty, name=name, attr_name=attr_name,
-                           attr_type=attr_type, attr_check=attr_check):
+                def invoke(self, arg, from_tty,
+                           name=name,
+                           attr_name=attr_name,
+                           attr_type=attr_type,
+                           attr_check=attr_check):
                     new_value = Dashboard.parse_arg(arg)
                     if new_value == '':
                         # print the current value
@@ -938,9 +936,8 @@ class Source(Dashboard.Module):
             ts = os.path.getmtime(file_name)
         except:
             pass  # delay error check to open()
-        if (style_changed or
-                file_name != self.file_name or  # different file name
-                ts and ts > self.ts):  # file modified in the meanwhile
+        # style changed, different file name or file modified in the meanwhile
+        if style_changed or file_name != self.file_name or ts and ts > self.ts:
             self.file_name = file_name
             self.ts = ts
             try:
@@ -978,11 +975,9 @@ class Source(Dashboard.Module):
                 # the current line has a different style without ANSI
                 if R.ansi:
                     if self.highlighted:
-                        line_format = ansi(number_format,
-                                           R.style_selected_1) + ' {}'
+                        line_format = ansi(number_format, R.style_selected_1) + ' {}'
                     else:
-                        line_format = ansi(number_format + ' {}',
-                                           R.style_selected_1)
+                        line_format = ansi(number_format + ' {}', R.style_selected_1)
                 else:
                     # just show a plain text indicator
                     line_format = number_format + '>{}'
@@ -1119,8 +1114,7 @@ instructions constituting the current statement are marked, if available.'''
             if self.show_opcodes:
                 # fetch and format opcode
                 region = inferior.read_memory(addr, length)
-                opcodes = (' '.join('{:02x}'.format(ord(byte))
-                                    for byte in region))
+                opcodes = (' '.join('{:02x}'.format(ord(byte)) for byte in region))
                 opcodes += (max_length - len(region)) * 3 * ' ' + ' '
             else:
                 opcodes = ''
@@ -1158,8 +1152,7 @@ instructions constituting the current statement are marked, if available.'''
             else:
                 addr_str = ansi(addr_str, R.style_low)
                 func_info = ansi(func_info, R.style_low)
-            out.append(format_string.format(addr_str, indicator,
-                                            opcodes, func_info, text))
+            out.append(format_string.format(addr_str, indicator, opcodes, func_info, text))
         # return the output along with scroll indicators
         if len(out) <= height:
             extra = [ansi('~', R.style_low)]
@@ -1210,9 +1203,8 @@ class Variables(Dashboard.Module):
         return 'Variables'
 
     def lines(self, term_width, term_height, style_changed):
-        return Variables.format_variables(
-            gdb.selected_frame(),
-            self.show_arguments, self.show_locals, self.compact)
+        return Variables.format_frame(
+            gdb.selected_frame(), self.show_arguments, self.show_locals, self.compact)
 
     def attributes(self):
         return {
@@ -1236,7 +1228,7 @@ class Variables(Dashboard.Module):
         }
 
     @staticmethod
-    def format_variables(frame, show_arguments, show_locals, compact):
+    def format_frame(frame, show_arguments, show_locals, compact):
         out = []
         # fetch frame arguments and locals
         decorator = gdb.FrameDecorator.FrameDecorator(frame)
@@ -1314,8 +1306,8 @@ location, if available. Optionally list the frame arguments and locals too.'''
             frame_lines = []
             frame_lines.append('[{}] {}'.format(frame_id, info))
             # add frame arguments and locals
-            frame_lines.extend(Variables.format_variables(
-                frame, self.show_arguments, self.show_locals, self.compact))
+            variables = Variables.format_frame(frame, self.show_arguments, self.show_locals, self.compact)
+            frame_lines.extend(variables)
             # add frame
             frames.append(frame_lines)
             # next
@@ -1468,8 +1460,7 @@ class Memory(Dashboard.Module):
                         hexa_byte = ansi(hexa_byte, R.style_selected_1)
                         text_byte = ansi(text_byte, R.style_selected_1)
                     # cumulative changes if enabled
-                    elif (self.module.cumulative and
-                          memory[rel] != self.original[rel]):
+                    elif self.module.cumulative and memory[rel] != self.original[rel]:
                         hexa_byte = ansi(hexa_byte, R.style_selected_2)
                         text_byte = ansi(text_byte, R.style_selected_2)
                     hexa.append(hexa_byte)
