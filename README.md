@@ -14,6 +14,12 @@ Just place [`.gdbinit`][raw] in your home directory, for example with:
 wget -P ~ git.io/.gdbinit
 ```
 
+Optionally install [Pygments][] to enable syntax highlighting:
+
+```
+pip install pygments
+```
+
 Then use GDB as always, the dashboard can be reached via the `dashboard` command and `help dashboard` is a good starting point to learn about all the features.
 
 ## Features
