@@ -351,7 +351,7 @@ class Notes(Dashboard.Module):
     def label(self):
         return 'Notes'
 
-    def lines(self, term_width, style_changed):
+    def lines(self, term_width, term_height, style_changed):
         out = []
         for note in self.notes:
             out.append(note)
