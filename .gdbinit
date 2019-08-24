@@ -289,7 +289,7 @@ class Dashboard(gdb.Command):
         # try to contain the GDB messages in a specified area unless the
         # dashboard is printed to a separate file (dashboard -output ...)
         if self.is_running() and not self.output:
-            width = Dashboard.get_term_width()
+            width, _ = Dashboard.get_term_size()
             gdb.write(Dashboard.clear_screen())
             gdb.write(divider(width, 'Output/messages', True))
             gdb.write('\n')
@@ -370,7 +370,7 @@ class Dashboard(gdb.Command):
         # notify the user if the output is empty, on the main terminal
         if all_disabled:
             # write the error message
-            width = Dashboard.get_term_width()
+            width, _ = Dashboard.get_term_size()
             gdb.write(divider(width, 'Error', True))
             gdb.write('\n')
             if self.modules:
@@ -396,12 +396,12 @@ class Dashboard(gdb.Command):
                 else:
                     fs = gdb
                     fd = 1  # stdout
-                # get the terminal width (default main terminal if either
-                # the output is not a file)
+                # get the terminal size (default main terminal if either the
+                # output is not a file)
                 try:
-                    width = Dashboard.get_term_width(fd)
+                    width, height = Dashboard.get_term_size(fd)
                 except:
-                    width = Dashboard.get_term_width()
+                    width, height = Dashboard.get_term_size()
                 # clear the "screen" if requested for the main terminal,
                 # auxiliary terminals are always cleared
                 if fs is not gdb or clear_screen:
@@ -418,7 +418,7 @@ class Dashboard(gdb.Command):
                         continue
                     try:
                         # ask the module to generate the content
-                        lines = instance.lines(width, style_changed)
+                        lines = instance.lines(width, height, style_changed)
                     except Exception as e:
                         # allow to continue on exceptions in modules
                         stacktrace = traceback.format_exc().strip()
@@ -464,23 +464,23 @@ class Dashboard(gdb.Command):
         dashboard.redisplay()
 
     @staticmethod
-    def get_term_width(fd=1):  # defaults to the main terminal
+    def get_term_size(fd=1):  # defaults to the main terminal
         if sys.platform == 'win32':
             try:
                 import curses
                 # XXX always neglects the fd parameter
-                _, width = curses.initscr().getmaxyx()
+                height, width = curses.initscr().getmaxyx()
                 curses.endwin()
-                return int(width)
+                return int(width), int(height)
             except ImportError:
-                return 80  # hardcoded fallback value
+                return 24, 80  # hardcoded fallback value
         else:
             import termios
             import fcntl
             # first 2 shorts (4 byte) of struct winsize
             raw = fcntl.ioctl(fd, termios.TIOCGWINSZ, ' ' * 4)
-            _, width = struct.unpack('hh', raw)
-            return int(width)
+            height, width = struct.unpack('hh', raw)
+            return int(width), int(height)
 
     @staticmethod
     def set_custom_prompt(dashboard):
@@ -693,8 +693,8 @@ file."""
         """Set the output file/TTY for both the dashboard and modules.
 The dashboard/module will be written to the specified file, which will be
 created if it does not exist. If the specified file identifies a terminal then
-its width will be used to format the dashboard, otherwise falls back to the
-width of the main GDB terminal. Without argument the dashboard, the
+its geometry will be used to format the dashboard, otherwise falls back to the
+geometry of the main GDB terminal. Without argument the dashboard, the
 output/messages and modules which do not specify the output will be printed on
 standard output (default). Without argument the module will be printed where the
 dashboard will be printed."""
@@ -922,7 +922,7 @@ class Source(Dashboard.Module):
     def label(self):
         return 'Source'
 
-    def lines(self, term_width, style_changed):
+    def lines(self, term_width, term_height, style_changed):
         # skip if the current thread is not stopped
         if not gdb.selected_thread().is_stopped():
             return []
@@ -953,17 +953,18 @@ class Source(Dashboard.Module):
                 msg = 'Cannot display "{}" ({})'.format(self.file_name, e)
                 return [ansi(msg, R.style_error)]
         # compute the line range
-        start = current_line - 1 - int(self.height / 2) + self.offset
-        end = start + self.height
+        height = self.height or (term_height - 1)
+        start = current_line - 1 - int(height / 2) + self.offset
+        end = start + height
         # extra at start
         extra_start = 0
         if start < 0:
-            extra_start = min(-start, self.height)
+            extra_start = min(-start, height)
             start = 0
         # extra at end
         extra_end = 0
         if end > len(self.source_lines):
-            extra_end = min(end - len(self.source_lines), self.height)
+            extra_end = min(end - len(self.source_lines), height)
             end = len(self.source_lines)
         else:
             end = max(end, 0)
@@ -989,7 +990,7 @@ class Source(Dashboard.Module):
                 line_format = ansi(number_format, R.style_low) + ' {}'
             out.append(line_format.format(number, line.rstrip('\n')))
         # return the output along with scroll indicators
-        if len(out) <= self.height:
+        if len(out) <= height:
             extra = [ansi('~', R.style_low)]
             return extra_start * extra + out + extra_end * extra
         else:
@@ -1012,7 +1013,7 @@ class Source(Dashboard.Module):
     def attributes(self):
         return {
             'height': {
-                'doc': 'Height of the module.',
+                'doc': 'Height of the module. A value of 0 uses the whole height.',
                 'default': 10,
                 'type': int,
                 'check': check_ge_zero
@@ -1036,7 +1037,7 @@ instructions constituting the current statement are marked, if available."""
     def label(self):
         return 'Assembly'
 
-    def lines(self, term_width, style_changed):
+    def lines(self, term_width, term_height, style_changed):
         # skip if the current thread is not stopped
         if not gdb.selected_thread().is_stopped():
             return []
@@ -1051,17 +1052,18 @@ instructions constituting the current statement are marked, if available."""
             pc_index = next(index for index, instr in enumerate(asm)
                             if instr['addr'] == frame.pc())
             # compute the instruction range
-            start = pc_index - int(self.height / 2) + self.offset
-            end = start + self.height
+            height = self.height or (term_height - 1)
+            start = pc_index - int(height / 2) + self.offset
+            end = start + height
             # extra at start
             extra_start = 0
             if start < 0:
-                extra_start = min(-start, self.height)
+                extra_start = min(-start, height)
                 start = 0
             # extra at end
             extra_end = 0
             if end > len(asm):
-                extra_end = min(end - len(asm), self.height)
+                extra_end = min(end - len(asm), height)
                 end = len(asm)
             else:
                 end = max(end, 0)
@@ -1077,7 +1079,7 @@ instructions constituting the current statement are marked, if available."""
             try:
                 extra_start = 0
                 extra_end = 0
-                asm = disassemble(frame.pc(), count=self.height)
+                asm = disassemble(frame.pc(), count=height)
             except gdb.error as e:
                 msg = '{}'.format(e)
                 return [ansi(msg, R.style_error)]
@@ -1159,7 +1161,7 @@ instructions constituting the current statement are marked, if available."""
             out.append(format_string.format(addr_str, indicator,
                                             opcodes, func_info, text))
         # return the output along with scroll indicators
-        if len(out) <= self.height:
+        if len(out) <= height:
             extra = [ansi('~', R.style_low)]
             return extra_start * extra + out + extra_end * extra
         else:
@@ -1182,7 +1184,7 @@ instructions constituting the current statement are marked, if available."""
     def attributes(self):
         return {
             'height': {
-                'doc': 'Height of the module.',
+                'doc': 'Height of the module. A value of 0 uses the whole height.',
                 'default': 10,
                 'type': int,
                 'check': check_ge_zero
@@ -1207,7 +1209,7 @@ class Variables(Dashboard.Module):
     def label(self):
         return 'Variables'
 
-    def lines(self, term_width, style_changed):
+    def lines(self, term_width, term_height, style_changed):
         return Variables.format_variables(
             gdb.selected_frame(),
             self.show_arguments, self.show_locals, self.compact)
@@ -1286,7 +1288,7 @@ location, if available. Optionally list the frame arguments and locals too."""
     def label(self):
         return 'Stack'
 
-    def lines(self, term_width, style_changed):
+    def lines(self, term_width, term_height, style_changed):
         # skip if the current thread is not stopped
         if not gdb.selected_thread().is_stopped():
             return []
@@ -1400,7 +1402,7 @@ class History(Dashboard.Module):
     def label(self):
         return 'History'
 
-    def lines(self, term_width, style_changed):
+    def lines(self, term_width, term_height, style_changed):
         out = []
         # fetch last entries
         for i in range(-self.limit + 1, 1):
@@ -1503,7 +1505,7 @@ class Memory(Dashboard.Module):
     def label(self):
         return 'Memory'
 
-    def lines(self, term_width, style_changed):
+    def lines(self, term_width, term_height, style_changed):
         out = []
         for address, region in sorted(self.table.items()):
             out.extend(region.format())
@@ -1574,7 +1576,7 @@ class Registers(Dashboard.Module):
     def label(self):
         return 'Registers'
 
-    def lines(self, term_width, style_changed):
+    def lines(self, term_width, term_height, style_changed):
         # skip if the current thread is not stopped
         if not gdb.selected_thread().is_stopped():
             return []
@@ -1662,7 +1664,7 @@ class Threads(Dashboard.Module):
     def label(self):
         return 'Threads'
 
-    def lines(self, term_width, style_changed):
+    def lines(self, term_width, term_height, style_changed):
         out = []
         selected_thread = gdb.selected_thread()
         # do not restore the selected frame if the thread is not stopped
@@ -1729,7 +1731,7 @@ class Expressions(Dashboard.Module):
     def label(self):
         return 'Expressions'
 
-    def lines(self, term_width, style_changed):
+    def lines(self, term_width, term_height, style_changed):
         out = []
         for number, expression in sorted(self.table.items()):
             try:
