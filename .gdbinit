@@ -25,13 +25,13 @@ class R():
                 'type': bool
             },
             'syntax_highlighting': {
-                'doc': """Pygments style to use for syntax highlighting.
+                'doc': '''Pygments style to use for syntax highlighting.
 Using an empty string (or a name not in the list) disables this feature.
 The list of all the available styles can be obtained with (from GDB itself):
 
     python from pygments.styles import get_all_styles as styles
     python for s in styles(): print(s)
-""",
+''',
                 'default': 'vim'
             },
             # values formatting
@@ -52,17 +52,17 @@ The list of all the available styles can be obtained with (from GDB itself):
             },
             # prompt
             'prompt': {
-                'doc': """Command prompt.
+                'doc': '''Command prompt.
 This value is parsed as a Python format string in which `{status}` is expanded
 with the substitution of either `prompt_running` or `prompt_not_running`
 attributes, according to the target program status. The resulting string must be
-a valid GDB prompt, see the command `python print(gdb.prompt.prompt_help())`""",
+a valid GDB prompt, see the command `python print(gdb.prompt.prompt_help())`''',
                 'default': '{status}'
             },
             'prompt_running': {
-                'doc': """`{status}` when the target program is running.
+                'doc': '''`{status}` when the target program is running.
 See the `prompt` attribute. This value is parsed as a Python format string in
-which `{pid}` is expanded with the process identifier of the target program.""",
+which `{pid}` is expanded with the process identifier of the target program.''',
                 'default': '\[\e[1;35m\]>>>\[\e[0m\]'
             },
             'prompt_not_running': {
@@ -268,7 +268,7 @@ class Beautifier():
 # Dashboard --------------------------------------------------------------------
 
 class Dashboard(gdb.Command):
-    """Redisplay the dashboard."""
+    '''Redisplay the dashboard.'''
 
     def __init__(self):
         gdb.Command.__init__(self, 'dashboard',
@@ -638,9 +638,9 @@ class Dashboard(gdb.Command):
             self.redisplay()
 
     class ConfigurationCommand(gdb.Command):
-        """Dump the dashboard configuration (layout, styles, outputs).
+        '''Dump the dashboard configuration (layout, styles, outputs).
 With an optional argument the configuration will be written to the specified
-file."""
+file.'''
 
         def __init__(self, dashboard):
             gdb.Command.__init__(self, 'dashboard -configuration',
@@ -690,14 +690,14 @@ file."""
                 fs.write('{} -output {}\n'.format(prefix, output))
 
     class OutputCommand(gdb.Command):
-        """Set the output file/TTY for both the dashboard and modules.
+        '''Set the output file/TTY for both the dashboard and modules.
 The dashboard/module will be written to the specified file, which will be
 created if it does not exist. If the specified file identifies a terminal then
 its geometry will be used to format the dashboard, otherwise falls back to the
 geometry of the main GDB terminal. Without argument the dashboard, the
 output/messages and modules which do not specify the output will be printed on
 standard output (default). Without argument the module will be printed where the
-dashboard will be printed."""
+dashboard will be printed.'''
 
         def __init__(self, dashboard, prefix=None, obj=None):
             if not prefix:
@@ -733,8 +733,8 @@ dashboard will be printed."""
             self.dashboard.redisplay()
 
     class EnabledCommand(gdb.Command):
-        """Enable or disable the dashboard [on|off].
-The current status is printed if no argument is present."""
+        '''Enable or disable the dashboard [on|off].
+The current status is printed if no argument is present.'''
 
         def __init__(self, dashboard):
             gdb.Command.__init__(self, 'dashboard -enabled', gdb.COMMAND_USER)
@@ -758,14 +758,14 @@ The current status is printed if no argument is present."""
             return Dashboard.complete(word, ['on', 'off'])
 
     class LayoutCommand(gdb.Command):
-        """Set or show the dashboard layout.
+        '''Set or show the dashboard layout.
 Accepts a space-separated list of directive. Each directive is in the form
 "[!]<module>". Modules in the list are placed in the dashboard in the same order
 as they appear and those prefixed by "!" are disabled by default. Omitted
 modules are hidden and placed at the bottom in alphabetical order. Without
 arguments the current layout is shown where the first line uses the same form
 expected by the input while the remaining depict the current status of output
-files."""
+files.'''
 
         def __init__(self, dashboard):
             gdb.Command.__init__(self, 'dashboard -layout', gdb.COMMAND_USER)
@@ -840,9 +840,9 @@ files."""
             return Dashboard.complete(word, all_modules)
 
     class StyleCommand(gdb.Command):
-        """Access the stylable attributes.
+        '''Access the stylable attributes.
 Without arguments print all the stylable attributes. Subcommands are used to set
-or print (when the value is omitted) individual attributes."""
+or print (when the value is omitted) individual attributes.'''
 
         def __init__(self, dashboard, prefix, obj, attributes):
             self.prefix = prefix + ' -style'
@@ -910,7 +910,7 @@ or print (when the value is omitted) individual attributes."""
 # Default modules --------------------------------------------------------------
 
 class Source(Dashboard.Module):
-    """Show the program source code, if available."""
+    '''Show the program source code, if available.'''
 
     def __init__(self):
         self.file_name = None
@@ -1028,8 +1028,8 @@ class Source(Dashboard.Module):
         }
 
 class Assembly(Dashboard.Module):
-    """Show the disassembled code surrounding the program counter. The
-instructions constituting the current statement are marked, if available."""
+    '''Show the disassembled code surrounding the program counter. The
+instructions constituting the current statement are marked, if available.'''
 
     def __init__(self):
         self.offset = 0
@@ -1204,7 +1204,7 @@ instructions constituting the current statement are marked, if available."""
         }
 
 class Variables(Dashboard.Module):
-    """Show arguments and locals of the selected frame."""
+    '''Show arguments and locals of the selected frame.'''
 
     def label(self):
         return 'Variables'
@@ -1282,8 +1282,8 @@ class Variables(Dashboard.Module):
         return lines
 
 class Stack(Dashboard.Module):
-    """Show the current stack trace including the function name and the file
-location, if available. Optionally list the frame arguments and locals too."""
+    '''Show the current stack trace including the function name and the file
+location, if available. Optionally list the frame arguments and locals too.'''
 
     def label(self):
         return 'Stack'
@@ -1397,7 +1397,7 @@ location, if available. Optionally list the frame arguments and locals too."""
         }
 
 class History(Dashboard.Module):
-    """List the last entries of the value history."""
+    '''List the last entries of the value history.'''
 
     def label(self):
         return 'History'
@@ -1426,7 +1426,7 @@ class History(Dashboard.Module):
         }
 
 class Memory(Dashboard.Module):
-    """Allow to inspect memory regions."""
+    '''Allow to inspect memory regions.'''
 
     class Region():
         def __init__(self, address, length, module):
@@ -1568,7 +1568,7 @@ class Memory(Dashboard.Module):
         }
 
 class Registers(Dashboard.Module):
-    """Show the CPU registers and their values."""
+    '''Show the CPU registers and their values.'''
 
     def __init__(self):
         self.table = {}
@@ -1639,8 +1639,8 @@ class Registers(Dashboard.Module):
                 'type': bool
             },
             'list': {
-                'doc': """String of space-separated register names to display.
-The empty list (default) causes to show all the available registers.""",
+                'doc': '''String of space-separated register names to display.
+The empty list (default) causes to show all the available registers.''',
                 'default': '',
                 'name': 'register_list',
             }
@@ -1659,7 +1659,7 @@ The empty list (default) causes to show all the available registers.""",
         return str(value)
 
 class Threads(Dashboard.Module):
-    """List the currently available threads."""
+    '''List the currently available threads.'''
 
     def label(self):
         return 'Threads'
@@ -1722,7 +1722,7 @@ class Threads(Dashboard.Module):
         }
 
 class Expressions(Dashboard.Module):
-    """Watch user expressions."""
+    '''Watch user expressions.'''
 
     def __init__(self):
         self.number = 1
