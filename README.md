@@ -76,6 +76,8 @@ Follows the list of bundled default modules, refer to the GDB help system for th
 
 `threads` lists the currently available threads.
 
+`variables` shows arguments and locals of the selected frame.
+
 `expressions` watches user expressions.
 
 ## Dashboard output
