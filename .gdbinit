@@ -5,11 +5,11 @@ python
 # https://github.com/cyrus-and/gdb-dashboard
 
 import ast
+import math
 import os
 import re
 import struct
 import traceback
-import math
 
 # Common attributes ------------------------------------------------------------
 
