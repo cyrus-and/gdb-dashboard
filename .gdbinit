@@ -473,7 +473,7 @@ class Dashboard(gdb.Command):
                 curses.endwin()
                 return int(width), int(height)
             except ImportError:
-                return 24, 80  # hardcoded fallback value
+                return 80, 24  # hardcoded fallback value
         else:
             import termios
             import fcntl
