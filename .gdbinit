@@ -1245,8 +1245,6 @@ class Variables(Dashboard.Module):
                     out.append(single_line)
                 else:
                     out.extend(map(prefix, args_lines))
-            else:
-                out.append(ansi('(no arguments)', R.style_low))
         if show_locals:
             def prefix(line):
                 return Stack.format_line('loc', line)
@@ -1259,8 +1257,6 @@ class Variables(Dashboard.Module):
                     out.append(single_line)
                 else:
                     out.extend(map(prefix, locals_lines))
-            else:
-                out.append(ansi('(no locals)', R.style_low))
         return out
 
     @staticmethod
