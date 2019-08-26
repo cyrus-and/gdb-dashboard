@@ -1041,6 +1041,7 @@ instructions constituting the current statement are marked, if available.'''
         line_info = None
         frame = gdb.selected_frame()  # PC is here
         disassemble = frame.architecture().disassemble
+        height = self.height or (term_height - 1)
         try:
             # disassemble the current block
             block = gdb.block_for_pc(frame.pc())
@@ -1049,7 +1050,6 @@ instructions constituting the current statement are marked, if available.'''
             pc_index = next(index for index, instr in enumerate(asm)
                             if instr['addr'] == frame.pc())
             # compute the instruction range
-            height = self.height or (term_height - 1)
             start = pc_index - int(height / 2) + self.offset
             end = start + height
             # extra at start
