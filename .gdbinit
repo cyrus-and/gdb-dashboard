@@ -1265,7 +1265,7 @@ class Variables(Dashboard.Module):
     def fetch(frame, data, compact):
         lines = []
         for elem in data or []:
-            name = elem.sym
+            name = ansi(elem.sym, R.style_high)
             equal = ansi('=', R.style_low)
             value = format_value(elem.sym.value(frame), compact)
             lines.append('{} {} {}'.format(name, equal, value))
@@ -1398,8 +1398,9 @@ class History(Dashboard.Module):
         for i in range(-self.limit + 1, 1):
             try:
                 value = format_value(gdb.history(i))
-                value_id = ansi('$${}', R.style_low).format(abs(i))
-                line = '{} = {}'.format(value_id, value)
+                value_id = ansi('$${}', R.style_high).format(abs(i))
+                equal = ansi('=', R.style_low)
+                line = '{} {} {}'.format(value_id, equal, value)
                 out.append(line)
             except gdb.error:
                 continue
@@ -1728,8 +1729,9 @@ class Expressions(Dashboard.Module):
             except gdb.error as e:
                 value = ansi(e, R.style_error)
             number = ansi(number, R.style_selected_2)
-            expression = ansi(expression, R.style_low)
-            out.append('[{}] {} = {}'.format(number, expression, value))
+            expression = ansi(expression, R.style_high)
+            equal = ansi('=', R.style_low)
+            out.append('[{}] {} {} {}'.format(number, expression, equal, value))
         return out
 
     def watch(self, arg):
