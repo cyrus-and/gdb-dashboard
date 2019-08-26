@@ -1080,20 +1080,10 @@ instructions constituting the current statement are marked, if available.'''
             except gdb.error as e:
                 msg = '{}'.format(e)
                 return [ansi(msg, R.style_error)]
-        # fetch function start if available
+        # fetch function start if available (e.g., not with @plt)
         func_start = None
-        if self.show_function and frame.name():
-            try:
-                # it may happen that the frame name is the whole function
-                # declaration, instead of just the name, e.g., 'getkey()', so it
-                # would be treated as a function call by 'gdb.parse_and_eval',
-                # hence the trim, see #87 and #88
-                func_name = frame.name().split('(')[0]
-                value = gdb.parse_and_eval(func_name).address
-                func_start = to_unsigned(value)
-            except gdb.error:
-                pass  # e.g., @plt
-        # fetch the assembly flavor anduse it as hint for Pygments
+        if self.show_function and frame.function():
+            func_start = to_unsigned(frame.function().value())
         # fetch the assembly flavor and use it as hint for Pygments
         try:
             flavor = gdb.parameter('disassembly-flavor')
@@ -1126,7 +1116,7 @@ instructions constituting the current statement are marked, if available.'''
                 if func_start:
                     offset = '{:+d}'.format(addr - func_start)
                     offset = offset.ljust(max_offset + 1)  # sign
-                    func_info = '{}{}'.format(frame.name(), offset)
+                    func_info = '{}{}'.format(frame.function(), offset)
                 else:
                     func_info = '?'
             else:
@@ -1336,28 +1326,16 @@ location, if available. Optionally list the frame arguments and locals too.'''
     def get_pc_line(frame, style):
         frame_pc = ansi(format_address(frame.pc()), style)
         info = 'from {}'.format(frame_pc)
-        if frame.name():
-            frame_name = ansi(frame.name(), style)
-            try:
-                # try to compute the offset relative to the current function (it
-                # may happen that the frame name is the whole function
-                # declaration, instead of just the name, e.g., 'getkey()', so it
-                # would be treated as a function call by 'gdb.parse_and_eval',
-                # hence the trim, see #87 and #88)
-                value = gdb.parse_and_eval(frame.name().split('(')[0]).address
-                # it can be None even if it is part of the "stack" (C++)
-                if value:
-                    func_start = to_unsigned(value)
-                    offset = frame.pc() - func_start
-                    frame_name += '+' + ansi(str(offset), style)
-            except gdb.error:
-                pass  # e.g., @plt
-            info += ' in {}'.format(frame_name)
-            sal = frame.find_sal()
-            if sal.symtab:
-                file_name = ansi(sal.symtab.filename, style)
-                file_line = ansi(str(sal.line), style)
-                info += ' at {}:{}'.format(file_name, file_line)
+        if frame.function():
+            name = ansi(frame.function(), style)
+            func_start = to_unsigned(frame.function().value())
+            offset = ansi(str(frame.pc() - func_start), style)
+            info += ' in {}+{}'.format(name, offset)
+        sal = frame.find_sal()
+        if sal and sal.symtab:
+            file_name = ansi(sal.symtab.filename, style)
+            file_line = ansi(str(sal.line), style)
+            info += ' at {}:{}'.format(file_name, file_line)
         return info
 
     def attributes(self):
