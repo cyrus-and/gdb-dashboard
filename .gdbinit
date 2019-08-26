@@ -1094,6 +1094,7 @@ instructions constituting the current statement are marked, if available.'''
             except gdb.error:
                 pass  # e.g., @plt
         # fetch the assembly flavor anduse it as hint for Pygments
+        # fetch the assembly flavor and use it as hint for Pygments
         try:
             flavor = gdb.parameter('disassembly-flavor')
         except:
