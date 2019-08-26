@@ -1045,9 +1045,17 @@ instructions constituting the current statement are marked, if available.'''
         disassemble = frame.architecture().disassemble
         height = self.height or (term_height - 1)
         try:
-            # disassemble the current block
-            block = gdb.block_for_pc(frame.pc())
-            asm = disassemble(block.start, end_pc=block.end - 1)
+            # disassemble the current block (using function information if
+            # possible)
+            if frame.function():
+                block = frame.function().symtab.global_block()
+                asm_start = to_unsigned(frame.function().value())
+                asm_end = block.end - 1
+            else:
+                block =  gdb.block_for_pc(frame.pc())
+                asm_start = block.start
+                asm_end = block.end - 1
+            asm = disassemble(asm_start, end_pc=asm_end)
             # find the location of the PC
             pc_index = next(index for index, instr in enumerate(asm)
                             if instr['addr'] == frame.pc())
