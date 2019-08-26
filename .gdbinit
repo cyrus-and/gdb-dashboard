@@ -688,14 +688,16 @@ file.'''
                 fs.write('{} -output {}\n'.format(prefix, output))
 
     class OutputCommand(gdb.Command):
-        '''Set the output file/TTY for both the dashboard and modules.
+        '''Set the output file/TTY for the whole dashboard or single modules.
 The dashboard/module will be written to the specified file, which will be
 created if it does not exist. If the specified file identifies a terminal then
-its geometry will be used to format the dashboard, otherwise falls back to the
-geometry of the main GDB terminal. Without argument the dashboard, the
-output/messages and modules which do not specify the output will be printed on
-standard output (default). Without argument the module will be printed where the
-dashboard will be printed.'''
+its geometry will be used, otherwise it falls back to the geometry of the main
+GDB terminal. When invoked without argument on the dashboard, the
+output/messages and modules which do not specify an output themselves will be
+printed on standard output (default). When invoked without argument on a module,
+it will be printed where the dashboard will be printed.
+An overview of all the outputs can be obtained with the `dashboard -layout`
+command.'''
 
         def __init__(self, dashboard, prefix=None, obj=None):
             if not prefix:
