@@ -940,16 +940,18 @@ class Source(Dashboard.Module):
             pass  # delay error check to open()
         # style changed, different file name or file modified in the meanwhile
         if style_changed or file_name != self.file_name or ts and ts > self.ts:
-            self.file_name = file_name
-            self.ts = ts
             try:
-                highlighter = Beautifier(self.file_name, self.tab_size)
+                highlighter = Beautifier(file_name, self.tab_size)
                 self.highlighted = highlighter.active
-                with open(self.file_name) as source_file:
+                with open(file_name) as source_file:
                     source = highlighter.process(source_file.read())
                     self.source_lines = source.split('\n')
+                # store file name and timestamp only if success to have
+                # persistent errors
+                self.file_name = file_name
+                self.ts = ts
             except Exception as e:
-                msg = 'Cannot display "{}" ({})'.format(self.file_name, e)
+                msg = 'Cannot display "{}"'.format(file_name)
                 return [ansi(msg, R.style_error)]
         # compute the line range
         height = self.height or (term_height - 1)
