@@ -20,7 +20,7 @@ Optionally install [Pygments][] to enable syntax highlighting:
 pip install pygments
 ```
 
-Then debug as usual, the dashboard can be reached via the `dashboard` GDB command while `help dashboard` is a good starting point to learn about all the features.
+Then debug as usual, the dashboard will appear automatically when the inferior program is paused. Commands and configurations can be reached via the `dashboard` GDB command while `help dashboard` is a good starting point to learn about all the functions.
 
 ## Features
 
@@ -264,22 +264,23 @@ The list of all the available styles can be obtained with (from GDB itself):
 
 ```python
 python
-from pygments.styles import get_all_styles as styles
-for s in styles():
-    print(s)
+from pygments.styles import *
+for style in get_all_styles():
+    print(style)
 end
 ```
 
-To conveniently cycle through and try each available style (press `Return` to try the next style and `Ctrl-D` to exit):
+To conveniently cycle through and try each available style:
 
 ```python
 python
-from pygments.styles import get_all_styles as styles
-for s in styles():
-    c = 'dashboard -style syntax_highlighting {!r}'.format(s)
-    gdb.execute(c)
-    print(c)
-    input()
+from pygments.styles import *
+for style in get_all_styles():
+    command = 'dashboard -style syntax_highlighting {!r}'.format(style)
+    gdb.execute(command)
+    print(command)
+    if input('Done? (y/N) ') == 'y':
+        break
 end
 ```
 
