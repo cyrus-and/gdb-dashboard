@@ -20,7 +20,7 @@ Optionally install [Pygments][] to enable syntax highlighting:
 pip install pygments
 ```
 
-Then use GDB as always, the dashboard can be reached via the `dashboard` command and `help dashboard` is a good starting point to learn about all the features.
+Then debug as usual, the dashboard can be reached via the `dashboard` GDB command while `help dashboard` is a good starting point to learn about all the features.
 
 ## Features
 
