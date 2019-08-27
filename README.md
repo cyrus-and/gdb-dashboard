@@ -46,7 +46,11 @@ Then debug as usual, the dashboard will appear automatically when the inferior p
 
 ## Requirements
 
-GDB dashboard requires at least GDB 7.7 compiled with Python 2.7 in order to work properly. See [#1][] for more details/workarounds.
+GDB dashboard requires at least GDB 7.7 compiled with Python 2.7 in order to work properly, see [#1][] for more details and possible workarounds. To find the Python version used by GDB run:
+
+```
+gdb --batch -ex 'python import sys; print(sys.version)'
+```
 
 Make sure that the system locale is configured to use UTF-8, in most cases it already is, otherwise (in case of `UnicodeEncodeError` errors) a simple solution is to export the following environment variable:
 
@@ -54,9 +58,9 @@ Make sure that the system locale is configured to use UTF-8, in most cases it al
 export LC_CTYPE=C.UTF-8
 ```
 
-[#1]: https://github.com/cyrus-and/gdb-dashboard/issues/1
-
 On Windows the `windows-curses` Python package is needed in order to obtain the correct terminal size.
+
+[#1]: https://github.com/cyrus-and/gdb-dashboard/issues/1
 
 ## Default modules
 
