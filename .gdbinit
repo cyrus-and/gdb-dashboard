@@ -134,6 +134,9 @@ which `{pid}` is expanded with the process identifier of the target program.''',
             },
             'style_error': {
                 'default': '31'
+            },
+            'style_critical': {
+                'default': '30;41'
             }
         }
 
@@ -229,6 +232,26 @@ def format_value(value, compact=None):
     if R.max_value_length > 0 and len(out) > R.max_value_length:
         out = out[0:R.max_value_length] + ansi('[...]', R.style_error)
     return out
+
+# XXX parsing the output of `info breakpoints` is apparently the best option
+# right now, see: https://sourceware.org/bugzilla/show_bug.cgi?id=18385
+def fetch_breakpoints():
+    breakpoints = []
+    for line in run('info breakpoints').split('\n'):
+        fields = line.split()
+        if len(fields) < 5 or fields[1] != 'breakpoint':
+            continue
+        address = int(fields[4], 16)
+        enabled = fields[3] == 'y'
+        sal = gdb.find_pc_line(address)
+        file_name = sal.symtab.fullname() if sal.symtab else None
+        breakpoints.append({
+            'address': address,
+            'enabled': enabled,
+            'file_name': file_name,
+            'line': sal.line,
+        })
+    return breakpoints
 
 class Beautifier():
     def __init__(self, hint, tab_size=4):
@@ -969,6 +992,8 @@ class Source(Dashboard.Module):
             end = len(self.source_lines)
         else:
             end = max(end, 0)
+        # find the breakpoints for teh current file
+        breakpoints = list(filter(lambda x: x['file_name'] == file_name, fetch_breakpoints()))
         # return the source code listing
         out = []
         number_format = '{{:>{}}}'.format(len(str(end)))
@@ -979,15 +1004,24 @@ class Source(Dashboard.Module):
                 # the current line has a different style without ANSI
                 if R.ansi:
                     if self.highlighted:
-                        line_format = ansi(number_format, R.style_selected_1) + ' {}'
+                        line_format = '{}' + ansi(number_format, R.style_selected_1) + ' {}'
                     else:
-                        line_format = ansi(number_format + ' {}', R.style_selected_1)
+                        line_format = '{}' + ansi(number_format + ' {}', R.style_selected_1)
                 else:
                     # just show a plain text indicator
-                    line_format = number_format + '>{}'
+                    line_format = '{}' + number_format + '>{}'
             else:
-                line_format = ansi(number_format, R.style_low) + ' {}'
-            out.append(line_format.format(number, line.rstrip('\n')))
+                line_format = '{}' + ansi(number_format, R.style_low) + ' {}'
+            # check for breakpoint presence
+            enabled = None
+            for breakpoint in breakpoints:
+                if breakpoint['line'] == number:
+                    enabled = enabled or breakpoint['enabled']
+            if enabled is None:
+                breakpoint = ' '
+            else:
+                breakpoint = ansi('!', R.style_critical) if enabled else ansi('-', R.style_low)
+            out.append(line_format.format(breakpoint, number, line.rstrip('\n')))
         # return the output along with scroll indicators
         if len(out) <= height:
             extra = [ansi('~', R.style_low)]
@@ -1106,6 +1140,7 @@ instructions constituting the current statement are marked, if available.'''
             max_offset = max(len(str(abs(asm[0]['addr'] - func_start))),
                              len(str(abs(asm[-1]['addr'] - func_start))))
         # return the machine code
+        breakpoints = fetch_breakpoints()
         max_length = max(instr['length'] for instr in asm) if asm else 0
         inferior = gdb.selected_inferior()
         out = []
@@ -1131,7 +1166,7 @@ instructions constituting the current statement are marked, if available.'''
                     func_info = '?'
             else:
                 func_info = ''
-            format_string = '{}{}{}{}{}'
+            format_string = '{}{}{}{}{}{}'
             indicator = ' '
             text = ' ' + highlighter.process(text)
             if addr == frame.pc():
@@ -1155,7 +1190,16 @@ instructions constituting the current statement are marked, if available.'''
             else:
                 addr_str = ansi(addr_str, R.style_low)
                 func_info = ansi(func_info, R.style_low)
-            out.append(format_string.format(addr_str, indicator, opcodes, func_info, text))
+            # check for breakpoint presence
+            enabled = None
+            for breakpoint in breakpoints:
+                if breakpoint['address'] == addr:
+                    enabled = enabled or breakpoint['enabled']
+            if enabled is None:
+                breakpoint = ' '
+            else:
+                breakpoint = ansi('!', R.style_critical) if enabled else ansi('-', R.style_low)
+            out.append(format_string.format(breakpoint, addr_str, indicator, opcodes, func_info, text))
         # return the output along with scroll indicators
         if len(out) <= height:
             extra = [ansi('~', R.style_low)]

@@ -300,7 +300,8 @@ These are general purpose [ANSI][] styles defined for convenience and used withi
 - `style_selected_2`;
 - `style_low`;
 - `style_high`;
-- `style_error`.
+- `style_error`;
+- `style_critical`.
 
 ## Custom modules
 
