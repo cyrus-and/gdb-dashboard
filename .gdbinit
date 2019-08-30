@@ -241,7 +241,10 @@ def fetch_breakpoints():
         fields = line.split()
         if len(fields) < 5 or fields[1] != 'breakpoint':
             continue
-        address = int(fields[4], 16)
+        try:
+            address = int(fields[4], 16)
+        except ValueError:
+            continue
         enabled = fields[3] == 'y'
         sal = gdb.find_pc_line(address)
         file_name = sal.symtab.fullname() if sal.symtab else None
