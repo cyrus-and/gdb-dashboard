@@ -341,8 +341,6 @@ class Dashboard(gdb.Command):
             try:
                 with open(output, 'w') as fs:
                     fs.write(Dashboard.reset_terminal())
-                    fs.write(Dashboard.clear_screen())
-                    fs.write('--- EXITED ---\n')
             except:
                 # skip cleanup for invalid outputs
                 pass
@@ -421,8 +419,7 @@ class Dashboard(gdb.Command):
                 if output:
                     fs = open(output, 'w')
                     fd = fs.fileno()
-                    # setup the terminal
-                    fs.write(Dashboard.hide_cursor())
+                    fs.write(Dashboard.setup_terminal())
                 else:
                     fs = gdb
                     fd = 1  # stdout
@@ -580,14 +577,14 @@ class Dashboard(gdb.Command):
         return '\x1b[H\x1b[J'
 
     @staticmethod
-    def hide_cursor():
-        # ANSI: hide cursor
-        return '\x1b[?25l'
+    def setup_terminal():
+        # ANSI: enable alternative screen buffer and hide cursor
+        return '\x1b[?1049h\x1b[?25l'
 
     @staticmethod
     def reset_terminal():
-        # ANSI: show cursor and reset to initial state
-        return '\x1b[?25h\x1bc'
+        # ANSI: disable alternative screen buffer and show cursor
+        return '\x1b[?1049l\x1b[?25h'
 
 # Module descriptor ------------------------------------------------------------
 
@@ -751,8 +748,6 @@ command.'''
                 try:
                     with open(self.obj.output, 'w') as fs:
                         fs.write(Dashboard.reset_terminal())
-                        fs.write(Dashboard.clear_screen())
-                        fs.write('--- RELEASED ---\n')
                 except:
                     # just do nothing if the file is not writable
                     pass
