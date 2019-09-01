@@ -586,8 +586,8 @@ class Dashboard(gdb.Command):
 
     @staticmethod
     def reset_terminal():
-        # ANSI: reset to initial state
-        return '\x1bc'
+        # ANSI: show cursor and reset to initial state
+        return '\x1b[?25h\x1bc'
 
 # Module descriptor ------------------------------------------------------------
 
