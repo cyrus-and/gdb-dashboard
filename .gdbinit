@@ -439,7 +439,7 @@ class Dashboard(gdb.Command):
                 # show message in separate terminals if all the modules are
                 # disabled
                 if output != self.output and not any(instances):
-                    buf += Dashboard.clear_screen()
+                    buf += '--- NO MODULE TO DISPLAY ---\n'
                     fs.write(buf)
                     continue
                 # process all the modules for that output
