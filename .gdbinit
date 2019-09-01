@@ -37,12 +37,12 @@ The list of all the available styles can be obtained with (from GDB itself):
             # values formatting
             'compact_values': {
                 'doc': 'Display complex objects in a single line.',
-                'default': False,
+                'default': True,
                 'type': bool
             },
             'max_value_length': {
                 'doc': 'Maximum length for displayed values.',
-                'default': 0,
+                'default': 100,
                 'type': int
             },
             'value_truncation_string': {
@@ -1284,7 +1284,7 @@ class Variables(Dashboard.Module):
             },
             'compact': {
                 'doc': 'Single-line display flag.',
-                'default': False,
+                'default': True,
                 'type': bool
             }
         }
