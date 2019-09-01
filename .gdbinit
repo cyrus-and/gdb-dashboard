@@ -1069,6 +1069,8 @@ instructions constituting the current statement are marked, if available.'''
 
     def __init__(self):
         self.offset = 0
+        self.cache_key = None
+        self.cache_asm = None
 
     def label(self):
         return 'Assembly'
@@ -1092,7 +1094,13 @@ instructions constituting the current statement are marked, if available.'''
                 block =  gdb.block_for_pc(frame.pc())
                 asm_start = block.start
                 asm_end = block.end - 1
-            asm = disassemble(asm_start, end_pc=asm_end)
+            # fetch asm from cache or disassemble
+            if self.cache_key == (asm_start, asm_end):
+                asm = self.cache_asm
+            else:
+                asm = disassemble(asm_start, end_pc=asm_end)
+                self.cache_key = (asm_start, asm_end)
+                self.cache_asm = asm
             # find the location of the PC
             pc_index = next(index for index, instr in enumerate(asm)
                             if instr['addr'] == frame.pc())
