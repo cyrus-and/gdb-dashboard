@@ -140,7 +140,7 @@ which `{pid}` is expanded with the process identifier of the target program.''',
                 'default': '31'
             },
             'style_critical': {
-                'default': '30;41'
+                'default': '0;41'
             }
         }
 
