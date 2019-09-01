@@ -45,6 +45,10 @@ The list of all the available styles can be obtained with (from GDB itself):
                 'default': 0,
                 'type': int
             },
+            'value_truncation_string': {
+                'doc': 'String to use to denote value truncation.',
+                'default': '…',
+            },
             'dereference': {
                 'doc': 'Annotate pointers with the pointed value.',
                 'default': True,
@@ -230,7 +234,7 @@ def format_value(value, compact=None):
         out = re.sub(r'$\s*', '', out, flags=re.MULTILINE)
     # truncate the value
     if R.max_value_length > 0 and len(out) > R.max_value_length:
-        out = out[0:R.max_value_length] + ansi('[...]', R.style_error)
+        out = out[0:R.max_value_length] + ansi(R.value_truncation_string, R.style_critical)
     return out
 
 # XXX parsing the output of `info breakpoints` is apparently the best option
