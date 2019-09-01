@@ -342,7 +342,7 @@ class Dashboard(gdb.Command):
                 with open(output, 'w') as fs:
                     fs.write(Dashboard.reset_terminal())
                     fs.write(Dashboard.clear_screen())
-                    fs.write('--- EXITED ---')
+                    fs.write('--- EXITED ---\n')
             except:
                 # skip cleanup for invalid outputs
                 pass
