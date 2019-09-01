@@ -750,6 +750,7 @@ command.'''
             if self.obj.output:
                 try:
                     with open(self.obj.output, 'w') as fs:
+                        fs.write(Dashboard.reset_terminal())
                         fs.write(Dashboard.clear_screen())
                         fs.write('--- RELEASED ---\n')
                 except:
