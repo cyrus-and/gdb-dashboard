@@ -1095,16 +1095,16 @@ instructions constituting the current statement are marked, if available.'''
         frame = gdb.selected_frame()  # PC is here
         height = self.height or (term_height - 1)
         try:
-            # disassemble the current block (using function information if
-            # possible)
+            # disassemble the current block (if function information is
+            # available then try to obtain the boundaries by looking at the
+            # superblocks)
+            block = frame.block()
             if frame.function():
-                block = frame.function().symtab.global_block()
-                asm_start = to_unsigned(frame.function().value())
-                asm_end = block.end - 1
-            else:
-                block = gdb.block_for_pc(frame.pc())
-                asm_start = block.start
-                asm_end = block.end - 1
+                while block and (not block.function or block.function.name != frame.function().name):
+                    block = block.superblock
+                block = block or frame.block()
+            asm_start = block.start
+            asm_end = block.end - 1
             asm = self.fetch_asm(asm_start, asm_end, False, highlighter)
             # find the location of the PC
             pc_index = next(index for index, instr in enumerate(asm)
