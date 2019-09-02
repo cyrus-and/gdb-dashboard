@@ -1102,7 +1102,7 @@ instructions constituting the current statement are marked, if available.'''
                 asm_start = to_unsigned(frame.function().value())
                 asm_end = block.end - 1
             else:
-                block =  gdb.block_for_pc(frame.pc())
+                block = gdb.block_for_pc(frame.pc())
                 asm_start = block.start
                 asm_end = block.end - 1
             asm = self.fetch_asm(asm_start, asm_end, False, highlighter)
@@ -1218,7 +1218,6 @@ instructions constituting the current statement are marked, if available.'''
 
     def fetch_asm(self, start, end_or_count, relative, highlighter):
         # fetch asm from cache or disassemble
-        disassemble = gdb.selected_frame().architecture().disassemble
         if self.cache_key == (start, end_or_count):
             asm = self.cache_asm
         else:
@@ -1226,7 +1225,7 @@ instructions constituting the current statement are marked, if available.'''
                 'start_pc': start,
                 'count' if relative else 'end_pc': end_or_count
             }
-            asm = disassemble(**kwargs)
+            asm = gdb.selected_frame().architecture().disassemble(**kwargs)
             self.cache_key = (start, end_or_count)
             self.cache_asm = asm
             # syntax highlight the cached entry
