@@ -1081,9 +1081,18 @@ instructions constituting the current statement are marked, if available.'''
         # skip if the current thread is not stopped
         if not gdb.selected_thread().is_stopped():
             return []
+        # flush the cache if the style is changed
+        if style_changed:
+            self.cache_key = None
+        # prepare the highlighter
+        try:
+            flavor = gdb.parameter('disassembly-flavor')
+        except:
+            flavor = 'att'  # not always defined (see #36)
+        highlighter = Beautifier(flavor)
+        # fetch the assembly code
         line_info = None
         frame = gdb.selected_frame()  # PC is here
-        disassemble = frame.architecture().disassemble
         height = self.height or (term_height - 1)
         try:
             # disassemble the current block (using function information if
@@ -1096,13 +1105,7 @@ instructions constituting the current statement are marked, if available.'''
                 block =  gdb.block_for_pc(frame.pc())
                 asm_start = block.start
                 asm_end = block.end - 1
-            # fetch asm from cache or disassemble
-            if self.cache_key == (asm_start, asm_end):
-                asm = self.cache_asm
-            else:
-                asm = disassemble(asm_start, end_pc=asm_end)
-                self.cache_key = (asm_start, asm_end)
-                self.cache_asm = asm
+            asm = self.fetch_asm(asm_start, asm_end, False, highlighter)
             # find the location of the PC
             pc_index = next(index for index, instr in enumerate(asm)
                             if instr['addr'] == frame.pc())
@@ -1133,7 +1136,7 @@ instructions constituting the current statement are marked, if available.'''
             try:
                 extra_start = 0
                 extra_end = 0
-                asm = disassemble(frame.pc(), count=height)
+                asm = self.fetch_asm(frame.pc(), height, True, highlighter)
             except gdb.error as e:
                 msg = '{}'.format(e)
                 return [ansi(msg, R.style_error)]
@@ -1141,13 +1144,6 @@ instructions constituting the current statement are marked, if available.'''
         func_start = None
         if self.show_function and frame.function():
             func_start = to_unsigned(frame.function().value())
-        # fetch the assembly flavor and use it as hint for Pygments
-        try:
-            flavor = gdb.parameter('disassembly-flavor')
-        except:
-            flavor = 'att'  # not always defined (see #36)
-        # prepare the highlighter
-        highlighter = Beautifier(flavor)
         # compute the maximum offset size
         if asm and func_start:
             max_offset = max(len(str(abs(asm[0]['addr'] - func_start))),
@@ -1181,7 +1177,7 @@ instructions constituting the current statement are marked, if available.'''
                 func_info = ''
             format_string = '{}{}{}{}{}{}'
             indicator = ' '
-            text = ' ' + highlighter.process(text)
+            text = ' ' + text
             if addr == frame.pc():
                 if not R.ansi:
                     indicator = '>'
@@ -1219,6 +1215,24 @@ instructions constituting the current statement are marked, if available.'''
             return extra_start * extra + out + extra_end * extra
         else:
             return out
+
+    def fetch_asm(self, start, end_or_count, relative, highlighter):
+        # fetch asm from cache or disassemble
+        disassemble = gdb.selected_frame().architecture().disassemble
+        if self.cache_key == (start, end_or_count):
+            asm = self.cache_asm
+        else:
+            kwargs = {
+                'start_pc': start,
+                'count' if relative else 'end_pc': end_or_count
+            }
+            asm = disassemble(**kwargs)
+            self.cache_key = (start, end_or_count)
+            self.cache_asm = asm
+            # syntax highlight the cached entry
+            for instr in asm:
+                instr['asm'] = highlighter.process(instr['asm'])
+        return asm
 
     def scroll(self, arg):
         if arg:
