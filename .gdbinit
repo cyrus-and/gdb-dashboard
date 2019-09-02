@@ -239,25 +239,45 @@ def format_value(value, compact=None):
 
 # XXX parsing the output of `info breakpoints` is apparently the best option
 # right now, see: https://sourceware.org/bugzilla/show_bug.cgi?id=18385
-def fetch_breakpoints():
-    breakpoints = []
+def fetch_breakpoints(regular_only):
+    # fetch breakpoints addresses
+    addresses = dict()
     for line in run('info breakpoints').split('\n'):
-        fields = line.split()
-        if len(fields) < 5 or fields[1] != 'breakpoint':
+        # just keep numbered lines
+        if not line or not line[0].isdigit():
             continue
+        # extract breakpoint number and address (if regular non-pending breakpoint)
         try:
-            address = int(fields[4], 16)
+            fields = line.split()
+            number = int(fields[0], 16)
+            address = int(fields[4], 16) if len(fields) >= 5 and fields[1] == 'breakpoint' else None
         except ValueError:
             continue
-        enabled = fields[3] == 'y'
-        sal = gdb.find_pc_line(address)
-        file_name = sal.symtab.fullname() if sal.symtab else None
-        breakpoints.append({
-            'address': address,
-            'enabled': enabled,
-            'file_name': file_name,
-            'line': sal.line,
-        })
+        addresses[number] = address
+    # fetch breakpoints from the API and complement with address and source
+    # information
+    breakpoints = []
+    for gdb_breakpoint in gdb.breakpoints():
+        if gdb_breakpoint.type != gdb.BP_BREAKPOINT and regular_only:
+            continue
+        # add useful fields to the object
+        breakpoint = dict()
+        breakpoint['number'] = gdb_breakpoint.number
+        breakpoint['type'] = gdb_breakpoint.type
+        breakpoint['enabled'] = gdb_breakpoint.enabled
+        breakpoint['location'] = gdb_breakpoint.location
+        breakpoint['expression'] = gdb_breakpoint.expression
+        breakpoint['condition'] = gdb_breakpoint.condition
+        breakpoint['temporary'] = gdb_breakpoint.temporary
+        breakpoint['hit_count'] = gdb_breakpoint.hit_count
+        # add address and source information
+        address = addresses.get(gdb_breakpoint.number)
+        if address:
+            sal = gdb.find_pc_line(address)
+            breakpoint['address'] = address
+            breakpoint['file_name'] = sal.symtab.fullname() if sal.symtab else None
+            breakpoint['file_line'] = sal.line
+        breakpoints.append(breakpoint)
     return breakpoints
 
 class Beautifier():
@@ -998,7 +1018,7 @@ class Source(Dashboard.Module):
         else:
             end = max(end, 0)
         # find the breakpoints for teh current file
-        breakpoints = list(filter(lambda x: x['file_name'] == file_name, fetch_breakpoints()))
+        breakpoints = list(filter(lambda x: x.get('file_name') == file_name, fetch_breakpoints(True)))
         # return the source code listing
         out = []
         number_format = '{{:>{}}}'.format(len(str(end)))
@@ -1020,7 +1040,7 @@ class Source(Dashboard.Module):
             # check for breakpoint presence
             enabled = None
             for breakpoint in breakpoints:
-                if breakpoint['line'] == number:
+                if breakpoint['file_line'] == number:
                     enabled = enabled or breakpoint['enabled']
             if enabled is None:
                 breakpoint = ' '
@@ -1149,7 +1169,7 @@ instructions constituting the current statement are marked, if available.'''
             max_offset = max(len(str(abs(asm[0]['addr'] - func_start))),
                              len(str(abs(asm[-1]['addr'] - func_start))))
         # return the machine code
-        breakpoints = fetch_breakpoints()
+        breakpoints = fetch_breakpoints(True)
         max_length = max(instr['length'] for instr in asm) if asm else 0
         inferior = gdb.selected_inferior()
         out = []
@@ -1202,7 +1222,7 @@ instructions constituting the current statement are marked, if available.'''
             # check for breakpoint presence
             enabled = None
             for breakpoint in breakpoints:
-                if breakpoint['address'] == addr:
+                if breakpoint.get('address') == addr:
                     enabled = enabled or breakpoint['enabled']
             if enabled is None:
                 breakpoint = ' '
@@ -1829,6 +1849,60 @@ class Expressions(Dashboard.Module):
                 'doc': 'Clear all the watched expressions.'
             }
         }
+
+class Breakpoints(Dashboard.Module):
+    '''Display the breakpoints list.'''
+
+    Names = {
+        gdb.BP_BREAKPOINT: 'break',
+        gdb.BP_WATCHPOINT: 'watch',
+        gdb.BP_HARDWARE_WATCHPOINT: 'write watch',
+        gdb.BP_READ_WATCHPOINT: 'read watch',
+        gdb.BP_ACCESS_WATCHPOINT: 'access watch'
+    }
+
+    def label(self):
+        return 'Breakpoints'
+
+    def lines(self, term_width, term_height, style_changed):
+        out = []
+        for breakpoint in fetch_breakpoints(False):
+            # format common information
+            style = R.style_selected_1 if breakpoint['enabled'] else R.style_selected_2
+            number = ansi(breakpoint['number'], style)
+            bp_type = ansi(Breakpoints.Names[breakpoint['type']], style)
+            if breakpoint['temporary']:
+                bp_type = bp_type + ' {}'.format(ansi('once', style))
+            if not R.ansi and breakpoint['enabled']:
+                bp_type = 'disabled ' + bp_type
+            line = '[{}] {}'.format(number, bp_type)
+            if breakpoint['type'] == gdb.BP_BREAKPOINT:
+                # format memory address
+                address = breakpoint.get('address')
+                if address:
+                    line += ' at {}'.format(ansi(format_address(address), style))
+                # format source information
+                file_name = breakpoint.get('file_name')
+                file_line = breakpoint.get('file_line')
+                if file_name and file_line:
+                    file_name = ansi(file_name, style)
+                    file_line = ansi(file_line, style)
+                    line += ' in {}:{}'.format(file_name, file_line)
+                # format user location
+                location = breakpoint['location']
+                line += ' for {}'.format(ansi(location, style))
+            else:
+                # format user expression
+                expression = breakpoint['expression']
+                line += ' for {}'.format(ansi(expression, style))
+            # format condition
+            condition = breakpoint['condition']
+            if condition:
+                line += ' if {}'.format(ansi(condition, style))
+            # format hit count
+            line += ' hit {} times'.format(ansi(breakpoint['hit_count'], style))
+            out.append(line)
+        return out
 
 # XXX traceback line numbers in this Python block must be increased by 1
 end

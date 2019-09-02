@@ -84,6 +84,8 @@ Follows the list of bundled default modules, refer to the GDB help system for th
 
 `expressions` watches user expressions.
 
+`breakpoints` displays the breakpoints list.
+
 ## Dashboard output
 
 By default the dashboard is displayed in the GDB terminal but the `-output` command of both the dashboard and modules can change this behavior. When the output of a module is not specified then the global output is used.
