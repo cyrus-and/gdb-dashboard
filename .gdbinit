@@ -275,7 +275,7 @@ def fetch_breakpoints(regular_only):
         if address:
             sal = gdb.find_pc_line(address)
             breakpoint['address'] = address
-            breakpoint['file_name'] = sal.symtab.fullname() if sal.symtab else None
+            breakpoint['file_name'] = sal.symtab.filename if sal.symtab else None
             breakpoint['file_line'] = sal.line
         breakpoints.append(breakpoint)
     return breakpoints
@@ -980,7 +980,7 @@ class Source(Dashboard.Module):
         if current_line == 0:
             return []
         # reload the source file if changed
-        file_name = sal.symtab.fullname()
+        file_name = sal.symtab.filename
         ts = None
         try:
             ts = os.path.getmtime(file_name)
