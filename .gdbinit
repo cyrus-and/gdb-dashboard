@@ -1654,7 +1654,6 @@ class Registers(Dashboard.Module):
         else:
             register_list = list(map(lambda line: line.split(None, 1)[0],
                                      run('info registers').strip().split('\n')))
-
         # fetch registers status
         registers = []
         for name in register_list:
