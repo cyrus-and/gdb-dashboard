@@ -273,6 +273,7 @@ def fetch_breakpoints(regular_only, allow_pending=False):
         breakpoint['temporary'] = gdb_breakpoint.temporary
         breakpoint['hit_count'] = gdb_breakpoint.hit_count
         breakpoint['pending'] = gdb_breakpoint.pending
+        breakpoint['visible'] = gdb_breakpoint.visible
         # add address and source information
         address = addresses.get(gdb_breakpoint.number)
         if address:
