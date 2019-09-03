@@ -1672,16 +1672,15 @@ class Registers(Dashboard.Module):
         max_value = max(len(value) for _, value, _ in registers)
         max_width = max_name + max_value + 2
         per_line = min(int((term_width + 1) / max_width) or 1, len(registers))
-        # redistribute extra space among columns
-        extra = int((term_width + 1 - max_width * per_line) / per_line)
-        max_name += int(extra / 2)
+        # compute extra padding space
+        extra = int((term_width + 1 - max_width * per_line) / (per_line - 1)) if per_line > 1 else 0
         # format registers info
         partial = []
         for name, value, changed in registers:
             styled_name = ansi(name.rjust(max_name), R.style_low)
             value_style = R.style_selected_1 if changed else ''
             styled_value = ansi(value.ljust(max_value), value_style)
-            partial.append(styled_name + ' ' + styled_value)
+            partial.append(styled_name + ' ' + styled_value + extra * ' ')
         out = []
         if self.column_major:
             num_lines = int(math.ceil(float(len(partial)) / per_line))
