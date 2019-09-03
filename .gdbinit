@@ -1798,12 +1798,21 @@ class Expressions(Dashboard.Module):
 
     def lines(self, term_width, term_height, style_changed):
         out = []
+        default_radix = gdb.parameter('output-radix')
         for expression in self.table:
+            label = expression
+            match = re.match('^/(\d+) +(.+)$', expression)
             try:
+                if match:
+                    radix, expression = match.groups()
+                    run('set output-radix {}'.format(radix))
                 value = format_value(gdb.parse_and_eval(expression))
             except gdb.error as e:
                 value = ansi(e, R.style_error)
-            expression = ansi(expression, R.style_high)
+            finally:
+                if match:
+                    run('set output-radix {}'.format(default_radix))
+            expression = ansi(label, R.style_high)
             equal = ansi('=', R.style_low)
             out.append('{} {} {}'.format(expression, equal, value))
         return out
@@ -1830,7 +1839,7 @@ class Expressions(Dashboard.Module):
         return {
             'watch': {
                 'action': self.watch,
-                'doc': 'Watch an expression.',
+                'doc': 'Watch an expression using the format `[/<radix>] <expression>`.',
                 'complete': gdb.COMPLETE_EXPRESSION
             },
             'unwatch': {
