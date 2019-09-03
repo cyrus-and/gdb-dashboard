@@ -1499,9 +1499,8 @@ class Memory(Dashboard.Module):
     '''Allow to inspect memory regions.'''
 
     class Region():
-        def __init__(self, expression, address, length, module):
+        def __init__(self, expression, length, module):
             self.expression = expression
-            self.address = address
             self.length = length
             self.module = module
             self.original = None
@@ -1510,14 +1509,15 @@ class Memory(Dashboard.Module):
         def format(self):
             # fetch the memory content
             try:
+                address = Memory.parse_as_address(self.expression)
                 inferior = gdb.selected_inferior()
-                memory = inferior.read_memory(self.address, self.length)
+                memory = inferior.read_memory(address, self.length)
                 # set the original memory snapshot if needed
                 if not self.original:
                     self.original = memory
-            except gdb.error:
-                msg = 'Cannot access {} bytes starting at {}'
-                msg = msg.format(self.length, format_address(self.address))
+            except gdb.error as e:
+                msg = 'Cannot access {} bytes starting at {}: {}'
+                msg = msg.format(self.length, self.expression, e)
                 return [ansi(msg, R.style_error)]
 
             # format the memory content
@@ -1525,7 +1525,7 @@ class Memory(Dashboard.Module):
             for i in range(0, len(memory), self.module.row_length):
                 region = memory[i:i + self.module.row_length]
                 pad = self.module.row_length - len(region)
-                address = format_address(self.address + i)
+                address_str = format_address(address + i)
                 # compute changes
                 hexa = []
                 text = []
@@ -1546,7 +1546,7 @@ class Memory(Dashboard.Module):
                     text.append(text_byte)
                 # output the formatted line
                 out.append('{} {}{} {}{}'.format(
-                    ansi(address, R.style_low),
+                    ansi(address_str, R.style_low),
                     ' '.join(hexa), ansi(pad * ' --', R.style_low),
                     ''.join(text), ansi(pad * '.', R.style_low)))
             # update the latest memory snapshot
@@ -1577,31 +1577,30 @@ class Memory(Dashboard.Module):
 
     def lines(self, term_width, term_height, style_changed):
         out = []
-        for address, region in sorted(self.table.items()):
-            out.append(divider(term_width, region.expression))
+        for expression, region in self.table.items():
+            out.append(divider(term_width, expression))
             out.extend(region.format())
         return out
 
     def watch(self, arg):
         if arg:
             expression, _, length = arg.partition(' ')
-            address = Memory.parse_as_address(expression)
             if length:
                 length = Memory.parse_as_address(length)
             else:
                 length = self.row_length
-            self.table[address] = Memory.Region(expression, address, length, self)
+            self.table[expression] = Memory.Region(expression, length, self)
         else:
-            raise Exception('Specify an address')
+            raise Exception('Specify a memory location')
 
     def unwatch(self, arg):
         if arg:
             try:
-                del self.table[Memory.parse_as_address(arg)]
+                del self.table[arg]
             except KeyError:
-                raise Exception('Memory region not watched')
+                raise Exception('Memory expression not watched')
         else:
-            raise Exception('Specify an address')
+            raise Exception('Specify a matched memory expression')
 
     def clear(self, arg):
         self.table.clear()
@@ -1610,13 +1609,13 @@ class Memory(Dashboard.Module):
         return {
             'watch': {
                 'action': self.watch,
-                'doc': 'Watch a memory region by address and length.\n'
+                'doc': 'Watch a memory region by expression and length.\n'
                        'The length defaults to 16 byte.',
                 'complete': gdb.COMPLETE_EXPRESSION
             },
             'unwatch': {
                 'action': self.unwatch,
-                'doc': 'Stop watching a memory region by address.',
+                'doc': 'Stop watching a memory region by expression.',
                 'complete': gdb.COMPLETE_EXPRESSION
             },
             'clear': {
