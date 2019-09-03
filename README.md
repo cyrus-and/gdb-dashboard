@@ -220,7 +220,7 @@ There are two additional predefined subcommands: `-style` and `-output`.
 
 #### -style
 
-If a module declares some stylable attributes then the command `dashboard <module> -style` will be available. Its functioning is equivalent to the [`dashboard -style`](#dashboard--style-name-value) command but it does apply to a module.
+If a module declares some stylable attributes then the command `dashboard <module> -style` will be available. Its semantics is equivalent to the [`dashboard -style`](#dashboard--style-name-value) command but it does apply to a module.
 
 #### -output
 
