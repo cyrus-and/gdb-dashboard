@@ -96,7 +96,7 @@ which `{pid}` is expanded with the process identifier of the target program.''',
             },
             'divider_label_style_on_secondary': {
                 'doc': 'Label style for non-empty secondary dividers',
-                'default': '0'
+                'default': '1;37'
             },
             'divider_label_style_off_primary': {
                 'doc': 'Label style for empty primary dividers',
@@ -1499,7 +1499,8 @@ class Memory(Dashboard.Module):
     '''Allow to inspect memory regions.'''
 
     class Region():
-        def __init__(self, address, length, module):
+        def __init__(self, expression, address, length, module):
+            self.expression = expression
             self.address = address
             self.length = length
             self.module = module
@@ -1577,22 +1578,19 @@ class Memory(Dashboard.Module):
     def lines(self, term_width, term_height, style_changed):
         out = []
         for address, region in sorted(self.table.items()):
+            out.append(divider(term_width, region.expression))
             out.extend(region.format())
-            out.append(divider(term_width))
-        # drop last divider
-        if out:
-            del out[-1]
         return out
 
     def watch(self, arg):
         if arg:
-            address, _, length = arg.partition(' ')
-            address = Memory.parse_as_address(address)
+            expression, _, length = arg.partition(' ')
+            address = Memory.parse_as_address(expression)
             if length:
                 length = Memory.parse_as_address(length)
             else:
                 length = self.row_length
-            self.table[address] = Memory.Region(address, length, self)
+            self.table[address] = Memory.Region(expression, address, length, self)
         else:
             raise Exception('Specify an address')
 
