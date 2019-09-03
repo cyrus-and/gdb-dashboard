@@ -1029,14 +1029,14 @@ class Source(Dashboard.Module):
                 # the current line has a different style without ANSI
                 if R.ansi:
                     if self.highlighted:
-                        line_format = '{}' + ansi(number_format, R.style_selected_1) + ' {}'
+                        line_format = '{}' + ansi(number_format, R.style_selected_1) + '  {}'
                     else:
-                        line_format = '{}' + ansi(number_format + ' {}', R.style_selected_1)
+                        line_format = '{}' + ansi(number_format + '  {}', R.style_selected_1)
                 else:
                     # just show a plain text indicator
-                    line_format = '{}' + number_format + '>{}'
+                    line_format = '{}' + number_format + '> {}'
             else:
-                line_format = '{}' + ansi(number_format, R.style_low) + ' {}'
+                line_format = '{}' + ansi(number_format, R.style_low) + '  {}'
             # check for breakpoint presence
             enabled = None
             for breakpoint in breakpoints:
@@ -1182,7 +1182,7 @@ instructions constituting the current statement are marked, if available.'''
                 # fetch and format opcode
                 region = inferior.read_memory(addr, length)
                 opcodes = (' '.join('{:02x}'.format(ord(byte)) for byte in region))
-                opcodes += (max_length - len(region)) * 3 * ' ' + ' '
+                opcodes += (max_length - len(region)) * 3 * ' ' + '  '
             else:
                 opcodes = ''
             # compute the offset if available
@@ -1196,11 +1196,11 @@ instructions constituting the current statement are marked, if available.'''
             else:
                 func_info = ''
             format_string = '{}{}{}{}{}{}'
-            indicator = ' '
+            indicator = '  '
             text = ' ' + text
             if addr == frame.pc():
                 if not R.ansi:
-                    indicator = '>'
+                    indicator = '> '
                 addr_str = ansi(addr_str, R.style_selected_1)
                 indicator = ansi(indicator, R.style_selected_1)
                 opcodes = ansi(opcodes, R.style_selected_1)
@@ -1209,7 +1209,7 @@ instructions constituting the current statement are marked, if available.'''
                     text = ansi(text, R.style_selected_1)
             elif line_info and line_info.pc <= addr < line_info.last:
                 if not R.ansi:
-                    indicator = ':'
+                    indicator = ': '
                 addr_str = ansi(addr_str, R.style_selected_2)
                 indicator = ansi(indicator, R.style_selected_2)
                 opcodes = ansi(opcodes, R.style_selected_2)
@@ -1545,7 +1545,7 @@ class Memory(Dashboard.Module):
                     hexa.append(hexa_byte)
                     text.append(text_byte)
                 # output the formatted line
-                out.append('{} {}{} {}{}'.format(
+                out.append('{}  {}{}  {}{}'.format(
                     ansi(address_str, R.style_low),
                     ' '.join(hexa), ansi(pad * ' --', R.style_low),
                     ''.join(text), ansi(pad * '.', R.style_low)))
