@@ -1791,40 +1791,37 @@ class Expressions(Dashboard.Module):
     '''Watch user expressions.'''
 
     def __init__(self):
-        self.number = 1
-        self.table = {}
+        self.table = set()
 
     def label(self):
         return 'Expressions'
 
     def lines(self, term_width, term_height, style_changed):
         out = []
-        for number, expression in sorted(self.table.items()):
+        for expression in self.table:
             try:
                 value = format_value(gdb.parse_and_eval(expression))
             except gdb.error as e:
                 value = ansi(e, R.style_error)
-            number = ansi(number, R.style_selected_2)
             expression = ansi(expression, R.style_high)
             equal = ansi('=', R.style_low)
-            out.append('[{}] {} {} {}'.format(number, expression, equal, value))
+            out.append('{} {} {}'.format(expression, equal, value))
         return out
 
     def watch(self, arg):
         if arg:
-            self.table[self.number] = arg
-            self.number += 1
+            self.table.add(arg)
         else:
             raise Exception('Specify an expression')
 
     def unwatch(self, arg):
         if arg:
             try:
-                del self.table[int(arg)]
+                self.table.remove(arg)
             except:
                 raise Exception('Expression not watched')
         else:
-            raise Exception('Specify an identifier')
+            raise Exception('Specify an expression')
 
     def clear(self, arg):
         self.table.clear()
@@ -1838,7 +1835,7 @@ class Expressions(Dashboard.Module):
             },
             'unwatch': {
                 'action': self.unwatch,
-                'doc': 'Stop watching an expression by id.',
+                'doc': 'Stop watching an expression.',
                 'complete': gdb.COMPLETE_EXPRESSION
             },
             'clear': {
