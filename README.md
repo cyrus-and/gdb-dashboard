@@ -86,66 +86,6 @@ Follows the list of bundled default modules, refer to the GDB help system for th
 
 `breakpoints` displays the breakpoints list.
 
-## Dashboard output
-
-By default the dashboard is displayed in the GDB terminal but the `-output` command of both the dashboard and modules can change this behavior. When the output of a module is not specified then the global output is used.
-
-### Display the whole dashboard in another terminal
-
-![Dashboard in another terminal](http://i.imgur.com/6TIKXh0.png)
-
-It may be useful to move the dashboard to another terminal so the main terminal can be used exclusively for GDB commands and target I/O.
-
-To do so:
-
-1. start GDB in one terminal;
-
-2. open another terminal (e.g. [tmux][] pane) and get its TTY with the `tty` command (e.g. `/dev/ttys001`, the name may be different for a variety of reasons);
-
-3. issue the command `dashboard -output /dev/ttys001` to redirect the dashboard output to the newly created terminal;
-
-4. debug as usual.
-
-[tmux]: https://github.com/tmux/tmux
-
-### Display each module in a separate terminal
-
-![Modules distributed in multiple terminals](http://i.imgur.com/BF7lpzV.png)
-
-It is also possible to display the output of one or more modules to individual terminals. If two or more modules share the same output, they will be stacked as usual.
-
-To do so:
-
-1. start GDB in one terminal;
-
-2. open another terminal and get its TTY with the `tty` command;
-
-3. pick a module, say `source`, then issue the command `dashboard source -output /dev/ttys001` to redirect its output to the newly created terminal;
-
-4. repeat for any other modules;
-
-5. debug as usual.
-
-### Display the whole dashboard in a web browser
-
-![Dashboard in a web browser](http://i.imgur.com/5uncF7e.png)
-
-Pushing this even further, one could use a web browser as an auxiliary terminal using [gotty][]. Of course, using the method described above, one can also display the output of individual modules in one or more web browser instances.
-
-To do so:
-
-1. start GDB in one terminal;
-
-2. open another terminal and execute `gotty sh -c 'tty; cat'`;
-
-3. open a web browser, navigate to `http://localhost:8080` and note the TTY;
-
-4. issue the command `dashboard -output /dev/ttys001` to redirect the dashboard output to the web browser;
-
-5. debug as usual.
-
-[gotty]: https://github.com/yudai/gotty
-
 ## Commands
 
 The GDB documentation is available at `help dashboard`. Just like any GDB command, abbreviations are possible, so `da`, `dash`, etc. all resolve to `dashboard`.
@@ -164,9 +104,23 @@ dashboard -configuration ~/.gdbinit.d/auto
 
 ### dashboard -output [`<file>`]
 
-By default the dashboard is written to the GDB console but it is possible to redirect its output to a file or even to another terminal. If the target is a valid terminal TTY then its width is used to format the dashboard, otherwise fall back to the width of the main GDB console.
+By default the dashboard is displayed in the GDB terminal together with the prompt and the program I/O but it may be convenient to display the whole dashboard or individual modules to other terminals.
 
-Without argument reset this setting to the default.
+This command allows to specify the destination terminal for both the dashboard and the modules, in such a way that when the output of a module is not specified then the dashboard output is used. To restore the original value run the command omitting the file.
+
+To identify the TTY file name associated with terminal use the `tty` system command, those entries are often in the format `/dev/pts/<n>`.
+
+For example, to have the GDB prompt in terminal 0, the dashboard in terminal 1 but the registers and assembly modules in terminal 2, run:
+
+```
+dashboard -output /dev/pts/1
+dashboard registers -output /dev/pts/2
+dashboard assembly -output /dev/pts/2
+```
+
+The [`dashboard -layout`](#dashboard--layout-directive) command can be used to display a summary of the active modules and their outputs.
+
+If `<file>` is not a valid terminal then the size of the GDB terminal is used to render the modules.
 
 ### dashboard -enabled [on|off]
 
@@ -224,7 +178,7 @@ If a module declares some stylable attributes then the command `dashboard <modul
 
 #### -output
 
-Similarly, the `dashboard <module> -output` mimics the [`dashboard -style`](#dashboard--output-file) command but allows a finer grain of operation.
+The `dashboard <module> -output` mimics the [`dashboard -output`](#dashboard--output-file) command but allows a finer grain of operation by working for a single module.
 
 ## Configuration
 
