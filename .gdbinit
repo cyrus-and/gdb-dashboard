@@ -258,7 +258,7 @@ def fetch_breakpoints(regular_only, allow_pending=False):
     # information
     breakpoints = []
     for gdb_breakpoint in gdb.breakpoints():
-        if not gdb_breakpoint.is_valid() or (not allow_pending and gdb_breakpoint.pending):
+        if not allow_pending and gdb_breakpoint.pending:
             continue
         if gdb_breakpoint.type != gdb.BP_BREAKPOINT and regular_only:
             continue
@@ -273,7 +273,6 @@ def fetch_breakpoints(regular_only, allow_pending=False):
         breakpoint['temporary'] = gdb_breakpoint.temporary
         breakpoint['hit_count'] = gdb_breakpoint.hit_count
         breakpoint['pending'] = gdb_breakpoint.pending
-        breakpoint['visible'] = gdb_breakpoint.visible
         # add address and source information
         address = addresses.get(gdb_breakpoint.number)
         if address:
@@ -1875,8 +1874,7 @@ class Breakpoints(Dashboard.Module):
             # format common information
             style = R.style_selected_1 if breakpoint['enabled'] else R.style_selected_2
             number = ansi(breakpoint['number'], style)
-            bp_type = '{} '.format(ansi('pending', style)) if breakpoint['pending'] else ''
-            bp_type += ansi(Breakpoints.Names[breakpoint['type']], style)
+            bp_type = ansi(Breakpoints.Names[breakpoint['type']], style)
             if breakpoint['temporary']:
                 bp_type = bp_type + ' {}'.format(ansi('once', style))
             if not R.ansi and breakpoint['enabled']:
