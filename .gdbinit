@@ -239,7 +239,7 @@ def format_value(value, compact=None):
 
 # XXX parsing the output of `info breakpoints` is apparently the best option
 # right now, see: https://sourceware.org/bugzilla/show_bug.cgi?id=18385
-def fetch_breakpoints(regular_only, allow_pending=False):
+def fetch_breakpoints(watchpoints=False, pending=False):
     # fetch breakpoints addresses
     addresses = dict()
     for line in run('info breakpoints').split('\n'):
@@ -258,9 +258,9 @@ def fetch_breakpoints(regular_only, allow_pending=False):
     # information
     breakpoints = []
     for gdb_breakpoint in gdb.breakpoints():
-        if not allow_pending and gdb_breakpoint.pending:
+        if not pending and gdb_breakpoint.pending:
             continue
-        if gdb_breakpoint.type != gdb.BP_BREAKPOINT and regular_only:
+        if not watchpoints and gdb_breakpoint.type != gdb.BP_BREAKPOINT:
             continue
         # add useful fields to the object
         breakpoint = dict()
@@ -1021,7 +1021,7 @@ class Source(Dashboard.Module):
         else:
             end = max(end, 0)
         # find the breakpoints for teh current file
-        breakpoints = list(filter(lambda x: x.get('file_name') == file_name, fetch_breakpoints(True)))
+        breakpoints = list(filter(lambda x: x.get('file_name') == file_name, fetch_breakpoints()))
         # return the source code listing
         out = []
         number_format = '{{:>{}}}'.format(len(str(end)))
@@ -1172,7 +1172,7 @@ instructions constituting the current statement are marked, if available.'''
             max_offset = max(len(str(abs(asm[0]['addr'] - func_start))),
                              len(str(abs(asm[-1]['addr'] - func_start))))
         # return the machine code
-        breakpoints = fetch_breakpoints(True)
+        breakpoints = fetch_breakpoints()
         max_length = max(instr['length'] for instr in asm) if asm else 0
         inferior = gdb.selected_inferior()
         out = []
@@ -1881,7 +1881,8 @@ class Breakpoints(Dashboard.Module):
 
     def lines(self, term_width, term_height, style_changed):
         out = []
-        for breakpoint in fetch_breakpoints(False, allow_pending=self.show_pending):
+        breakpoints = fetch_breakpoints(watchpoints=True, pending=self.show_pending)
+        for breakpoint in breakpoints:
             # format common information
             style = R.style_selected_1 if breakpoint['enabled'] else R.style_selected_2
             number = ansi(breakpoint['number'], style)
