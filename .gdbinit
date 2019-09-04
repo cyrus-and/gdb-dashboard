@@ -1904,7 +1904,9 @@ class Breakpoints(Dashboard.Module):
             if condition:
                 line += ' if {}'.format(ansi(condition, style))
             # format hit count
-            line += ' hit {} times'.format(ansi(breakpoint['hit_count'], style))
+            hit_count = breakpoint['hit_count']
+            if hit_count:
+                line += ' hit {} times'.format(ansi(breakpoint['hit_count'], style))
             out.append(line)
         return out
 
