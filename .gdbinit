@@ -1668,33 +1668,44 @@ class Registers(Dashboard.Module):
             changed = self.table and (self.table.get(name, '') != string_value)
             self.table[name] = string_value
             registers.append((name, string_value, changed))
-        # split registers in rows and columns, each column is composed of name,
-        # space, value and another trailing space which is skipped in the last
-        # column (hence term_width + 1)
+        # compute lengths considering an extra space between and around the
+        # entries (hence the +2 and term_width - 1)
         max_name = max(len(name) for name, _, _ in registers)
         max_value = max(len(value) for _, value, _ in registers)
         max_width = max_name + max_value + 2
-        per_line = min(int((term_width + 1) / max_width) or 1, len(registers))
-        # compute extra padding space
-        extra = int((term_width + 1 - max_width * per_line) / (per_line - 1)) if per_line > 1 else 0
-        # format registers info
-        partial = []
-        for name, value, changed in registers:
-            styled_name = ansi(name.rjust(max_name), R.style_low)
-            value_style = R.style_selected_1 if changed else ''
-            styled_value = ansi(value.ljust(max_value), value_style)
-            partial.append(styled_name + ' ' + styled_value + extra * ' ')
-        out = []
+        columns = min(int((term_width - 1) / max_width) or 1, len(registers))
+        rows = int(math.ceil(float(len(registers)) / columns))
+        # build the registers matrix
         if self.column_major:
-            num_lines = int(math.ceil(float(len(partial)) / per_line))
-            for i in range(num_lines):
-                line = ' '.join(partial[i:len(partial):num_lines]).rstrip()
-                real_n_col = math.ceil(float(len(partial)) / num_lines)
-                line = ' ' * int((per_line - real_n_col) * max_width / 2) + line
-                out.append(line)
+            matrix = list(registers[i:i + rows] for i in range(0, len(registers), rows))
         else:
-            for i in range(0, len(partial), per_line):
-                out.append(' '.join(partial[i:i + per_line]).rstrip())
+            matrix = list(registers[i::columns] for i in range(columns))
+        # compute the lengths column wise
+        max_names_column = list(max(len(name) for name, _, _ in column) for column in matrix)
+        max_values_column = list(max(len(value) for _, value, _ in column) for column in matrix)
+        line_length = sum(max_names_column) + columns + sum(max_values_column)
+        extra = term_width - line_length
+        # compute padding as if there were one more column
+        base_padding = int(extra / (columns + 1))
+        padding_column = [base_padding] * columns
+        # distribute the remainder among columns giving the precedence to
+        # internal padding
+        rest = extra % (columns + 1)
+        while rest:
+            padding_column[rest % columns] += 1
+            rest -= 1
+        # format the registers
+        out = [''] * rows
+        for i, column in enumerate(matrix):
+            max_name = max_names_column[i]
+            max_value = max_values_column[i]
+            for j, (name, value, changed) in enumerate(column):
+                name = ' ' * (max_name - len(name)) + ansi(name, R.style_low)
+                style = R.style_selected_1 if changed else ''
+                value = ansi(value, style) + ' ' * (max_value - len(value))
+                padding = ' ' * padding_column[i]
+                item = '{}{} {}'.format(padding, name, value)
+                out[j] += item
         return out
 
     def attributes(self):
