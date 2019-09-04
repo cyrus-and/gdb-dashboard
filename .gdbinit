@@ -1910,9 +1910,9 @@ class Breakpoints(Dashboard.Module):
 
     def attributes(self):
         return {
-            'show_pending': {
-                'doc': 'Show pending breakpoints.',
-                'default': False,
+            'pending': {
+                'doc': 'Also show pending breakpoints.',
+                'default': True,
                 'name': 'show_pending',
                 'type': bool
             }
