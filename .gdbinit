@@ -1509,6 +1509,10 @@ class Memory(Dashboard.Module):
             self.original = None
             self.latest = None
 
+        def reset(self):
+            self.original = None
+            self.latest = None
+
         def format(self):
             # fetch the memory content
             try:
@@ -1586,12 +1590,14 @@ class Memory(Dashboard.Module):
 
     def watch(self, arg):
         if arg:
-            expression, _, length = arg.partition(' ')
-            if length:
-                length = Memory.parse_as_address(length)
+            expression, _, length_str = arg.partition(' ')
+            length = Memory.parse_as_address(length_str) if length_str else self.row_length
+            # keep the length when the memory is watched to reset the changes
+            region = self.table.get(expression)
+            if region and not length_str:
+                region.reset()
             else:
-                length = self.row_length
-            self.table[expression] = Memory.Region(expression, length, self)
+                self.table[expression] = Memory.Region(expression, length, self)
         else:
             raise Exception('Specify a memory location')
 
