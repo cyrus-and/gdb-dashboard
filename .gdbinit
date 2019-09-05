@@ -1539,7 +1539,7 @@ class Memory(Dashboard.Module):
                     rel = i + j
                     byte = memory[rel]
                     hexa_byte = '{:02x}'.format(ord(byte))
-                    text_byte = Memory.format_byte(byte)
+                    text_byte = self.module.format_byte(byte)
                     # differences against the latest have the highest priority
                     if self.latest and memory[rel] != self.latest[rel]:
                         hexa_byte = ansi(hexa_byte, R.style_selected_1)
@@ -1551,23 +1551,15 @@ class Memory(Dashboard.Module):
                     hexa.append(hexa_byte)
                     text.append(text_byte)
                 # output the formatted line
+                hexa_placeholder = ' {}'.format(self.module.placeholder[0] * 2)
+                text_placeholder = self.module.placeholder[0]
                 out.append('{}  {}{}  {}{}'.format(
                     ansi(address_str, R.style_low),
-                    ' '.join(hexa), ansi(pad * ' --', R.style_low),
-                    ''.join(text), ansi(pad * '.', R.style_low)))
+                    ' '.join(hexa), ansi(pad * hexa_placeholder, R.style_low),
+                    ''.join(text), ansi(pad * text_placeholder, R.style_low)))
             # update the latest memory snapshot
             self.latest = memory
             return out
-
-    @staticmethod
-    def format_byte(byte):
-        # `type(byte) is bytes` in Python 3
-        if byte.isspace():
-            return ' '
-        elif 0x20 < ord(byte) < 0x7e:
-            return chr(ord(byte))
-        else:
-            return '.'
 
     @staticmethod
     def parse_as_address(expression):
@@ -1613,6 +1605,13 @@ class Memory(Dashboard.Module):
     def clear(self, arg):
         self.table.clear()
 
+    def format_byte(self, byte):
+        # `type(byte) is bytes` in Python 3
+        if 0x20 < ord(byte) < 0x7f:
+            return chr(ord(byte))
+        else:
+            return self.placeholder[0]
+
     def commands(self):
         return {
             'watch': {
@@ -1638,6 +1637,10 @@ class Memory(Dashboard.Module):
                 'doc': 'Highlight changes cumulatively, watch again to reset.',
                 'default': False,
                 'type': bool
+            },
+            'placeholder': {
+                'doc': 'Placeholder used for missing items and unprintable characters.',
+                'default': '·'
             }
         }
 
