@@ -1522,7 +1522,6 @@ class Memory(Dashboard.Module):
                 msg = 'Cannot access {} bytes starting at {}: {}'
                 msg = msg.format(self.length, self.expression, e)
                 return [ansi(msg, R.style_error)]
-
             # format the memory content
             out = []
             for i in range(0, len(memory), self.module.row_length):
