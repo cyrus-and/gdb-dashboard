@@ -1548,6 +1548,9 @@ class Memory(Dashboard.Module):
                     elif self.module.cumulative and memory[rel] != self.original[rel]:
                         hexa_byte = ansi(hexa_byte, R.style_selected_2)
                         text_byte = ansi(text_byte, R.style_selected_2)
+                    # format the text differently for clarity
+                    else:
+                        text_byte = ansi(text_byte, R.style_high)
                     hexa.append(hexa_byte)
                     text.append(text_byte)
                 # output the formatted line
