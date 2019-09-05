@@ -4,7 +4,7 @@ Modular visual interface for GDB in Python.
 
 This comes as a standalone single-file [`.gdbinit`][raw] which enables a configurable dashboard showing the most relevant information of the program being debugged. Its main goal is to reduce the number of GDB commands issued to inspect the current program status allowing the programmer to focus on the control flow instead.
 
-![Screenshot](https://i.imgur.com/ciS9aeg.png)
+![Screenshot](https://i.imgur.com/PMeYQzu.png)
 
 ## Quickstart
 

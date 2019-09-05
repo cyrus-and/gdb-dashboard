@@ -1918,7 +1918,8 @@ class Breakpoints(Dashboard.Module):
             # format hit count
             hit_count = breakpoint['hit_count']
             if hit_count:
-                line += ' hit {} times'.format(ansi(breakpoint['hit_count'], style))
+                word = 'time{}'.format('s' if hit_count > 1 else '')
+                line += ' hit {} {}'.format(ansi(breakpoint['hit_count'], style), word)
             out.append(line)
         return out
 
