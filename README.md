@@ -4,7 +4,7 @@ Modular visual interface for GDB in Python.
 
 This comes as a standalone single-file [`.gdbinit`][raw] which enables a configurable dashboard showing the most relevant information of the program being debugged. Its main goal is to reduce the number of GDB commands issued to inspect the current program status allowing the programmer to focus on the control flow instead.
 
-![Screenshot](https://i.imgur.com/PMeYQzu.png)
+![Screenshot](https://raw.githubusercontent.com/wiki/cyrus-and/gdb-dashboard/Screenshot.png)
 
 ## Quickstart
 
@@ -21,6 +21,10 @@ pip install pygments
 ```
 
 Then debug as usual, the dashboard will appear automatically when the inferior program is paused. Commands and configurations can be reached via the `dashboard` GDB command while `help dashboard` is a good starting point to learn about all the functions.
+
+The [wiki][] also can be useful as it contains some common use cases.
+
+[wiki]: https://github.com/cyrus-and/gdb-dashboard/wiki
 
 ## Features
 
@@ -59,6 +63,8 @@ export LC_CTYPE=C.UTF-8
 ```
 
 On Windows the `windows-curses` Python package is needed in order to obtain the correct terminal size.
+
+GDB dashboard is not meant to work seamlessly with additional front ends, e.g., TUI, Nemiver, QtCreator, etc. either instruct the front end to not load the `.gdbinit` file or load the dashboard manually.
 
 [#1]: https://github.com/cyrus-and/gdb-dashboard/issues/1
 
@@ -110,14 +116,6 @@ This command allows to specify the destination terminal for both the dashboard a
 
 To identify the TTY file name associated with terminal use the `tty` system command, those entries are often in the format `/dev/pts/<n>`.
 
-For example, to have the GDB prompt in terminal 0, the dashboard in terminal 1 but the registers and assembly modules in terminal 2, run:
-
-```
-dashboard -output /dev/pts/1
-dashboard registers -output /dev/pts/2
-dashboard assembly -output /dev/pts/2
-```
-
 The [`dashboard -layout`](#dashboard--layout-directive) command can be used to display a summary of the active modules and their outputs.
 
 If `<file>` is not a valid terminal then the size of the GDB terminal is used to render the modules.
@@ -125,18 +123,6 @@ If `<file>` is not a valid terminal then the size of the GDB terminal is used to
 ### dashboard -enabled [on|off]
 
 Enable or disable the automatic display of the dashboard whenever the target program stops. The dashboard is enabled by default and even when it is disabled, it can be manually displayed with `dashboard`.
-
-Sometimes it may be convenient to redraw the dashboard even if the target program has not changed its execution status, for example when the programmer switches the currently selected frame with the `up` or `down` commands. It is possible to do so by setting up some GDB hooks in the [user-defined init file](#configuration), for example:
-
-```
-define hookpost-up
-dashboard
-end
-
-define hookpost-down
-dashboard
-end
-```
 
 ### dashboard -layout [`<directive>`...]
 
@@ -188,14 +174,6 @@ By convention, the *main* configuration file should be placed in `~/.gdbinit.d/`
 
 The alternative is to hard code changes in the provided [`.gdbinit`][raw], to do so just add new modules and GDB settings under `# Default modules` and `# Better GDB defaults` respectively.
 
-### Per-project configuration
-
-GDB natively support the auto-loading of `.gdbinit` files, this can come in handy to set up a different dashboard style according to the current project type (e.g., C++ development, reverse engineering, etc.). This feature is disabled by default for security reasons. To enable the auto-loading everywhere in the file system add this line to the main configuration file:
-
-```
-set auto-load safe-path /
-```
-
 ## Stylable attributes
 
 There is number of attributes that can be used to customize the aspect of the dashboard and of its modules. They are documented within the GDB help system. For what concerns the dashboard itself it can be reached with:
@@ -219,30 +197,6 @@ Colors and text styles are specified using [ANSI][] escape codes. For example se
 When the `ansi` attribute is set to `True` the [Pygments][] Python library may be used by modules to provide syntax highlighting of the source code.
 
 The `syntax_highlighting` stylable attribute is a string which defines the Pygments style to use.
-
-The list of all the available styles can be obtained with (from GDB itself):
-
-```python
-python
-from pygments.styles import *
-for style in get_all_styles():
-    print(style)
-end
-```
-
-To conveniently cycle through and try each available style:
-
-```python
-python
-from pygments.styles import *
-for style in get_all_styles():
-    command = 'dashboard -style syntax_highlighting {!r}'.format(style)
-    gdb.execute(command)
-    print(command)
-    if input('Done? (y/N) ') == 'y':
-        break
-end
-```
 
 ### Dividers
 
@@ -362,30 +316,6 @@ dashboard notes add
 dashboard notes clear
 dashboard notes -style
 ```
-
-## Additional GDB front ends
-
-GDB dashboard is not meant to work seamlessly with additional front ends, e.g., TUI, Nemiver, QtCreator, etc.
-
-There are basically two options to work around this:
-
-- if the main debugging tool is GDB dashboard then it is recommended to prevent the front end from loading the `.gdbinit` file, they usually have an option to do so;
-
-- otherwise it is possible to load GDB dashboard manually, that is, install as usual then:
-
-    ```
-    mv ~/.gdbinit ~/.gdb-dashboard
-    ```
-
-  Finally load it when needed from the GDB shell:
-
-    ```
-    source ~/.gdb-dashboard
-    ```
-
-## Resources
-
-- GDB [Python API][]
 
 [raw]: https://raw.githubusercontent.com/cyrus-and/gdb-dashboard/master/.gdbinit
 [Python API]: https://sourceware.org/gdb/onlinedocs/gdb/Python-API.html
