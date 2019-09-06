@@ -325,7 +325,6 @@ class Dashboard(gdb.Command):
 
     def __init__(self):
         gdb.Command.__init__(self, 'dashboard', gdb.COMMAND_USER, gdb.COMPLETE_NONE, True)
-        self.output = None  # main terminal
         # setup subcommands
         Dashboard.ConfigurationCommand(self)
         Dashboard.OutputCommand(self)
@@ -333,9 +332,13 @@ class Dashboard(gdb.Command):
         Dashboard.LayoutCommand(self)
         # setup style commands
         Dashboard.StyleCommand(self, 'dashboard', R, R.attributes())
-        # disabled by default
+        # main terminal
+        self.output = None
+        # used to inhibit redisplays during init parsing
+        self.inhibited = None
+        # enabled by default
         self.enabled = None
-        self.disable()
+        self.enable()
 
     def on_continue(self, _):
         # try to contain the GDB messages in a specified area unless the
@@ -394,7 +397,7 @@ class Dashboard(gdb.Command):
 
     def redisplay(self, style_changed=False):
         # manually redisplay the dashboard
-        if self.is_running() and self.enabled:
+        if self.is_running() and not self.inhibited:
             self.render(True, style_changed)
 
     def inferior_pid(self):
@@ -504,15 +507,18 @@ class Dashboard(gdb.Command):
         dashboard = Dashboard()
         Dashboard.set_custom_prompt(dashboard)
         # parse Python inits, load modules then parse GDB inits
+        dashboard.inhibited = True
         Dashboard.parse_inits(True)
         modules = Dashboard.get_modules()
         dashboard.load_modules(modules)
         Dashboard.parse_inits(False)
+        dashboard.inhibited = False
         # GDB overrides
         run('set pagination off')
-        # enable and display if possible (program running)
-        dashboard.enable()
-        dashboard.redisplay()
+        # display if possible (program running and not explicitly disabled by
+        # some configuration file)
+        if dashboard.enabled:
+            dashboard.redisplay()
 
     @staticmethod
     def get_term_size(fd=1):  # defaults to the main terminal
