@@ -1,14 +1,14 @@
 # GDB dashboard
 
-Modular visual interface for GDB in Python.
-
-This comes as a standalone single-file [`.gdbinit`][raw] which enables a configurable dashboard showing the most relevant information of the program being debugged. Its main goal is to reduce the number of GDB commands issued to inspect the current program status allowing the programmer to focus on the control flow instead.
+GDB dashboard is a standalone `.gdbinit` file written using the [Python API][] that enables a modular interface showing relevant information about the program being debugged. Its main goal is to reduce the number of GDB commands needed to inspect the status of current program thus allowing the developer to primarily focus on the control flow.
 
 ![Screenshot](https://raw.githubusercontent.com/wiki/cyrus-and/gdb-dashboard/Screenshot.png)
 
+[Python API]: https://sourceware.org/gdb/onlinedocs/gdb/Python-API.html
+
 ## Quickstart
 
-Just place [`.gdbinit`][raw] in your home directory, for example with:
+Just place [`.gdbinit`][] in your home directory, for example with:
 
 ```
 wget -P ~ git.io/.gdbinit
@@ -20,33 +20,12 @@ Optionally install [Pygments][] to enable syntax highlighting:
 pip install pygments
 ```
 
-Then debug as usual, the dashboard will appear automatically when the inferior program is paused. Commands and configurations can be reached via the `dashboard` GDB command while `help dashboard` is a good starting point to learn about all the functions.
+Then debug as usual, the dashboard will appear automatically when the inferior program stops. Keep in mind that no GDB command has been redefined, instead all the features are available via the main `dashboard` command (see `help dashboard`).
 
 The [wiki][] also can be useful as it contains some common use cases.
 
+[`.gdbinit`]: https://raw.githubusercontent.com/cyrus-and/gdb-dashboard/master/.gdbinit
 [wiki]: https://github.com/cyrus-and/gdb-dashboard/wiki
-
-## Features
-
-- Single GDB init file.
-
-- Write the dashboard to the main GDB console or to an external file/TTY.
-
-- Interaction with GDB using the native [Python API][].
-
-- Several default modules are included to address the most basic needs: source code, assembly, registers, etc.).
-
-- User-defined modules can be easily developed by extending a [Python class](#custom-modules).
-
-- Additional configuration files (both [GDB][commands] and Python) are read from `~/.gdbinit.d/`.
-
-- Fully stylable user interface and dynamic command prompt.
-
-- Optional syntax highlighting using the [Pygments][] Python library.
-
-- No GDB command has been redefined, instead all the features are available as subcommands of the main `dashboard` command.
-
-[commands]: https://sourceware.org/gdb/onlinedocs/gdb/Command-Files.html
 
 ## Requirements
 
@@ -172,8 +151,6 @@ Files in `~/.gdbinit.d/` are executed in alphabetical order, but the preference 
 
 By convention, the *main* configuration file should be placed in `~/.gdbinit.d/` (say `~/.gdbinit.d/init`) and can be used to tune the dashboard styles and modules configuration but also the usual GDB parameters.
 
-The alternative is to hard code changes in the provided [`.gdbinit`][raw], to do so just add new modules and GDB settings under `# Default modules` and `# Better GDB defaults` respectively.
-
 ## Stylable attributes
 
 There is number of attributes that can be used to customize the aspect of the dashboard and of its modules. They are documented within the GDB help system. For what concerns the dashboard itself it can be reached with:
@@ -204,7 +181,7 @@ A divider is basically a terminal-wide horizontal line with an optional label. P
 
 ### Common styles
 
-These are general purpose [ANSI][] styles defined for convenience and used within the default modules:
+These are general purpose [ANSI][] styles defined for convenience and used by default modules:
 
 - `style_selected_1`;
 - `style_selected_2`;
@@ -214,8 +191,6 @@ These are general purpose [ANSI][] styles defined for convenience and used withi
 - `style_critical`.
 
 ## Custom modules
-
-The idea of custom modules is that they provide ways to access readonly information from the target program status; it is safe to assume that they will be queried during the program execution only.
 
 Custom modules must inherit the `Dashboard.Module` class and define some methods:
 
@@ -253,7 +228,7 @@ Optionally, a module may declare subcommands by defining the `commands` method r
 
 ### Common functions
 
-A number of auxiliary common functions are defined in the global scope, they can be found in the provided [`.gdbinit`][raw] and concern topics like [ANSI][] output, divider formatting, conversion callbacks, etc. They should be more or less self-documented, some usage examples can be found within the bundled default modules.
+A number of auxiliary common functions are defined in the global scope, they can be found in the provided `.gdbinit` and concern topics like [ANSI][] output, divider formatting, conversion callbacks, etc. They should be more or less self-documented, some usage examples can be found within the bundled default modules.
 
 ### Example
 
@@ -317,7 +292,5 @@ dashboard notes clear
 dashboard notes -style
 ```
 
-[raw]: https://raw.githubusercontent.com/cyrus-and/gdb-dashboard/master/.gdbinit
-[Python API]: https://sourceware.org/gdb/onlinedocs/gdb/Python-API.html
 [Pygments]: http://pygments.org/
 [ANSI]: https://en.wikipedia.org/wiki/ANSI_escape_code
