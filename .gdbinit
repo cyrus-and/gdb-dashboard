@@ -146,6 +146,42 @@ which `{pid}` is expanded with the process identifier of the target program.''',
 
 # Common -----------------------------------------------------------------------
 
+class Beautifier():
+
+    def __init__(self, hint, tab_size=4):
+        self.tab_spaces = ' ' * tab_size
+        self.active = False
+        if not R.ansi or not R.syntax_highlighting:
+            return
+        # attempt to set up Pygments
+        try:
+            import pygments
+            from pygments.lexers import GasLexer, NasmLexer
+            from pygments.formatters import Terminal256Formatter
+            if hint == 'att':
+                self.lexer = GasLexer()
+            elif hint == 'intel':
+                self.lexer = NasmLexer()
+            else:
+                from pygments.lexers import get_lexer_for_filename
+                self.lexer = get_lexer_for_filename(hint, stripnl=False)
+            self.formatter = Terminal256Formatter(style=R.syntax_highlighting)
+            self.active = True
+        except ImportError:
+            # Pygments not available
+            pass
+        except pygments.util.ClassNotFound:
+            # no lexer for this file or invalid style
+            pass
+
+    def process(self, source):
+        # convert tabs anyway
+        source = source.replace('\t', self.tab_spaces)
+        if self.active:
+            import pygments
+            source = pygments.highlight(source, self.lexer, self.formatter)
+        return source.rstrip('\n')
+
 def run(command):
     return gdb.execute(command, to_string=True)
 
@@ -282,41 +318,6 @@ def fetch_breakpoints(watchpoints=False, pending=False):
             breakpoint['file_line'] = sal.line
         breakpoints.append(breakpoint)
     return breakpoints
-
-class Beautifier():
-    def __init__(self, hint, tab_size=4):
-        self.tab_spaces = ' ' * tab_size
-        self.active = False
-        if not R.ansi or not R.syntax_highlighting:
-            return
-        # attempt to set up Pygments
-        try:
-            import pygments
-            from pygments.lexers import GasLexer, NasmLexer
-            from pygments.formatters import Terminal256Formatter
-            if hint == 'att':
-                self.lexer = GasLexer()
-            elif hint == 'intel':
-                self.lexer = NasmLexer()
-            else:
-                from pygments.lexers import get_lexer_for_filename
-                self.lexer = get_lexer_for_filename(hint, stripnl=False)
-            self.formatter = Terminal256Formatter(style=R.syntax_highlighting)
-            self.active = True
-        except ImportError:
-            # Pygments not available
-            pass
-        except pygments.util.ClassNotFound:
-            # no lexer for this file or invalid style
-            pass
-
-    def process(self, source):
-        # convert tabs anyway
-        source = source.replace('\t', self.tab_spaces)
-        if self.active:
-            import pygments
-            source = pygments.highlight(source, self.lexer, self.formatter)
-        return source.rstrip('\n')
 
 # Dashboard --------------------------------------------------------------------
 
@@ -683,6 +684,7 @@ class Dashboard(gdb.Command):
 
 # GDB commands -----------------------------------------------------------------
 
+    # handler for the `dashboard` command itself
     def invoke(self, arg, from_tty):
         arg = Dashboard.parse_arg(arg)
         # show messages for checks in redisplay
@@ -1063,12 +1065,6 @@ class Source(Dashboard.Module):
         else:
             return out
 
-    def scroll(self, arg):
-        if arg:
-            self.offset += int(arg)
-        else:
-            self.offset = 0
-
     def commands(self):
         return {
             'scroll': {
@@ -1093,6 +1089,12 @@ class Source(Dashboard.Module):
                 'check': check_gt_zero
             }
         }
+
+    def scroll(self, arg):
+        if arg:
+            self.offset += int(arg)
+        else:
+            self.offset = 0
 
 class Assembly(Dashboard.Module):
     '''Show the disassembled code surrounding the program counter. The
@@ -1245,29 +1247,6 @@ instructions constituting the current statement are marked, if available.'''
         else:
             return out
 
-    def fetch_asm(self, start, end_or_count, relative, highlighter):
-        # fetch asm from cache or disassemble
-        if self.cache_key == (start, end_or_count):
-            asm = self.cache_asm
-        else:
-            kwargs = {
-                'start_pc': start,
-                'count' if relative else 'end_pc': end_or_count
-            }
-            asm = gdb.selected_frame().architecture().disassemble(**kwargs)
-            self.cache_key = (start, end_or_count)
-            self.cache_asm = asm
-            # syntax highlight the cached entry
-            for instr in asm:
-                instr['asm'] = highlighter.process(instr['asm'])
-        return asm
-
-    def scroll(self, arg):
-        if arg:
-            self.offset += int(arg)
-        else:
-            self.offset = 0
-
     def commands(self):
         return {
             'scroll': {
@@ -1297,6 +1276,29 @@ instructions constituting the current statement are marked, if available.'''
                 'type': bool
             }
         }
+
+    def scroll(self, arg):
+        if arg:
+            self.offset += int(arg)
+        else:
+            self.offset = 0
+
+    def fetch_asm(self, start, end_or_count, relative, highlighter):
+        # fetch asm from cache or disassemble
+        if self.cache_key == (start, end_or_count):
+            asm = self.cache_asm
+        else:
+            kwargs = {
+                'start_pc': start,
+                'count' if relative else 'end_pc': end_or_count
+            }
+            asm = gdb.selected_frame().architecture().disassemble(**kwargs)
+            self.cache_key = (start, end_or_count)
+            self.cache_asm = asm
+            # syntax highlight the cached entry
+            for instr in asm:
+                instr['asm'] = highlighter.process(instr['asm'])
+        return asm
 
 class Variables(Dashboard.Module):
     '''Show arguments and locals of the selected frame.'''
@@ -1426,27 +1428,6 @@ location, if available. Optionally list the frame arguments and locals too.'''
             lines.append('[{}]'.format(ansi('+', R.style_selected_2)))
         return lines
 
-    @staticmethod
-    def format_line(prefix, line):
-        prefix = ansi(prefix, R.style_low)
-        return '{} {}'.format(prefix, line)
-
-    @staticmethod
-    def get_pc_line(frame, style):
-        frame_pc = ansi(format_address(frame.pc()), style)
-        info = 'from {}'.format(frame_pc)
-        if frame.function():
-            name = ansi(frame.function(), style)
-            func_start = to_unsigned(frame.function().value())
-            offset = ansi(str(frame.pc() - func_start), style)
-            info += ' in {}+{}'.format(name, offset)
-        sal = frame.find_sal()
-        if sal and sal.symtab:
-            file_name = ansi(sal.symtab.filename, style)
-            file_line = ansi(str(sal.line), style)
-            info += ' at {}:{}'.format(file_name, file_line)
-        return info
-
     def attributes(self):
         return {
             'limit': {
@@ -1473,6 +1454,27 @@ location, if available. Optionally list the frame arguments and locals too.'''
                 'type': bool
             }
         }
+
+    @staticmethod
+    def format_line(prefix, line):
+        prefix = ansi(prefix, R.style_low)
+        return '{} {}'.format(prefix, line)
+
+    @staticmethod
+    def get_pc_line(frame, style):
+        frame_pc = ansi(format_address(frame.pc()), style)
+        info = 'from {}'.format(frame_pc)
+        if frame.function():
+            name = ansi(frame.function(), style)
+            func_start = to_unsigned(frame.function().value())
+            offset = ansi(str(frame.pc() - func_start), style)
+            info += ' in {}+{}'.format(name, offset)
+        sal = frame.find_sal()
+        if sal and sal.symtab:
+            file_name = ansi(sal.symtab.filename, style)
+            file_line = ansi(str(sal.line), style)
+            info += ' at {}:{}'.format(file_name, file_line)
+        return info
 
 class History(Dashboard.Module):
     '''List the last entries of the value history.'''
@@ -1507,6 +1509,8 @@ class History(Dashboard.Module):
 class Memory(Dashboard.Module):
     '''Allow to inspect memory regions.'''
 
+    ROW_LENGTH = 16
+
     class Region():
         def __init__(self, expression, length, module):
             self.expression = expression
@@ -1534,9 +1538,9 @@ class Memory(Dashboard.Module):
                 return [ansi(msg, R.style_error)]
             # format the memory content
             out = []
-            for i in range(0, len(memory), self.module.row_length):
-                region = memory[i:i + self.module.row_length]
-                pad = self.module.row_length - len(region)
+            for i in range(0, len(memory), Memory.ROW_LENGTH):
+                region = memory[i:i + Memory.ROW_LENGTH]
+                pad = Memory.ROW_LENGTH - len(region)
                 address_str = format_address(address + i)
                 # compute changes
                 hexa = []
@@ -1570,13 +1574,7 @@ class Memory(Dashboard.Module):
             self.latest = memory
             return out
 
-    @staticmethod
-    def parse_as_address(expression):
-        value = gdb.parse_and_eval(expression)
-        return to_unsigned(value)
-
     def __init__(self):
-        self.row_length = 16
         self.table = {}
 
     def label(self):
@@ -1588,38 +1586,6 @@ class Memory(Dashboard.Module):
             out.append(divider(term_width, expression))
             out.extend(region.format())
         return out
-
-    def watch(self, arg):
-        if arg:
-            expression, _, length_str = arg.partition(' ')
-            length = Memory.parse_as_address(length_str) if length_str else self.row_length
-            # keep the length when the memory is watched to reset the changes
-            region = self.table.get(expression)
-            if region and not length_str:
-                region.reset()
-            else:
-                self.table[expression] = Memory.Region(expression, length, self)
-        else:
-            raise Exception('Specify a memory location')
-
-    def unwatch(self, arg):
-        if arg:
-            try:
-                del self.table[arg]
-            except KeyError:
-                raise Exception('Memory expression not watched')
-        else:
-            raise Exception('Specify a matched memory expression')
-
-    def clear(self, arg):
-        self.table.clear()
-
-    def format_byte(self, byte):
-        # `type(byte) is bytes` in Python 3
-        if 0x20 < ord(byte) < 0x7f:
-            return chr(ord(byte))
-        else:
-            return self.placeholder[0]
 
     def commands(self):
         return {
@@ -1652,6 +1618,43 @@ class Memory(Dashboard.Module):
                 'default': '·'
             }
         }
+
+    def watch(self, arg):
+        if arg:
+            expression, _, length_str = arg.partition(' ')
+            length = Memory.parse_as_address(length_str) if length_str else Memory.ROW_LENGTH
+            # keep the length when the memory is watched to reset the changes
+            region = self.table.get(expression)
+            if region and not length_str:
+                region.reset()
+            else:
+                self.table[expression] = Memory.Region(expression, length, self)
+        else:
+            raise Exception('Specify a memory location')
+
+    def unwatch(self, arg):
+        if arg:
+            try:
+                del self.table[arg]
+            except KeyError:
+                raise Exception('Memory expression not watched')
+        else:
+            raise Exception('Specify a matched memory expression')
+
+    def clear(self, arg):
+        self.table.clear()
+
+    def format_byte(self, byte):
+        # `type(byte) is bytes` in Python 3
+        if 0x20 < ord(byte) < 0x7f:
+            return chr(ord(byte))
+        else:
+            return self.placeholder[0]
+
+    @staticmethod
+    def parse_as_address(expression):
+        value = gdb.parse_and_eval(expression)
+        return to_unsigned(value)
 
 class Registers(Dashboard.Module):
     '''Show the CPU registers and their values.'''
@@ -1846,24 +1849,6 @@ class Expressions(Dashboard.Module):
             out.append('{} {} {}'.format(expression, equal, value))
         return out
 
-    def watch(self, arg):
-        if arg:
-            self.table.add(arg)
-        else:
-            raise Exception('Specify an expression')
-
-    def unwatch(self, arg):
-        if arg:
-            try:
-                self.table.remove(arg)
-            except:
-                raise Exception('Expression not watched')
-        else:
-            raise Exception('Specify an expression')
-
-    def clear(self, arg):
-        self.table.clear()
-
     def commands(self):
         return {
             'watch': {
@@ -1882,10 +1867,28 @@ class Expressions(Dashboard.Module):
             }
         }
 
+    def watch(self, arg):
+        if arg:
+            self.table.add(arg)
+        else:
+            raise Exception('Specify an expression')
+
+    def unwatch(self, arg):
+        if arg:
+            try:
+                self.table.remove(arg)
+            except:
+                raise Exception('Expression not watched')
+        else:
+            raise Exception('Specify an expression')
+
+    def clear(self, arg):
+        self.table.clear()
+
 class Breakpoints(Dashboard.Module):
     '''Display the breakpoints list.'''
 
-    Names = {
+    NAMES = {
         gdb.BP_BREAKPOINT: 'break',
         gdb.BP_WATCHPOINT: 'watch',
         gdb.BP_HARDWARE_WATCHPOINT: 'write watch',
@@ -1903,7 +1906,7 @@ class Breakpoints(Dashboard.Module):
             # format common information
             style = R.style_selected_1 if breakpoint['enabled'] else R.style_selected_2
             number = ansi(breakpoint['number'], style)
-            bp_type = ansi(Breakpoints.Names[breakpoint['type']], style)
+            bp_type = ansi(Breakpoints.NAMES[breakpoint['type']], style)
             if breakpoint['temporary']:
                 bp_type = bp_type + ' {}'.format(ansi('once', style))
             if not R.ansi and breakpoint['enabled']:
