@@ -1830,7 +1830,7 @@ class Expressions(Dashboard.Module):
 
     def lines(self, term_width, term_height, style_changed):
         out = []
-        default_radix = gdb.parameter('output-radix')
+        default_radix = Expressions.get_default_radix()
         for expression in self.table:
             label = expression
             match = re.match('^/(\d+) +(.+)$', expression)
@@ -1884,6 +1884,16 @@ class Expressions(Dashboard.Module):
 
     def clear(self, arg):
         self.table.clear()
+
+    @staticmethod
+    def get_default_radix():
+        try:
+            return gdb.parameter('output-radix')
+        except RuntimeError:
+            # XXX this is a fix for GDB <8.1.x see #161
+            message = run('show output-radix')
+            match = re.match('^Default output radix for printing of values is (\d+)\.$', message)
+            return match.groups()[0] if match else 10  # fallback
 
 class Breakpoints(Dashboard.Module):
     '''Display the breakpoints list.'''
