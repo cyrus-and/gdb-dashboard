@@ -840,7 +840,8 @@ Passing `!` as a single argument resets the dashboard original layout.'''
                 if directives == ['!']:
                     self.reset()
                 else:
-                    self.layout(directives)
+                    if not self.layout(directives):
+                        return  # in case of errors
                 # redisplay or otherwise notify
                 if from_tty:
                     if self.dashboard.is_running():
@@ -877,32 +878,32 @@ Passing `!` as a single argument resets the dashboard original layout.'''
 
         def layout(self, directives):
             modules = self.dashboard.modules
+            # parse and check directives
+            parsed_directives = []
+            selected_modules = set()
+            for directive in directives:
+                enabled = (directive[0] != '!')
+                name = directive[not enabled:]
+                if name in selected_modules:
+                    Dashboard.err('Module "{}" already set'.format(name))
+                    return False
+                if next((False for module in modules if module.name == name), True):
+                    Dashboard.err('Cannot find module "{}"'.format(name))
+                    return False
+                parsed_directives.append((name, enabled))
+                selected_modules.add(name)
             # reset visibility
             for module in modules:
                 module.enabled = False
             # move and enable the selected modules on top
             last = 0
-            n_enabled = 0
-            for directive in directives:
-                # parse next directive
-                enabled = (directive[0] != '!')
-                name = directive[not enabled:]
-                try:
-                    # it may actually start from last, but in this way repeated
-                    # modules can be handled transparently and without error
-                    todo = enumerate(modules[last:], start=last)
-                    index = next(i for i, m in todo if name == m.name)
-                    modules[index].enabled = enabled
-                    modules.insert(last, modules.pop(index))
-                    last += 1
-                    n_enabled += enabled
-                except StopIteration:
-                    first_part = modules[:last]
-                    if len(list(filter(lambda module: module.name == name, first_part))) == 0:
-                        Dashboard.err('Cannot find module "{}"'.format(name))
-                    else:
-                        Dashboard.err('Module "{}" already set'.format(name))
-                    continue
+            for name, enabled in parsed_directives:
+                todo = enumerate(modules[last:], start=last)
+                index = next(index for index, module in todo if name == module.name)
+                modules[index].enabled = enabled
+                modules.insert(last, modules.pop(index))
+                last += 1
+            return True
 
         def complete(self, text, word):
             all_modules = (m.name for m in self.dashboard.modules)
