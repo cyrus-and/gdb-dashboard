@@ -866,9 +866,9 @@ Passing `!` as a single argument resets the dashboard original layout.'''
                 max_name_len = max(max_name_len, len(module.name))
                 mark = '' if module.enabled else '!'
                 modules.append('{}{}'.format(mark, module.name))
-            print(' '.join(modules))
+            print('dashboard -layout {}'.format(' '.join(modules)))
             # print outputs
-            default = '(default)'
+            default = '(default TTY)'
             fmt = '{{:{}s}}{{}}'.format(max_name_len + 2)
             print(('\n' + fmt + '\n').format(global_str, self.dashboard.output or default))
             for module in self.dashboard.modules:
