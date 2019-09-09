@@ -880,17 +880,14 @@ files.'''
                     last += 1
                     n_enabled += enabled
                 except StopIteration:
-                    def find_module(x):
-                        return x.name == name
                     first_part = modules[:last]
-                    if len(list(filter(find_module, first_part))) == 0:
+                    if len(list(filter(lambda module: module.name == name, first_part))) == 0:
                         Dashboard.err('Cannot find module "{}"'.format(name))
                     else:
                         Dashboard.err('Module "{}" already set'.format(name))
                     continue
             # redisplay the dashboard
-            if n_enabled:
-                self.dashboard.redisplay()
+            self.dashboard.redisplay()
 
         def complete(self, text, word):
             all_modules = (m.name for m in self.dashboard.modules)
