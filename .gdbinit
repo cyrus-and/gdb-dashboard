@@ -1000,9 +1000,9 @@ class Source(Dashboard.Module):
         # style changed, different file name or file modified in the meanwhile
         if style_changed or file_name != self.file_name or ts and ts > self.ts:
             try:
-                highlighter = Beautifier(file_name, self.tab_size)
-                self.highlighted = highlighter.active
                 with open(file_name) as source_file:
+                    highlighter = Beautifier(file_name, self.tab_size)
+                    self.highlighted = highlighter.active
                     source = highlighter.process(source_file.read())
                     self.source_lines = source.split('\n')
                 # store file name and timestamp only if success to have
