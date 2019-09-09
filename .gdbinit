@@ -1592,7 +1592,7 @@ class Memory(Dashboard.Module):
             'watch': {
                 'action': self.watch,
                 'doc': 'Watch a memory region by expression and length.\n'
-                       'The length defaults to 16 byte.',
+                       'The length defaults to 16 bytes.',
                 'complete': gdb.COMPLETE_EXPRESSION
             },
             'unwatch': {
