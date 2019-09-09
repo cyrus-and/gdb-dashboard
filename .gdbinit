@@ -1009,7 +1009,7 @@ class Source(Dashboard.Module):
                 # persistent errors
                 self.file_name = file_name
                 self.ts = ts
-            except Exception as e:
+            except IOError as e:
                 msg = 'Cannot display "{}"'.format(file_name)
                 return [ansi(msg, R.style_error)]
         # compute the line range
