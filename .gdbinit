@@ -26,12 +26,12 @@ class R():
             },
             'syntax_highlighting': {
                 'doc': '''Pygments style to use for syntax highlighting.
-Using an empty string (or a name not in the list) disables this feature.
-The list of all the available styles can be obtained with (from GDB itself):
 
-    python from pygments.styles import get_all_styles as styles
-    python for s in styles(): print(s)
-''',
+Using an empty string (or a name not in the list) disables this feature. The
+list of all the available styles can be obtained with (from GDB itself):
+
+    python from pygments.styles import *
+    python for style in get_all_styles(): print(style)''',
                 'default': 'monokai'
             },
             # values formatting
@@ -41,12 +41,12 @@ The list of all the available styles can be obtained with (from GDB itself):
                 'type': bool
             },
             'max_value_length': {
-                'doc': 'Maximum length for displayed values.',
+                'doc': 'Maximum length of displayed values before truncation.',
                 'default': 100,
                 'type': int
             },
             'value_truncation_string': {
-                'doc': 'String to use to denote value truncation.',
+                'doc': 'String to use to mark value truncation.',
                 'default': '…',
             },
             'dereference': {
@@ -56,21 +56,25 @@ The list of all the available styles can be obtained with (from GDB itself):
             },
             # prompt
             'prompt': {
-                'doc': '''Command prompt.
-This value is parsed as a Python format string in which `{status}` is expanded
-with the substitution of either `prompt_running` or `prompt_not_running`
-attributes, according to the target program status. The resulting string must be
-a valid GDB prompt, see the command `python print(gdb.prompt.prompt_help())`''',
+                'doc': '''GDB prompt.
+
+This value is used as a Python format string where `{status}` is expanded with
+the substitution of either `prompt_running` or `prompt_not_running` attributes,
+according to the target program status. The resulting string must be a valid GDB
+prompt, see the command `python print(gdb.prompt.prompt_help())`''',
                 'default': '{status}'
             },
             'prompt_running': {
-                'doc': '''`{status}` when the target program is running.
-See the `prompt` attribute. This value is parsed as a Python format string in
-which `{pid}` is expanded with the process identifier of the target program.''',
+                'doc': '''Define the value of `{status}` when the target program is running.
+
+See the `prompt` attribute. This value is used as a Python format string where
+`{pid}` is expanded with the process identifier of the target program.''',
                 'default': '\[\e[1;35m\]>>>\[\e[0m\]'
             },
             'prompt_not_running': {
-                'doc': '`{status}` when the target program is not running.',
+                'doc': '''Define the value of `{status}` when the target program is running.
+
+See the `prompt` attribute. This value is used as a Python format string.''',
                 'default': '\[\e[1;30m\]>>>\[\e[0m\]'
             },
             # divider
@@ -646,9 +650,8 @@ class Dashboard(gdb.Command):
                         print('{} module {}'.format(module.name, status))
                 else:
                     Dashboard.err('Wrong argument "{}"'.format(arg))
-            doc_brief = 'Configure the {} module.'.format(self.name)
-            doc_extended = 'Toggle the module visibility.'
-            doc = '{}\n{}\n\n{}'.format(doc_brief, doc_extended, self.doc)
+            doc_brief = 'Configure the {} module, with no arguments toggles its visibility.'.format(self.name)
+            doc = '{}\n\n{}'.format(doc_brief, self.doc)
             Dashboard.create_command(self.prefix, invoke, doc, True)
 
         def add_output_command(self, dashboard):
@@ -696,7 +699,8 @@ class Dashboard(gdb.Command):
             self.redisplay()
 
     class ConfigurationCommand(gdb.Command):
-        '''Dump the dashboard configuration (layout, styles, outputs).
+        '''Dump the dashboard configuration.
+
 With an optional argument the configuration will be written to the specified
 file.'''
 
@@ -749,15 +753,15 @@ file.'''
 
     class OutputCommand(gdb.Command):
         '''Set the output file/TTY for the whole dashboard or single modules.
+
 The dashboard/module will be written to the specified file, which will be
 created if it does not exist. If the specified file identifies a terminal then
 its geometry will be used, otherwise it falls back to the geometry of the main
 GDB terminal. When invoked without argument on the dashboard, the
 output/messages and modules which do not specify an output themselves will be
 printed on standard output (default). When invoked without argument on a module,
-it will be printed where the dashboard will be printed.
-An overview of all the outputs can be obtained with the `dashboard -layout`
-command.'''
+it will be printed where the dashboard will be printed. An overview of all the
+outputs can be obtained with the `dashboard -layout` command. '''
 
         def __init__(self, dashboard, prefix=None, obj=None):
             if not prefix:
@@ -791,7 +795,8 @@ command.'''
             self.dashboard.redisplay()
 
     class EnabledCommand(gdb.Command):
-        '''Enable or disable the dashboard [on|off].
+        '''Enable or disable the dashboard.
+
 The current status is printed if no argument is present.'''
 
         def __init__(self, dashboard):
@@ -817,6 +822,7 @@ The current status is printed if no argument is present.'''
 
     class LayoutCommand(gdb.Command):
         '''Set or show the dashboard layout.
+
 Accepts a space-separated list of directive. Each directive is in the form
 "[!]<module>". Modules in the list are placed in the dashboard in the same order
 as they appear and those prefixed by "!" are disabled by default. Omitted
@@ -898,6 +904,7 @@ files.'''
 
     class StyleCommand(gdb.Command):
         '''Access the stylable attributes.
+
 Without arguments print all the stylable attributes. Subcommands are used to set
 or print (when the value is omitted) individual attributes.'''
 
@@ -1076,7 +1083,9 @@ class Source(Dashboard.Module):
     def attributes(self):
         return {
             'height': {
-                'doc': 'Height of the module. A value of 0 uses the whole height.',
+                'doc': '''Height of the module.
+
+A value of 0 uses the whole height.''',
                 'default': 10,
                 'type': int,
                 'check': check_ge_zero
@@ -1097,8 +1106,9 @@ class Source(Dashboard.Module):
             self.offset = 0
 
 class Assembly(Dashboard.Module):
-    '''Show the disassembled code surrounding the program counter. The
-instructions constituting the current statement are marked, if available.'''
+    '''Show the disassembled code surrounding the program counter.
+
+The instructions constituting the current statement are marked, if available.'''
 
     def __init__(self):
         self.offset = 0
@@ -1258,7 +1268,9 @@ instructions constituting the current statement are marked, if available.'''
     def attributes(self):
         return {
             'height': {
-                'doc': 'Height of the module. A value of 0 uses the whole height.',
+                'doc': '''Height of the module.
+
+A value of 0 uses the whole height.''',
                 'default': 10,
                 'type': int,
                 'check': check_ge_zero
@@ -1374,8 +1386,9 @@ class Variables(Dashboard.Module):
         return lines
 
 class Stack(Dashboard.Module):
-    '''Show the current stack trace including the function name and the file
-location, if available. Optionally list the frame arguments and locals too.'''
+    '''Show the current stack trace including the function name and the file location, if available.
+
+Optionally list the frame arguments and locals too.'''
 
     def label(self):
         return 'Stack'
@@ -1591,8 +1604,9 @@ class Memory(Dashboard.Module):
         return {
             'watch': {
                 'action': self.watch,
-                'doc': 'Watch a memory region by expression and length.\n'
-                       'The length defaults to 16 bytes.',
+                'doc': '''Watch a memory region by expression and length.
+
+The length defaults to 16 bytes.''',
                 'complete': gdb.COMPLETE_EXPRESSION
             },
             'unwatch': {
@@ -1745,13 +1759,14 @@ class Registers(Dashboard.Module):
     def attributes(self):
         return {
             'column-major': {
-                'doc': 'Whether to show registers in columns instead of rows.',
+                'doc': 'Show registers in columns instead of rows.',
                 'default': False,
                 'name': 'column_major',
                 'type': bool
             },
             'list': {
                 'doc': '''String of space-separated register names to display.
+
 The empty list (default) causes to show all the available registers.''',
                 'default': '',
                 'name': 'register_list',
