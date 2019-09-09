@@ -1509,7 +1509,7 @@ class History(Dashboard.Module):
 class Memory(Dashboard.Module):
     '''Allow to inspect memory regions.'''
 
-    ROW_LENGTH = 16
+    DEFAULT_LENGTH = 16
 
     class Region():
         def __init__(self, expression, length, module):
@@ -1523,7 +1523,7 @@ class Memory(Dashboard.Module):
             self.original = None
             self.latest = None
 
-        def format(self):
+        def format(self, per_line):
             # fetch the memory content
             try:
                 address = Memory.parse_as_address(self.expression)
@@ -1538,9 +1538,9 @@ class Memory(Dashboard.Module):
                 return [ansi(msg, R.style_error)]
             # format the memory content
             out = []
-            for i in range(0, len(memory), Memory.ROW_LENGTH):
-                region = memory[i:i + Memory.ROW_LENGTH]
-                pad = Memory.ROW_LENGTH - len(region)
+            for i in range(0, len(memory), per_line):
+                region = memory[i:i + per_line]
+                pad = per_line - len(region)
                 address_str = format_address(address + i)
                 # compute changes
                 hexa = []
@@ -1584,7 +1584,7 @@ class Memory(Dashboard.Module):
         out = []
         for expression, region in self.table.items():
             out.append(divider(term_width, expression))
-            out.extend(region.format())
+            out.extend(region.format(self.get_per_line(term_width)))
         return out
 
     def commands(self):
@@ -1613,6 +1613,11 @@ class Memory(Dashboard.Module):
                 'default': False,
                 'type': bool
             },
+            'full': {
+                'doc': 'Take the whole horizontal space.',
+                'default': False,
+                'type': bool
+            },
             'placeholder': {
                 'doc': 'Placeholder used for missing items and unprintable characters.',
                 'default': '·'
@@ -1622,7 +1627,7 @@ class Memory(Dashboard.Module):
     def watch(self, arg):
         if arg:
             expression, _, length_str = arg.partition(' ')
-            length = Memory.parse_as_address(length_str) if length_str else Memory.ROW_LENGTH
+            length = Memory.parse_as_address(length_str) if length_str else Memory.DEFAULT_LENGTH
             # keep the length when the memory is watched to reset the changes
             region = self.table.get(expression)
             if region and not length_str:
@@ -1650,6 +1655,15 @@ class Memory(Dashboard.Module):
             return chr(ord(byte))
         else:
             return self.placeholder[0]
+
+    def get_per_line(self, term_width):
+        if self.full:
+            padding = 3  # two double spaces separator (one is part of below)
+            elem_size = 4 # HH + 1 space + T
+            address_length = gdb.parse_and_eval('$pc').type.sizeof * 2 + 2  # 0x
+            return max(int((term_width - address_length - padding) / elem_size), 1)
+        else:
+            return Memory.DEFAULT_LENGTH
 
     @staticmethod
     def parse_as_address(expression):
