@@ -425,22 +425,6 @@ class Dashboard(gdb.Command):
             else:
                 instance = None
             display_map.setdefault(output, []).append(instance)
-        # notify the user if the output is empty, on the main terminal
-        if all_disabled:
-            # write the error message
-            width, _ = Dashboard.get_term_size()
-            gdb.write(divider(width, 'Error', True))
-            gdb.write('\n')
-            if self.modules:
-                gdb.write('No module to display (see `help dashboard`)')
-            else:
-                gdb.write('No module loaded')
-            # write the terminator
-            gdb.write('\n')
-            gdb.write(divider(width, primary=True))
-            gdb.write('\n')
-            gdb.flush()
-            # continue to allow separate terminals to update
         # process each display info
         for output, instances in display_map.items():
             try:
@@ -464,10 +448,20 @@ class Dashboard(gdb.Command):
                 # auxiliary terminals are always cleared
                 if fs is not gdb or clear_screen:
                     buf += Dashboard.clear_screen()
-                # show message in separate terminals if all the modules are
-                # disabled
-                if output != self.output and not any(instances):
-                    buf += '--- NO MODULE TO DISPLAY ---\n'
+                # show message if all the modules in this output are disabled
+                if not any(instances):
+                    # write the error message
+                    buf += divider(width, 'Error', True)
+                    buf += '\n'
+                    if self.modules:
+                        buf += 'No module to display (see `help dashboard`)'
+                    else:
+                        buf += 'No module loaded'
+                    # write the terminator only in the main terminal
+                    buf += '\n'
+                    if fs is gdb:
+                        buf += divider(width, primary=True)
+                        buf += '\n'
                     fs.write(buf)
                     continue
                 # process all the modules for that output
