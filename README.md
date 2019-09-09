@@ -25,6 +25,7 @@ Then debug as usual, the dashboard will appear automatically when the inferior p
 The [wiki][] also can be useful as it contains some common use cases.
 
 [`.gdbinit`]: https://raw.githubusercontent.com/cyrus-and/gdb-dashboard/master/.gdbinit
+[Pygments]: http://pygments.org/
 [wiki]: https://github.com/cyrus-and/gdb-dashboard/wiki
 
 ## Requirements
@@ -47,148 +48,12 @@ GDB dashboard is not meant to work seamlessly with additional front ends, e.g., 
 
 [#1]: https://github.com/cyrus-and/gdb-dashboard/issues/1
 
-## Default modules
-
-Follows the list of bundled default modules, refer to the GDB help system for the full syntax.
-
-`assembly` shows the disassembled code surrounding the program counter. The instructions constituting the current statement are marked, if available.
-
-`history` lists the last entries of the GDB value history.
-
-`memory` allows to inspect memory regions.
-
-`registers` shows the CPU registers and their values.
-
-`source` show the program source code, if available.
-
-`stack` shows the current stack trace including the function name and the file location, if available. Optionally lists the frame arguments and locals too.
-
-`threads` lists the currently available threads.
-
-`variables` shows arguments and locals of the selected frame.
-
-`expressions` watches user expressions.
-
-`breakpoints` displays the breakpoints list.
-
-## Commands
-
-The GDB documentation is available at `help dashboard`. Just like any GDB command, abbreviations are possible, so `da`, `dash`, etc. all resolve to `dashboard`.
-
-### dashboard
-
-This is the root command and it is used to manually redisplay the dashboard.
-
-### dashboard -configuration [`<file>`]
-
-Display and optionally write to `<file>` the current configuration (layout, styles, outputs). This command allows to configure the dashboard live then make the changes permanent, for example:
-
-```
-dashboard -configuration ~/.gdbinit.d/auto
-```
-
-### dashboard -output [`<file>`]
-
-By default the dashboard is displayed in the GDB terminal together with the prompt and the program I/O but it may be convenient to display the whole dashboard or individual modules to other terminals.
-
-This command allows to specify the destination terminal for both the dashboard and the modules, in such a way that when the output of a module is not specified then the dashboard output is used. To restore the original value run the command omitting the file.
-
-To identify the TTY file name associated with terminal use the `tty` system command, those entries are often in the format `/dev/pts/<n>`.
-
-The [`dashboard -layout`](#dashboard--layout-directive) command can be used to display a summary of the active modules and their outputs.
-
-If `<file>` is not a valid terminal then the size of the GDB terminal is used to render the modules.
-
-### dashboard -enabled [on|off]
-
-Enable or disable the automatic display of the dashboard whenever the target program stops. The dashboard is enabled by default and even when it is disabled, it can be manually displayed with `dashboard`.
-
-### dashboard -layout [`<directive>`...]
-
-By default, all the modules are enabled and placed within the dashboard in alphabetical order. As the number of modules grows, it is important to decide which modules will be part of the dashboard, and where.
-
-Each directive is in the form `[!]<module>`, when the `!` is present then the corresponding module is disabled by default. The order of directives denotes the display order within the dashboard. For example:
-
-```
-dashboard -layout source !assembly stack
-```
-
-Modules which do not appear in the list are disabled and placed after the last element in alphabetical order.
-
-When executed without arguments, this command lists all the available modules in the form of a list of directives followed by the status of the output files of the modules.
-
-### dashboard -style [`<name>` [`<value>`]]
-
-Access to the stylable attributes of the dashboard, see [Stylable attributes](#stylable-attributes). For example, to change the prompt to something more familiar:
-
-```
-dashboard -style prompt '(gdb)'
-```
-
-The argument is parsed as a Python literal and converted to the proper type.
-
-When only the name is specified this command shows the current value, whereas without arguments prints all the attributes.
-
-### Modules subcommands
-
-Every module adds its own subcommand `dashboard <module>` which is used to toggle the enable flag and to redisplay the dashboard.
-
-Modules may also declare additional subcommands, see `help dashboard <module>` from GDB.
-
-There are two additional predefined subcommands: `-style` and `-output`.
-
-#### -style
-
-If a module declares some stylable attributes then the command `dashboard <module> -style` will be available. Its semantics is equivalent to the [`dashboard -style`](#dashboard--style-name-value) command but it does apply to a module.
-
-#### -output
-
-The `dashboard <module> -output` mimics the [`dashboard -output`](#dashboard--output-file) command but allows a finer grain of operation by working for a single module.
 
 ## Configuration
 
 Files in `~/.gdbinit.d/` are executed in alphabetical order, but the preference is given to Python files. If there are subdirectories, they are walked recursively. The idea is to keep separated the custom modules definition from the configuration itself.
 
 By convention, the *main* configuration file should be placed in `~/.gdbinit.d/` (say `~/.gdbinit.d/init`) and can be used to tune the dashboard styles and modules configuration but also the usual GDB parameters.
-
-## Stylable attributes
-
-There is number of attributes that can be used to customize the aspect of the dashboard and of its modules. They are documented within the GDB help system. For what concerns the dashboard itself it can be reached with:
-
-```
-help dashboard -style
-```
-
-Whereas for modules:
-
-```
-help dashboard <module> -style
-```
-
-### ANSI escape codes
-
-Colors and text styles are specified using [ANSI][] escape codes. For example setting a style to `1;31` will produce `^[[1;31m`, which will result in displaying the text red (`31`) and bright (`1`). The ANSI output can be disabled by setting the `ansi` attribute to `False` (note that this will not affect the command prompt).
-
-### Syntax highlighting
-
-When the `ansi` attribute is set to `True` the [Pygments][] Python library may be used by modules to provide syntax highlighting of the source code.
-
-The `syntax_highlighting` stylable attribute is a string which defines the Pygments style to use.
-
-### Dividers
-
-A divider is basically a terminal-wide horizontal line with an optional label. Primary dividers are those used to separate the modules, whereas secondary dividers may be used inside modules to logically separate different sections. When a section or module is empty then the styles used for the divider are those with the `off` qualifier.
-
-### Common styles
-
-These are general purpose [ANSI][] styles defined for convenience and used by default modules:
-
-- `style_selected_1`;
-- `style_selected_2`;
-- `style_low`;
-- `style_high`;
-- `style_error`;
-- `style_critical`.
 
 ## Custom modules
 
@@ -229,6 +94,17 @@ Optionally, a module may declare subcommands by defining the `commands` method r
 ### Common functions
 
 A number of auxiliary common functions are defined in the global scope, they can be found in the provided `.gdbinit` and concern topics like [ANSI][] output, divider formatting, conversion callbacks, etc. They should be more or less self-documented, some usage examples can be found within the bundled default modules.
+
+### Common styles
+
+These are general purpose [ANSI][] styles defined for convenience and used by modules:
+
+- `style_selected_1`;
+- `style_selected_2`;
+- `style_low`;
+- `style_high`;
+- `style_error`;
+- `style_critical`.
 
 ### Example
 
@@ -291,6 +167,3 @@ dashboard notes add
 dashboard notes clear
 dashboard notes -style
 ```
-
-[Pygments]: http://pygments.org/
-[ANSI]: https://en.wikipedia.org/wiki/ANSI_escape_code

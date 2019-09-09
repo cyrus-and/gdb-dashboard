@@ -696,7 +696,12 @@ class Dashboard(gdb.Command):
         '''Dump the dashboard configuration.
 
 With an optional argument the configuration will be written to the specified
-file.'''
+file.
+
+This command allows to configure the dashboard live then make the changes
+permanent, for example:
+
+    dashboard -configuration ~/.gdbinit.d/auto'''
 
         def __init__(self, dashboard):
             gdb.Command.__init__(self, 'dashboard -configuration',
@@ -751,11 +756,17 @@ file.'''
 The dashboard/module will be written to the specified file, which will be
 created if it does not exist. If the specified file identifies a terminal then
 its geometry will be used, otherwise it falls back to the geometry of the main
-GDB terminal. When invoked without argument on the dashboard, the
-output/messages and modules which do not specify an output themselves will be
-printed on standard output (default). When invoked without argument on a module,
-it will be printed where the dashboard will be printed. An overview of all the
-outputs can be obtained with the `dashboard -layout` command. '''
+GDB terminal.
+
+When invoked without argument on the dashboard, the output/messages and modules
+which do not specify an output themselves will be printed on standard output
+(default).
+
+When invoked without argument on a module, it will be printed where the
+dashboard will be printed.
+
+An overview of all the outputs can be obtained with the `dashboard -layout`
+command.'''
 
         def __init__(self, dashboard, prefix=None, obj=None):
             if not prefix:
@@ -912,8 +923,12 @@ Passing `!` as a single argument resets the dashboard original layout.'''
     class StyleCommand(gdb.Command):
         '''Access the stylable attributes.
 
-Without arguments print all the stylable attributes. Subcommands are used to set
-or print (when the value is omitted) individual attributes.'''
+Without arguments print all the stylable attributes.
+
+When only the name is specified show the current value.
+
+With name and value set the stylable attribute. Values are parsed as Python
+literals and converted to the proper type. '''
 
         def __init__(self, dashboard, prefix, obj, attributes):
             self.prefix = prefix + ' -style'
