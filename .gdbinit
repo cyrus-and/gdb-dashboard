@@ -820,10 +820,13 @@ The current status is printed if no argument is present.'''
 Accepts a space-separated list of directive. Each directive is in the form
 "[!]<module>". Modules in the list are placed in the dashboard in the same order
 as they appear and those prefixed by "!" are disabled by default. Omitted
-modules are hidden and placed at the bottom in alphabetical order. Without
-arguments the current layout is shown where the first line uses the same form
-expected by the input while the remaining depict the current status of output
-files.'''
+modules are hidden and placed at the bottom in alphabetical order.
+
+Without arguments the current layout is shown where the first line uses the same
+form expected by the input while the remaining depict the current status of
+output files.
+
+Passing `!` as a single argument resets the dashboard original layout.'''
 
         def __init__(self, dashboard):
             gdb.Command.__init__(self, 'dashboard -layout', gdb.COMMAND_USER)
@@ -833,11 +836,25 @@ files.'''
             arg = Dashboard.parse_arg(arg)
             directives = str(arg).split()
             if directives:
-                self.layout(directives)
-                if from_tty and not self.dashboard.is_running():
-                    self.show()
+                # apply the layout
+                if directives == ['!']:
+                    self.reset()
+                else:
+                    self.layout(directives)
+                # redisplay or otherwise notify
+                if from_tty:
+                    if self.dashboard.is_running():
+                        self.dashboard.redisplay()
+                    else:
+                        self.show()
             else:
                 self.show()
+
+        def reset(self):
+            modules = self.dashboard.modules
+            modules.sort(key=lambda module: module.name)
+            for module in modules:
+                module.enabled = True
 
         def show(self):
             global_str = 'Global'
@@ -886,8 +903,6 @@ files.'''
                     else:
                         Dashboard.err('Module "{}" already set'.format(name))
                     continue
-            # redisplay the dashboard
-            self.dashboard.redisplay()
 
         def complete(self, text, word):
             all_modules = (m.name for m in self.dashboard.modules)
