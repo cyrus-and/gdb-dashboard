@@ -57,35 +57,61 @@ By convention, the *main* configuration file should be placed in `~/.gdbinit.d/`
 
 ## Custom modules
 
-Custom modules must inherit the `Dashboard.Module` class and define some methods:
-
-- `label` returns the module label which will appear in the divider;
-
-- `lines` return a list of strings which will form the module content, when a module is temporarily unable to produce its content, it should return an empty list; its divider will then use the styles with the `off` qualifier.
-
-The name of a module is automatically obtained by the class name.
+A custom module is a Python class that inherit the `Dashboard.Module` class and define some methods specified by the below API. The name of a module is automatically obtained by the class name.
 
 Modules are instantiated once at initialization time and kept during the whole the GDB session.
 
-Optionally, a module may include a description which will appear in the GDB help system by specifying a Python docstring for the class.
+Optionally, a module may include a description which will appear in the GDB help system by specifying a Python docstring for the class. By convention the first line should contain a brief description.
 
-Optionally, a module may define stylable attributes by defining the `attributes` method returning a dictionary in which the key is the attribute name and the value is another dictionary:
+### API
+
+#### label
+
+```python
+def label(self):
+```
+
+Return the module label which will appear in the divider.
+
+#### lines
+
+```python
+def lines(self, term_width, term_height, style_changed):
+```
+
+Return a list of strings which will form the module content. When a module is temporarily unable to produce its content, it should return an empty list; its divider will then use the styles with the `off` qualifier.
+
+#### attributes
+
+```python
+def attributes(self):
+```
+
+Return a dictionary in which the key is the attribute name and the value is another dictionary with items:
 
 - `default` is the initial value for this attribute;
 
 - `doc` is the optional documentation of this attribute which will appear in the GDB help system;
 
-- `name` is the name of the attribute of the Python object, defaults to the key value;
+- `name` is the name of the attribute of the Python object (defaults to the key value);
 
-- `type` is the type of this attribute defaulting to the `str` type, it is used to coerce the value passed as an argument to the proper type, or raise an exception;
+- `type` is the Python type of this attribute defaulting to the `str` type, it is used to coerce the value passed as an argument to the proper type, or raise an exception;
 
 - `check` is an optional control callback which accept the coerced value and returns `True` if the value satisfies the constraint and `False` otherwise.
 
-Optionally, a module may declare subcommands by defining the `commands` method returning a dictionary in which the key is the command name and the value is another dictionary:
+Those attributes can be accessed from the implementation using instance variables named `name`.
 
-- `action` is the callback to be executed which accepts the raw input string from the GDB prompt, exceptions will be shown automatically to the user;
+#### commands
 
-- `doc` is the command documentation;
+```python
+def commands(self):
+```
+
+Return a dictionary in which the key is the attribute name and the value is another dictionary with items:
+
+- `action` is the callback to be executed which accepts the raw input string from the GDB prompt, exceptions in these functions will be shown automatically to the user;
+
+- `doc` is the documentation of this command which will appear in the GDB help system;
 
 - `completion` is the optional completion policy, one of the `gdb.COMPLETE_*` constants defined in the [reference manual][completion].
 
@@ -93,11 +119,11 @@ Optionally, a module may declare subcommands by defining the `commands` method r
 
 ### Common functions
 
-A number of auxiliary common functions are defined in the global scope, they can be found in the provided `.gdbinit` and concern topics like [ANSI][] output, divider formatting, conversion callbacks, etc. They should be more or less self-documented, some usage examples can be found within the bundled default modules.
+A number of auxiliary common functions are defined in the global scope, they can be found in the provided `.gdbinit` and concern topics like [ANSI][] output, divider formatting, conversion callbacks, etc. See the bundled default modules for some usage examples.
 
 ### Common styles
 
-These are general purpose [ANSI][] styles defined for convenience and used by modules:
+There are general purpose [ANSI][] styles defined for convenience and used by modules:
 
 - `style_selected_1`;
 - `style_selected_2`;
@@ -167,3 +193,5 @@ dashboard notes add
 dashboard notes clear
 dashboard notes -style
 ```
+
+[ANSI]: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
