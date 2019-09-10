@@ -866,22 +866,16 @@ Passing `!` as a single argument resets the dashboard original layout.'''
                 module.enabled = True
 
         def show(self):
-            global_str = 'Global'
-            max_name_len = len(global_str)
-            # print directives
-            modules = []
-            for module in self.dashboard.modules:
-                max_name_len = max(max_name_len, len(module.name))
-                mark = '' if module.enabled else '!'
-                modules.append('{}{}'.format(mark, module.name))
-            print('dashboard -layout {}'.format(' '.join(modules)))
-            # print outputs
+            global_str = 'Dashboard'
             default = '(default TTY)'
-            fmt = '{{:{}s}}{{}}'.format(max_name_len + 2)
-            print(('\n' + fmt + '\n').format(global_str, self.dashboard.output or default))
+            max_name_len = max(len(module.name) for module in self.dashboard.modules)
+            max_name_len = max(max_name_len, len(global_str))
+            fmt = '{{}}{{:{}s}}{{}}'.format(max_name_len + 2)
+            print((fmt + '\n').format(' ', global_str, self.dashboard.output or default))
             for module in self.dashboard.modules:
+                mark = ' ' if module.enabled else '!'
                 style = R.style_high if module.enabled else R.style_low
-                line = fmt.format(module.name, module.output or default)
+                line = fmt.format(mark, module.name, module.output or default)
                 print(ansi(line, style))
 
         def layout(self, directives):
