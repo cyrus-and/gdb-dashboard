@@ -691,7 +691,7 @@ class Dashboard(gdb.Command):
             self.redisplay()
 
     class ConfigurationCommand(gdb.Command):
-        '''Dump the dashboard configuration.
+        '''Dump or save the dashboard configuration.
 
 With an optional argument the configuration will be written to the specified
 file.
@@ -699,7 +699,11 @@ file.
 This command allows to configure the dashboard live then make the changes
 permanent, for example:
 
-    dashboard -configuration ~/.gdbinit.d/auto'''
+    dashboard -configuration ~/.gdbinit.d/init
+
+At startup the `~/.gdbinit.d/` directory tree is walked and files are evaluated
+in alphabetical order but giving priority to Python files. This is where user
+configuration files must be placed.'''
 
         def __init__(self, dashboard):
             gdb.Command.__init__(self, 'dashboard -configuration',

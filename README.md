@@ -29,7 +29,3 @@ Head to the [wiki][] to learn how to perform the most important tasks.
 [`.gdbinit`]: https://raw.githubusercontent.com/cyrus-and/gdb-dashboard/master/.gdbinit
 [Pygments]: http://pygments.org/
 [wiki]: https://github.com/cyrus-and/gdb-dashboard/wiki
-
-## Configuration
-
-At startup the `~/.gdbinit.d/` directory tree is walked and files are evaluated in alphabetical order but giving priority to Python files. This is where user configuration files must be placed.
