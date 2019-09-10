@@ -451,10 +451,10 @@ class Dashboard(gdb.Command):
                 # show message if all the modules in this output are disabled
                 if not any(instances):
                     # write the error message
-                    buf += divider(width, 'Error', True)
+                    buf += divider(width, 'Warning', True)
                     buf += '\n'
                     if self.modules:
-                        buf += 'No module to display (see `help dashboard`)'
+                        buf += 'No module to display (see `dashboard -layout`)'
                     else:
                         buf += 'No module loaded'
                     # write the terminator only in the main terminal
