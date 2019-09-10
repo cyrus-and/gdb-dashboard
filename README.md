@@ -42,12 +42,12 @@ Make sure that the system locale is configured to use UTF-8, in most cases it al
 export LC_CTYPE=C.UTF-8
 ```
 
-On Windows the `windows-curses` Python package is needed in order to obtain the correct terminal size.
+On Windows the [`windows-curses`][] Python package is needed in order to obtain the correct terminal size.
 
 GDB dashboard is not meant to work seamlessly with additional front ends, e.g., TUI, Nemiver, QtCreator, etc. either instruct the front end to not load the `.gdbinit` file or load the dashboard manually.
 
 [#1]: https://github.com/cyrus-and/gdb-dashboard/issues/1
-
+[`windows-curses`]: https://pypi.org/project/windows-curses/
 
 ## Configuration
 
