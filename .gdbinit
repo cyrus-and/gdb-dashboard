@@ -367,7 +367,7 @@ class Dashboard(gdb.Command):
         outputs.add(self.output)
         outputs.update(module.output for module in self.modules)
         outputs.remove(None)
-        # clean the screen and notify to avoid confusion
+        # reset the terminal status
         for output in outputs:
             try:
                 with open(output, 'w') as fs:
@@ -780,10 +780,7 @@ command.'''
 
         def invoke(self, arg, from_tty):
             arg = Dashboard.parse_arg(arg)
-            # display a message in a separate terminal if released (note that
-            # the check if this is the last module to use the output is not
-            # performed since if that's not the case the message will be
-            # overwritten)
+            # reset the terminal status
             if self.obj.output:
                 try:
                     with open(self.obj.output, 'w') as fs:
