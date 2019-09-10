@@ -20,7 +20,9 @@ Optionally install [Pygments][] to enable syntax highlighting:
 pip install pygments
 ```
 
-Then debug as usual, the dashboard will appear automatically when the inferior program stops. Keep in mind that no GDB command has been redefined, instead all the features are available via the main `dashboard` command (see `help dashboard`).
+Then debug as usual, the dashboard will appear automatically when the inferior program stops.
+
+Keep in mind that no GDB command has been redefined, instead all the features are available via the main `dashboard` command (see `help dashboard`).
 
 The [wiki][] also can be useful as it contains some common use cases.
 
@@ -196,4 +198,4 @@ dashboard notes clear
 dashboard notes -style
 ```
 
-[ANSI]: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters
+[ANSI]: https://en.wikipedia.org/wiki/ANSI_escape_code
