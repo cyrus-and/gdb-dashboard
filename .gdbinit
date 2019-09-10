@@ -652,13 +652,11 @@ class Dashboard(gdb.Command):
             Dashboard.OutputCommand(dashboard, self.prefix, self)
 
         def add_style_command(self, dashboard):
-            if 'attributes' in dir(self.instance):
-                Dashboard.StyleCommand(dashboard, self.prefix, self.instance, self.instance.attributes())
+            Dashboard.StyleCommand(dashboard, self.prefix, self.instance, self.instance.attributes())
 
         def add_subcommands(self, dashboard):
-            if 'commands' in dir(self.instance):
-                for name, command in self.instance.commands().items():
-                    self.add_subcommand(dashboard, name, command)
+            for name, command in self.instance.commands().items():
+                self.add_subcommand(dashboard, name, command)
 
         def add_subcommand(self, dashboard, name, command):
             action = command['action']
@@ -984,7 +982,77 @@ literals and converted to the proper type. '''
 
     # just a tag
     class Module():
-        pass
+        '''Base class for GDB dashboard modules.
+
+        Modules are instantiated once at initialization time and kept during the
+        whole the GDB session.
+
+        The name of a module is automatically obtained by the class name.
+
+        Optionally, a module may include a description which will appear in the
+        GDB help system by specifying a Python docstring for the class. By
+        convention the first line should contain a brief description.'''
+
+        def label(self):
+            '''Return the module label which will appear in the divider.'''
+            pass
+
+        def lines(self, term_width, term_height, style_changed):
+            '''Return a list of strings which will form the module content.
+
+            When a module is temporarily unable to produce its content, it
+            should return an empty list; its divider will then use the styles
+            with the "off" qualifier.
+
+            term_width and term_height are the dimension of the terminal where
+            this module will be displayed. If `style_changed` is `True` then
+            some attributes have changed since the last time so the
+            implementation may want to update its status.'''
+            pass
+
+        def attributes(self):
+            '''Return the dictionary of available attributes.
+
+            The key is the attribute name and the value is another dictionary
+            with items:
+
+            - `default` is the initial value for this attribute;
+
+            - `doc` is the optional documentation of this attribute which will
+              appear in the GDB help system;
+
+            - `name` is the name of the attribute of the Python object (defaults
+              to the key value);
+
+            - `type` is the Python type of this attribute defaulting to the
+              `str` type, it is used to coerce the value passed as an argument
+              to the proper type, or raise an exception;
+
+            - `check` is an optional control callback which accept the coerced
+              value and returns `True` if the value satisfies the constraint and
+              `False` otherwise.
+
+            Those attributes can be accessed from the implementation using
+            instance variables named `name`.'''
+            return {}
+
+        def commands(self):
+            '''Return the dictionary of available commands.
+
+            The key is the attribute name and the value is another dictionary
+            with items:
+
+            - `action` is the callback to be executed which accepts the raw
+              input string from the GDB prompt, exceptions in these functions
+              will be shown automatically to the user;
+
+            - `doc` is the documentation of this command which will appear in
+              the GDB help system;
+
+            - `completion` is the optional completion policy, one of the
+              `gdb.COMPLETE_*` constants defined in the GDB reference manual
+              (https://sourceware.org/gdb/onlinedocs/gdb/Commands-In-Python.html).'''
+            return {}
 
 # Default modules --------------------------------------------------------------
 
