@@ -136,13 +136,21 @@ There are general purpose [ANSI][] styles defined for convenience and used by mo
 - `style_error`;
 - `style_critical`.
 
-### Example
-
-Default modules already provide a good example, but here is a simple module which may be used as a template for new custom modules, it allows the programmer to note down some snippets of text during the debugging session.
+Use them in conjunction with the `ansi` common function, for example:
 
 ```python
+my_error = ansi('my_error', R.style_error)
+```
+
+### Example
+
+Default modules should provide a good example, but here is a simple module which may be used as a template for new custom modules. This module allows the programmer to note down some snippets of text during the debugging session.
+
+```python
+from datetime import datetime
+
 class Notes(Dashboard.Module):
-    """Simple user-defined notes."""
+    '''Simple user-defined notes.'''
 
     def __init__(self):
         self.notes = []
@@ -152,17 +160,31 @@ class Notes(Dashboard.Module):
 
     def lines(self, term_width, term_height, style_changed):
         out = []
-        for note in self.notes:
-            out.append(note)
-            if self.divider:
-                out.append(divider())
-        return out[:-1] if self.divider else out
+        for index, (ts, note) in enumerate(self.notes):
+            # format the index
+            index = ansi(str(index), R.style_selected_1)
+            line = '[{}]'.format(index)
+            # optionally add the timestamp
+            if self.timestamp:
+                ts = ts.strftime('%Y-%m-%d %H:%M:%S')
+                line += ' {} '.format(ansi(ts, R.style_high))
+            # finally add the note
+            line += ' {}'.format(note)
+            out.append(line)
+        return out
 
     def add(self, arg):
         if arg:
-            self.notes.append(arg)
+            self.notes.append((datetime.now(), arg))
         else:
             raise Exception('Cannot add an empty note')
+
+    def drop(self, arg):
+        if arg:
+            index = int(arg)
+            del self.notes[index]
+        else:
+            raise Exception('Specify the note index')
 
     def clear(self, arg):
         self.notes = []
@@ -173,6 +195,10 @@ class Notes(Dashboard.Module):
                 'action': self.add,
                 'doc': 'Add a note.'
             },
+            'drop': {
+                'action': self.drop,
+                'doc': 'Remove a note by index.'
+            },
             'clear': {
                 'action': self.clear,
                 'doc': 'Remove all the notes.'
@@ -181,21 +207,22 @@ class Notes(Dashboard.Module):
 
     def attributes(self):
         return {
-            'divider': {
-                'doc': 'Divider visibility flag.',
+            'timestamp': {
+                'doc': 'Show the timestamp along with the note.',
                 'default': True,
                 'type': bool
             }
         }
 ```
 
-To use the above just save it in a Python file, say `notes.py`, inside `~/.gdbinit.d/`, the following commands (together with the help) will be available:
+To use the above just save it in a Python file, say `notes.py`, inside `~/.gdbinit.d/`. The following commands will be available (together with the corresponding help):
 
 ```
 dashboard notes
 dashboard notes add
+dashboard notes drop
 dashboard notes clear
-dashboard notes -style
+dashboard notes -style timestamp
 ```
 
 [ANSI]: https://en.wikipedia.org/wiki/ANSI_escape_code
