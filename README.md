@@ -79,6 +79,8 @@ Return the module label which will appear in the divider.
 def lines(self, term_width, term_height, style_changed):
 ```
 
+The available terminal dimensions are passed and if `style_changed` is `True` then it means that some attributes have changed since the last time so the implementation may want to update its status.
+
 Return a list of strings which will form the module content. When a module is temporarily unable to produce its content, it should return an empty list; its divider will then use the styles with the `off` qualifier.
 
 #### attributes
