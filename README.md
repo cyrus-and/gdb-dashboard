@@ -20,11 +20,11 @@ Optionally install [Pygments][] to enable syntax highlighting:
 pip install pygments
 ```
 
-Then debug as usual, the dashboard will appear automatically when the inferior program stops.
+Then debug as usual, the dashboard will appear automatically every time the inferior program stops.
 
 Keep in mind that no GDB command has been redefined, instead all the features are available via the main `dashboard` command (see `help dashboard`).
 
-The [wiki][] also can be useful as it contains some common use cases.
+Head to the [wiki][] to learn how to perform the most important tasks.
 
 [`.gdbinit`]: https://raw.githubusercontent.com/cyrus-and/gdb-dashboard/master/.gdbinit
 [Pygments]: http://pygments.org/
@@ -32,6 +32,4 @@ The [wiki][] also can be useful as it contains some common use cases.
 
 ## Configuration
 
-Files in `~/.gdbinit.d/` are executed in alphabetical order, but the preference is given to Python files. If there are subdirectories, they are walked recursively. The idea is to keep separated the custom modules definition from the configuration itself.
-
-By convention, the *main* configuration file should be placed in `~/.gdbinit.d/` (say `~/.gdbinit.d/init`) and can be used to tune the dashboard styles and modules configuration but also the usual GDB parameters.
+At startup the `~/.gdbinit.d/` directory tree is walked and files are evaluated in alphabetical order but giving priority to Python files. This is where user configuration files must be placed.
