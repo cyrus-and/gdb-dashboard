@@ -34,6 +34,14 @@ list of all the available styles can be obtained with (from GDB itself):
     python for style in get_all_styles(): print(style)''',
                 'default': 'monokai'
             },
+            'discard_scrollback': {
+                'doc': '''Discard the scrollback buffer at each redraw.
+
+This makes scrolling less confusing by discarding the previously printed
+dashboards but only works with certain terminals.''',
+                'default': True,
+                'type': bool
+            },
             # values formatting
             'compact_values': {
                 'doc': 'Display complex objects in a single line.',
@@ -602,7 +610,9 @@ class Dashboard(gdb.Command):
     @staticmethod
     def clear_screen():
         # ANSI: move the cursor to top-left corner and clear the screen
-        return '\x1b[H\x1b[J'
+        # (optionally also clear the scrollback buffer if supported by the
+        # terminal)
+        return '\x1b[H\x1b[J' + '\x1b[3J' if R.discard_scrollback else ''
 
     @staticmethod
     def setup_terminal():
