@@ -287,26 +287,31 @@ def format_value(value, compact=None):
 
 # XXX parsing the output of `info breakpoints` is apparently the best option
 # right now, see: https://sourceware.org/bugzilla/show_bug.cgi?id=18385
+# XXX GDB version 7.11 (quire recent) does not have the pending field, so
+# fall back to the parsed information
 def fetch_breakpoints(watchpoints=False, pending=False):
     # fetch breakpoints addresses
-    addresses = dict()
+    parsed_breakpoints = dict()
     for line in run('info breakpoints').split('\n'):
         # just keep numbered lines
         if not line or not line[0].isdigit():
             continue
-        # extract breakpoint number and address (if regular non-pending breakpoint)
+        # extract breakpoint number, address and pending status
+        fields = line.split()
+        number = int(fields[0], 16)
+        is_pending = fields[4] == '<PENDING>'
         try:
-            fields = line.split()
-            number = int(fields[0], 16)
             address = int(fields[4], 16) if len(fields) >= 5 and fields[1] == 'breakpoint' else None
-            addresses[number] = address
         except ValueError:
-            continue
+            address = None
+        parsed_breakpoints[number] = address, is_pending
     # fetch breakpoints from the API and complement with address and source
     # information
     breakpoints = []
     for gdb_breakpoint in gdb.breakpoints():
-        if not pending and gdb_breakpoint.pending:
+        address, is_pending = parsed_breakpoints[gdb_breakpoint.number]
+        is_pending = getattr(gdb_breakpoint, 'pending', is_pending)
+        if not pending and is_pending:
             continue
         if not watchpoints and gdb_breakpoint.type != gdb.BP_BREAKPOINT:
             continue
@@ -320,9 +325,8 @@ def fetch_breakpoints(watchpoints=False, pending=False):
         breakpoint['condition'] = gdb_breakpoint.condition
         breakpoint['temporary'] = gdb_breakpoint.temporary
         breakpoint['hit_count'] = gdb_breakpoint.hit_count
-        breakpoint['pending'] = gdb_breakpoint.pending
+        breakpoint['pending'] = is_pending
         # add address and source information
-        address = addresses.get(gdb_breakpoint.number)
         if address:
             sal = gdb.find_pc_line(address)
             breakpoint['address'] = address
