@@ -299,9 +299,9 @@ def fetch_breakpoints(watchpoints=False, pending=False):
             fields = line.split()
             number = int(fields[0], 16)
             address = int(fields[4], 16) if len(fields) >= 5 and fields[1] == 'breakpoint' else None
+            addresses[number] = address
         except ValueError:
             continue
-        addresses[number] = address
     # fetch breakpoints from the API and complement with address and source
     # information
     breakpoints = []
