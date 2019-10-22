@@ -298,7 +298,7 @@ def fetch_breakpoints(watchpoints=False, pending=False):
             continue
         # extract breakpoint number, address and pending status
         fields = line.split()
-        number = int(fields[0], 16)
+        number = int(fields[0])
         is_pending = fields[4] == '<PENDING>'
         try:
             address = int(fields[4], 16) if len(fields) >= 5 and fields[1] == 'breakpoint' else None
