@@ -304,7 +304,7 @@ def fetch_breakpoints(watchpoints=False, pending=False):
         try:
             if len(fields) >= 5 and fields[1] == 'breakpoint':
                 # multiple breakpoints have no address yet
-                addresses = [] if is_multiple else [int(fields[4], 16)]
+                addresses = [] if is_multiple or is_pending else [int(fields[4], 16)]
                 parsed_breakpoints[number] = addresses, is_pending
             elif len(fields) >= 3 and number in parsed_breakpoints:
                 # add this address to the list of multiple locations
@@ -1144,9 +1144,8 @@ class Source(Dashboard.Module):
             end = len(self.source_lines)
         else:
             end = max(end, 0)
-        # find the breakpoints for the current file
-        breakpoints = list(filter(lambda x: x.get('file_name') == file_name, fetch_breakpoints()))
         # return the source code listing
+        breakpoints = fetch_breakpoints()
         out = []
         number_format = '{{:>{}}}'.format(len(str(end)))
         for number, line in enumerate(self.source_lines[start:end], start + 1):
