@@ -298,19 +298,30 @@ def fetch_breakpoints(watchpoints=False, pending=False):
             continue
         # extract breakpoint number, address and pending status
         fields = line.split()
-        number = int(fields[0])
-        is_pending = fields[4] == '<PENDING>'
+        number = int(fields[0].split('.')[0])
         try:
-            address = int(fields[4], 16) if len(fields) >= 5 and fields[1] == 'breakpoint' else None
+            if len(fields) >= 5 and fields[1] == 'breakpoint':
+                # multiple breakpoints have no address yet
+                is_pending = fields[4] == '<PENDING>'
+                is_multiple = fields[4] == '<MULTIPLE>'
+                address = None if is_multiple or is_pending else int(fields[4], 16)
+                is_enabled = fields[3] == 'y'
+                address_info = address, is_enabled
+                parsed_breakpoints[number] = [address_info], is_pending
+            elif len(fields) >= 3 and number in parsed_breakpoints:
+                # add this address to the list of multiple locations
+                address = int(fields[2], 16)
+                is_enabled = fields[1] == 'y'
+                address_info = address, is_enabled
+                parsed_breakpoints[number][0].append(address_info)
         except ValueError:
-            address = None
-        parsed_breakpoints[number] = address, is_pending
+            pass
     # fetch breakpoints from the API and complement with address and source
     # information
     breakpoints = []
     # XXX in older versions gdb.breakpoints() returns None
     for gdb_breakpoint in gdb.breakpoints() or []:
-        address, is_pending = parsed_breakpoints[gdb_breakpoint.number]
+        addresses, is_pending = parsed_breakpoints[gdb_breakpoint.number]
         is_pending = getattr(gdb_breakpoint, 'pending', is_pending)
         if not pending and is_pending:
             continue
@@ -327,12 +338,17 @@ def fetch_breakpoints(watchpoints=False, pending=False):
         breakpoint['temporary'] = gdb_breakpoint.temporary
         breakpoint['hit_count'] = gdb_breakpoint.hit_count
         breakpoint['pending'] = is_pending
-        # add address and source information
-        if address:
-            sal = gdb.find_pc_line(address)
-            breakpoint['address'] = address
-            breakpoint['file_name'] = sal.symtab.filename if sal.symtab else None
-            breakpoint['file_line'] = sal.line
+        # add addresses and source information
+        breakpoint['addresses'] = []
+        for address, is_enabled in addresses:
+            if address:
+                sal = gdb.find_pc_line(address)
+            breakpoint['addresses'].append({
+                'address': address,
+                'enabled': is_enabled,
+                'file_name': sal.symtab.filename if address and sal.symtab else None,
+                'file_line': sal.line if address else None
+            })
         breakpoints.append(breakpoint)
     return breakpoints
 
@@ -1135,9 +1151,8 @@ class Source(Dashboard.Module):
             end = len(self.source_lines)
         else:
             end = max(end, 0)
-        # find the breakpoints for teh current file
-        breakpoints = list(filter(lambda x: x.get('file_name') == file_name, fetch_breakpoints()))
         # return the source code listing
+        breakpoints = fetch_breakpoints()
         out = []
         number_format = '{{:>{}}}'.format(len(str(end)))
         for number, line in enumerate(self.source_lines[start:end], start + 1):
@@ -1158,8 +1173,11 @@ class Source(Dashboard.Module):
             # check for breakpoint presence
             enabled = None
             for breakpoint in breakpoints:
-                if breakpoint['file_line'] == number:
-                    enabled = enabled or breakpoint['enabled']
+                addresses = breakpoint['addresses']
+                is_root_enabled = addresses[0]['enabled']
+                for address in addresses:
+                    if address['file_line'] == number:
+                        enabled = enabled or (address['enabled'] and is_root_enabled)
             if enabled is None:
                 breakpoint = ' '
             else:
@@ -1343,8 +1361,11 @@ The instructions constituting the current statement are marked, if available.'''
             # check for breakpoint presence
             enabled = None
             for breakpoint in breakpoints:
-                if breakpoint.get('address') == addr:
-                    enabled = enabled or breakpoint['enabled']
+                addresses = breakpoint['addresses']
+                is_root_enabled = addresses[0]['enabled']
+                for address in addresses:
+                    if address['address'] == addr:
+                        enabled = enabled or (address['enabled'] and is_root_enabled)
             if enabled is None:
                 breakpoint = ' '
             else:
@@ -2042,6 +2063,7 @@ class Breakpoints(Dashboard.Module):
         out = []
         breakpoints = fetch_breakpoints(watchpoints=True, pending=self.show_pending)
         for breakpoint in breakpoints:
+            sub_lines = []
             # format common information
             style = R.style_selected_1 if breakpoint['enabled'] else R.style_selected_2
             number = ansi(breakpoint['number'], style)
@@ -2052,17 +2074,32 @@ class Breakpoints(Dashboard.Module):
                 bp_type = 'disabled ' + bp_type
             line = '[{}] {}'.format(number, bp_type)
             if breakpoint['type'] == gdb.BP_BREAKPOINT:
-                # format memory address
-                address = breakpoint.get('address')
-                if address:
-                    line += ' at {}'.format(ansi(format_address(address), style))
-                # format source information
-                file_name = breakpoint.get('file_name')
-                file_line = breakpoint.get('file_line')
-                if file_name and file_line:
-                    file_name = ansi(file_name, style)
-                    file_line = ansi(file_line, style)
-                    line += ' in {}:{}'.format(file_name, file_line)
+                for i, address in enumerate(breakpoint['addresses']):
+                    addr = address['address']
+                    if i == 0 and addr:
+                        # this is a regular breakpoint
+                        line += ' at {}'.format(ansi(format_address(addr), style))
+                        # format source information
+                        file_name = address.get('file_name')
+                        file_line = address.get('file_line')
+                        if file_name and file_line:
+                            file_name = ansi(file_name, style)
+                            file_line = ansi(file_line, style)
+                            line += ' in {}:{}'.format(file_name, file_line)
+                    elif i > 0:
+                        # this is a sub breakpoint
+                        sub_style = R.style_selected_1 if address['enabled'] else R.style_selected_2
+                        sub_number = ansi('{}.{}'.format(breakpoint['number'], i), sub_style)
+                        sub_line = '[{}]'.format(sub_number)
+                        sub_line += ' at {}'.format(ansi(format_address(addr), sub_style))
+                        # format source information
+                        file_name = address.get('file_name')
+                        file_line = address.get('file_line')
+                        if file_name and file_line:
+                            file_name = ansi(file_name, sub_style)
+                            file_line = ansi(file_line, sub_style)
+                            sub_line += ' in {}:{}'.format(file_name, file_line)
+                        sub_lines += [sub_line]
                 # format user location
                 location = breakpoint['location']
                 line += ' for {}'.format(ansi(location, style))
@@ -2079,7 +2116,9 @@ class Breakpoints(Dashboard.Module):
             if hit_count:
                 word = 'time{}'.format('s' if hit_count > 1 else '')
                 line += ' hit {} {}'.format(ansi(breakpoint['hit_count'], style), word)
+            # append the main line and possibly sub breakpoints
             out.append(line)
+            out.extend(sub_lines)
         return out
 
     def attributes(self):
