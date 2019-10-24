@@ -299,11 +299,11 @@ def fetch_breakpoints(watchpoints=False, pending=False):
         # extract breakpoint number, address and pending status
         fields = line.split()
         number = int(fields[0].split('.')[0])
-        is_pending = fields[4] == '<PENDING>'
-        is_multiple = fields[4] == '<MULTIPLE>'
         try:
             if len(fields) >= 5 and fields[1] == 'breakpoint':
                 # multiple breakpoints have no address yet
+                is_pending = fields[4] == '<PENDING>'
+                is_multiple = fields[4] == '<MULTIPLE>'
                 address = None if is_multiple or is_pending else int(fields[4], 16)
                 is_enabled = fields[3] == 'y'
                 address_info = address, is_enabled
