@@ -298,19 +298,29 @@ def fetch_breakpoints(watchpoints=False, pending=False):
             continue
         # extract breakpoint number, address and pending status
         fields = line.split()
-        number = int(fields[0])
+        number = int(fields[0].split(".")[0])
         is_pending = fields[4] == '<PENDING>'
+        address = []
         try:
-            address = int(fields[4], 16) if len(fields) >= 5 and fields[1] == 'breakpoint' else None
+            if len(fields) >= 5 and fields[1] == 'breakpoint':
+                address = [int(fields[4], 16)]
+            elif len(fields) >= 3 and number in parsed_breakpoints:
+                address = [int(fields[2], 16)]
         except ValueError:
-            address = None
-        parsed_breakpoints[number] = address, is_pending
+            pass
+        if number not in parsed_breakpoints:
+            parsed_breakpoints[number] = address, is_pending
+        else:
+            # store all addresses of breakpoints in a list
+            breakpoint = parsed_breakpoints[number]
+            parsed_breakpoints[number] = (breakpoint[0] + address, 
+                                          breakpoint[1] | is_pending)
     # fetch breakpoints from the API and complement with address and source
     # information
     breakpoints = []
     # XXX in older versions gdb.breakpoints() returns None
     for gdb_breakpoint in gdb.breakpoints() or []:
-        address, is_pending = parsed_breakpoints[gdb_breakpoint.number]
+        addresses, is_pending = parsed_breakpoints[gdb_breakpoint.number]
         is_pending = getattr(gdb_breakpoint, 'pending', is_pending)
         if not pending and is_pending:
             continue
@@ -328,11 +338,14 @@ def fetch_breakpoints(watchpoints=False, pending=False):
         breakpoint['hit_count'] = gdb_breakpoint.hit_count
         breakpoint['pending'] = is_pending
         # add address and source information
-        if address:
-            sal = gdb.find_pc_line(address)
-            breakpoint['address'] = address
-            breakpoint['file_name'] = sal.symtab.filename if sal.symtab else None
-            breakpoint['file_line'] = sal.line
+        if addresses:
+            breakpoint['addresses'] = addresses
+            breakpoint['file_names'] = []
+            breakpoint['file_lines'] = []
+            for address in addresses:
+                sal = gdb.find_pc_line(address)
+                breakpoint['file_names'].append(sal.symtab.filename if sal.symtab else None)
+                breakpoint['file_lines'].append(sal.line)
         breakpoints.append(breakpoint)
     return breakpoints
 
@@ -1135,7 +1148,7 @@ class Source(Dashboard.Module):
             end = len(self.source_lines)
         else:
             end = max(end, 0)
-        # find the breakpoints for teh current file
+        # find the breakpoints for the current file
         breakpoints = list(filter(lambda x: x.get('file_name') == file_name, fetch_breakpoints()))
         # return the source code listing
         out = []
@@ -1158,7 +1171,7 @@ class Source(Dashboard.Module):
             # check for breakpoint presence
             enabled = None
             for breakpoint in breakpoints:
-                if breakpoint['file_line'] == number:
+                if number in breakpoint['file_lines']:
                     enabled = enabled or breakpoint['enabled']
             if enabled is None:
                 breakpoint = ' '
@@ -1343,7 +1356,8 @@ The instructions constituting the current statement are marked, if available.'''
             # check for breakpoint presence
             enabled = None
             for breakpoint in breakpoints:
-                if breakpoint.get('address') == addr:
+                addresses = breakpoint.get('addresses')
+                if addresses and addr in addresses:
                     enabled = enabled or breakpoint['enabled']
             if enabled is None:
                 breakpoint = ' '
@@ -2053,16 +2067,19 @@ class Breakpoints(Dashboard.Module):
             line = '[{}] {}'.format(number, bp_type)
             if breakpoint['type'] == gdb.BP_BREAKPOINT:
                 # format memory address
-                address = breakpoint.get('address')
+                address = breakpoint.get('addresses')
                 if address:
-                    line += ' at {}'.format(ansi(format_address(address), style))
+                    formatted_address = ', '.join([format_address(a) for a in address])
+                    line += ' at {}'.format(ansi(formatted_address, style))
                 # format source information
-                file_name = breakpoint.get('file_name')
-                file_line = breakpoint.get('file_line')
-                if file_name and file_line:
-                    file_name = ansi(file_name, style)
-                    file_line = ansi(file_line, style)
-                    line += ' in {}:{}'.format(file_name, file_line)
+                file_names = breakpoint.get('file_names')
+                file_lines = breakpoint.get('file_lines')
+                if file_names and file_lines:
+                    file_names = [ansi(file_name, style) for file_name in file_names]
+                    file_lines = [ansi(file_line, style) for file_line in file_lines]
+                    files = ['{}:{}'.format(file_name, file_line) 
+                             for file_name, file_line in zip(file_names, file_lines)]
+                    line += ' in {}'.format(', '.join(files))
                 # format user location
                 location = breakpoint['location']
                 line += ' for {}'.format(ansi(location, style))
