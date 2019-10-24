@@ -298,23 +298,19 @@ def fetch_breakpoints(watchpoints=False, pending=False):
             continue
         # extract breakpoint number, address and pending status
         fields = line.split()
-        number = int(fields[0].split(".")[0])
+        number = int(fields[0].split('.')[0])
         is_pending = fields[4] == '<PENDING>'
-        address = []
+        is_multiple = fields[4] == '<MULTIPLE>'
         try:
             if len(fields) >= 5 and fields[1] == 'breakpoint':
-                address = [int(fields[4], 16)]
+                # multiple breakpoints have no address yet
+                addresses = [] if is_multiple else [int(fields[4], 16)]
+                parsed_breakpoints[number] = addresses, is_pending
             elif len(fields) >= 3 and number in parsed_breakpoints:
-                address = [int(fields[2], 16)]
+                # add this address to the list of multiple locations
+                parsed_breakpoints[number][0].append(int(fields[2], 16))
         except ValueError:
             pass
-        if number not in parsed_breakpoints:
-            parsed_breakpoints[number] = address, is_pending
-        else:
-            # store all addresses of breakpoints in a list
-            breakpoint = parsed_breakpoints[number]
-            parsed_breakpoints[number] = (breakpoint[0] + address, 
-                                          breakpoint[1] | is_pending)
     # fetch breakpoints from the API and complement with address and source
     # information
     breakpoints = []
@@ -1356,8 +1352,7 @@ The instructions constituting the current statement are marked, if available.'''
             # check for breakpoint presence
             enabled = None
             for breakpoint in breakpoints:
-                addresses = breakpoint.get('addresses')
-                if addresses and addr in addresses:
+                if addr in breakpoint.get('addresses'):
                     enabled = enabled or breakpoint['enabled']
             if enabled is None:
                 breakpoint = ' '
@@ -2066,18 +2061,19 @@ class Breakpoints(Dashboard.Module):
                 bp_type = 'disabled ' + bp_type
             line = '[{}] {}'.format(number, bp_type)
             if breakpoint['type'] == gdb.BP_BREAKPOINT:
-                # format memory address
-                address = breakpoint.get('addresses')
-                if address:
-                    formatted_address = ', '.join([format_address(a) for a in address])
-                    line += ' at {}'.format(ansi(formatted_address, style))
+                # format memory addresses
+                addresses = breakpoint.get('addresses')
+                if addresses:
+                    formatted_address = ', '.join([ansi(format_address(address), style)
+                                                   for address in addresses])
+                    line += ' at {}'.format(formatted_address, style)
                 # format source information
                 file_names = breakpoint.get('file_names')
                 file_lines = breakpoint.get('file_lines')
                 if file_names and file_lines:
                     file_names = [ansi(file_name, style) for file_name in file_names]
                     file_lines = [ansi(file_line, style) for file_line in file_lines]
-                    files = ['{}:{}'.format(file_name, file_line) 
+                    files = ['{}:{}'.format(file_name, file_line)
                              for file_name, file_line in zip(file_names, file_lines)]
                     line += ' in {}'.format(', '.join(files))
                 # format user location
