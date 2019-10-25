@@ -1113,16 +1113,26 @@ class Source(Dashboard.Module):
         current_line = sal.line
         if current_line == 0:
             return []
-        # reload the source file if changed
-        file_name = sal.symtab.filename
-        ts = None
-        try:
-            ts = os.path.getmtime(file_name)
-        except:
-            pass  # delay error check to open()
+        # try to lookup the source file
+        candidates = [
+            sal.symtab.fullname(),
+            sal.symtab.filename,
+            # XXX GDB also uses absolute filename but it is harder to implement
+            # properly and IMHO useless
+            os.path.basename(sal.symtab.filename)]
+        for candidate in candidates:
+            file_name = candidate
+            ts = None
+            try:
+                ts = os.path.getmtime(file_name)
+                break
+            except:
+                # try another or delay error check to open()
+                continue
         # style changed, different file name or file modified in the meanwhile
         if style_changed or file_name != self.file_name or ts and ts > self.ts:
             try:
+                # reload the source file if changed
                 with open(file_name) as source_file:
                     highlighter = Beautifier(file_name, self.tab_size)
                     self.highlighted = highlighter.active
