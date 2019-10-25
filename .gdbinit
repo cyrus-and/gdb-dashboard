@@ -1114,7 +1114,7 @@ class Source(Dashboard.Module):
         if current_line == 0:
             return []
         # reload the source file if changed
-        file_name = sal.symtab.filename
+        file_name = sal.symtab.fullname()
         ts = None
         try:
             ts = os.path.getmtime(file_name)
