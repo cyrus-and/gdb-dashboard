@@ -309,6 +309,30 @@ def format_value(value, compact=None):
         out = out[0:R.max_value_length] + ansi(R.value_truncation_string, R.style_critical)
     return out
 
+# the info breakpoints format in cgdb is different from gdb. try to convert it 
+# to gdb format. if failed, fall back to gdb formart.
+def convert_breakpoints_cgdb(plain_text):
+    original_text = plain_text
+    reconstruct_text = ''
+
+    plain_text = plain_text.replace("\u001a", "");
+    plain_text = plain_text.replace("\n", " ");
+    result = re.search('breakpoints-table(.*)breakpoints-table-end.*',
+    plain_text)
+    if result == None:
+        return original_text
+
+    plain_text = re.sub('\s\s+', ' ', result.group(1))
+    record_list = plain_text.split('record')
+    for record in record_list:
+        if record == '':
+            continue
+        record = re.sub('field [0-9]+', '', record)
+        record = record.strip()
+        reconstruct_text = reconstruct_text + record + '\n' 
+
+    return reconstruct_text
+
 # XXX parsing the output of `info breakpoints` is apparently the best option
 # right now, see: https://sourceware.org/bugzilla/show_bug.cgi?id=18385
 # XXX GDB version 7.11 (quire recent) does not have the pending field, so
@@ -316,7 +340,7 @@ def format_value(value, compact=None):
 def fetch_breakpoints(watchpoints=False, pending=False):
     # fetch breakpoints addresses
     parsed_breakpoints = dict()
-    for line in run('info breakpoints').split('\n'):
+    for line in convert_breakpoints_cgdb(run('info breakpoints')).split('\n'):
         # just keep numbered lines
         if not line or not line[0].isdigit():
             continue
