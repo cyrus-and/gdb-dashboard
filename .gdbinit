@@ -1210,7 +1210,10 @@ class Source(Dashboard.Module):
                 addresses = breakpoint['addresses']
                 is_root_enabled = addresses[0]['enabled']
                 for address in addresses:
-                    if address['file_line'] == number:
+                    # note, despite the lookup path always use the relative
+                    # (sal.symtab.filename) file name to match source files with
+                    # breakpoints
+                    if address['file_line'] == number and address['file_name'] == sal.symtab.filename:
                         enabled = enabled or (address['enabled'] and is_root_enabled)
             if enabled is None:
                 breakpoint = ' '
