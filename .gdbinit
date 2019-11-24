@@ -338,6 +338,9 @@ def fetch_breakpoints(watchpoints=False, pending=False):
                 is_enabled = fields[1] == 'y'
                 address_info = address, is_enabled
                 parsed_breakpoints[number][0].append(address_info)
+            else:
+                # watchpoints
+                parsed_breakpoints[number] = [], False
         except ValueError:
             pass
     # fetch breakpoints from the API and complement with address and source
