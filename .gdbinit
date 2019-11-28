@@ -1550,7 +1550,7 @@ class Variables(Dashboard.Module):
         if align and not compact:
             name_width = max(len(str(elem.sym)) for elem in data or [])
         for elem in data or []:
-            name = ansi(str(elem.sym).ljust(name_width), R.style_high)
+            name = ansi(elem.sym, R.style_high) + ' ' * (name_width - len(str(elem.sym)))
             equal = ansi('=', R.style_low)
             value = format_value(elem.sym.value(frame), compact)
             lines.append('{} {} {}'.format(name, equal, value))
