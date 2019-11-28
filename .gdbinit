@@ -1483,7 +1483,7 @@ class Variables(Dashboard.Module):
 
     def lines(self, term_width, term_height, style_changed):
         return Variables.format_frame(
-            gdb.selected_frame(), self.show_arguments, self.show_locals, self.compact)
+            gdb.selected_frame(), self.show_arguments, self.show_locals, self.compact, self.align)
 
     def attributes(self):
         return {
@@ -1503,11 +1503,17 @@ class Variables(Dashboard.Module):
                 'doc': 'Single-line display flag.',
                 'default': True,
                 'type': bool
+            },
+            'align': {
+                'doc': 'Align variables in column flag.',
+                'default': True,
+                'type': bool
             }
+
         }
 
     @staticmethod
-    def format_frame(frame, show_arguments, show_locals, compact):
+    def format_frame(frame, show_arguments, show_locals, compact, align):
         out = []
         # fetch frame arguments and locals
         decorator = gdb.FrameDecorator.FrameDecorator(frame)
@@ -1516,7 +1522,7 @@ class Variables(Dashboard.Module):
             def prefix(line):
                 return Stack.format_line('arg', line)
             frame_args = decorator.frame_args()
-            args_lines = Variables.fetch(frame, frame_args, compact)
+            args_lines = Variables.fetch(frame, frame_args, compact, align)
             if args_lines:
                 if compact:
                     args_line = separator.join(args_lines)
@@ -1528,7 +1534,7 @@ class Variables(Dashboard.Module):
             def prefix(line):
                 return Stack.format_line('loc', line)
             frame_locals = decorator.frame_locals()
-            locals_lines = Variables.fetch(frame, frame_locals, compact)
+            locals_lines = Variables.fetch(frame, frame_locals, compact, align)
             if locals_lines:
                 if compact:
                     locals_line = separator.join(locals_lines)
@@ -1539,9 +1545,11 @@ class Variables(Dashboard.Module):
         return out
 
     @staticmethod
-    def fetch(frame, data, compact):
+    def fetch(frame, data, compact, align):
         lines = []
-        name_width = max(len(str(elem.sym)) for elem in data or [])
+        name_width = 0
+        if align and not compact:
+            name_width = max(len(str(elem.sym)) for elem in data or [])
         for elem in data or []:
             name = ansi(str(elem.sym).ljust(name_width), R.style_high)
             equal = ansi('=', R.style_low)
