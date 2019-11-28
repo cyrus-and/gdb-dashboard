@@ -1590,7 +1590,7 @@ Optionally list the frame arguments and locals too.'''
             frame_lines = []
             frame_lines.append('[{}] {}'.format(frame_id, info))
             # add frame arguments and locals
-            variables = Variables.format_frame(frame, self.show_arguments, self.show_locals, self.compact, False)
+            variables = Variables.format_frame(frame, self.show_arguments, self.show_locals, self.compact, self.align)
             frame_lines.extend(variables)
             # add frame
             frames.append(frame_lines)
@@ -1634,6 +1634,11 @@ Optionally list the frame arguments and locals too.'''
             },
             'compact': {
                 'doc': 'Single-line display flag.',
+                'default': False,
+                'type': bool
+            },
+            'align': {
+                'doc': 'Align variables in column flag (only if not compact).',
                 'default': False,
                 'type': bool
             }
@@ -2030,6 +2035,9 @@ class Expressions(Dashboard.Module):
 
     def lines(self, term_width, term_height, style_changed):
         out = []
+        label_width = 0
+        if self.align:
+            label_width = max(len(expression) for expression in self.table)
         default_radix = Expressions.get_default_radix()
         for expression in self.table:
             label = expression
@@ -2044,9 +2052,9 @@ class Expressions(Dashboard.Module):
             finally:
                 if match:
                     run('set output-radix {}'.format(default_radix))
-            expression = ansi(label, R.style_high)
+            label = ansi(expression, R.style_high) + ' ' * (label_width - len(expression))
             equal = ansi('=', R.style_low)
-            out.append('{} {} {}'.format(expression, equal, value))
+            out.append('{} {} {}'.format(label, equal, value))
         return out
 
     def commands(self):
@@ -2064,6 +2072,15 @@ class Expressions(Dashboard.Module):
             'clear': {
                 'action': self.clear,
                 'doc': 'Clear all the watched expressions.'
+            }
+        }
+
+    def attributes(self):
+        return {
+            'align': {
+                'doc': 'Align variables in column flag.',
+                'default': False,
+                'type': bool
             }
         }
 
