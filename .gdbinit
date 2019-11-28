@@ -1505,11 +1505,10 @@ class Variables(Dashboard.Module):
                 'type': bool
             },
             'align': {
-                'doc': 'Align variables in column flag.',
-                'default': True,
+                'doc': 'Align variables in column flag (only if not compact).',
+                'default': False,
                 'type': bool
             }
-
         }
 
     @staticmethod
@@ -1591,7 +1590,7 @@ Optionally list the frame arguments and locals too.'''
             frame_lines = []
             frame_lines.append('[{}] {}'.format(frame_id, info))
             # add frame arguments and locals
-            variables = Variables.format_frame(frame, self.show_arguments, self.show_locals, self.compact)
+            variables = Variables.format_frame(frame, self.show_arguments, self.show_locals, self.compact, False)
             frame_lines.extend(variables)
             # add frame
             frames.append(frame_lines)
