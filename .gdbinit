@@ -1547,8 +1547,8 @@ class Variables(Dashboard.Module):
     def fetch(frame, data, compact, align):
         lines = []
         name_width = 0
-        if align and not compact:
-            name_width = max(len(str(elem.sym)) for elem in data or [])
+        if align and not compact and data:
+            name_width = max(len(str(elem.sym)) for elem in data)
         for elem in data or []:
             name = ansi(elem.sym, R.style_high) + ' ' * (name_width - len(str(elem.sym)))
             equal = ansi('=', R.style_low)
