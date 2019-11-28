@@ -1541,8 +1541,9 @@ class Variables(Dashboard.Module):
     @staticmethod
     def fetch(frame, data, compact):
         lines = []
+        name_width = max(len(str(elem.sym)) for elem in data or [])
         for elem in data or []:
-            name = ansi(elem.sym, R.style_high)
+            name = ansi(str(elem.sym).ljust(name_width), R.style_high)
             equal = ansi('=', R.style_low)
             value = format_value(elem.sym.value(frame), compact)
             lines.append('{} {} {}'.format(name, equal, value))
