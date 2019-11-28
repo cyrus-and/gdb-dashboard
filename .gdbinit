@@ -1548,7 +1548,7 @@ class Variables(Dashboard.Module):
         lines = []
         name_width = 0
         if align and not compact:
-            name_width = max(len(str(elem.sym)) for elem in data or [])
+            name_width = max(len(str(elem.sym)) for elem in data) if data else 0
         for elem in data or []:
             name = ansi(elem.sym, R.style_high) + ' ' * (name_width - len(str(elem.sym)))
             equal = ansi('=', R.style_low)
@@ -2037,7 +2037,7 @@ class Expressions(Dashboard.Module):
         out = []
         label_width = 0
         if self.align:
-            label_width = max(len(expression) for expression in self.table)
+            label_width = max(len(expression) for expression in self.table) if self.table else 0
         default_radix = Expressions.get_default_radix()
         for expression in self.table:
             label = expression
