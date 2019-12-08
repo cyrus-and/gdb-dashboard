@@ -288,7 +288,10 @@ def format_value(value, compact=None):
     # (TYPE_CODE_RVALUE_REF is not supported by old GDB)
     if value.type.code in (getattr(gdb, 'TYPE_CODE_REF', None),
                            getattr(gdb, 'TYPE_CODE_RVALUE_REF', None)):
-        value = value.referenced_value()
+        try:
+            value = value.referenced_value()
+        except gdb.MemoryError as e:
+            return ansi(e, R.style_error)
     # format the value
     out = to_string(value)
     # dereference up to the actual value if requested
