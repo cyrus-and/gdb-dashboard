@@ -290,7 +290,7 @@ def format_value(value, compact=None):
                            getattr(gdb, 'TYPE_CODE_RVALUE_REF', None)):
         try:
             value = value.referenced_value()
-        except gdb.MemoryError as e:
+        except gdb.error as e:
             return ansi(e, R.style_error)
     # format the value
     out = to_string(value)
