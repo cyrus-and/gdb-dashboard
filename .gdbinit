@@ -1966,9 +1966,17 @@ The empty list (default) causes to show all the available registers.''',
     @staticmethod
     def fetch_register_list(*match_groups):
         names = []
-        for line in run('info registers').strip().split('\n'):
-            name = line.split(None, 1)[0]
-            names.append(name)
+        for line in run('maintenance print register-groups').split('\n'):
+            fields = line.split()
+            if len(fields) != 7:
+                continue
+            name, _, _, _, _, _, groups = fields
+            if not re.match('\w', name):
+                continue
+            for group in groups.split(','):
+                if group in (match_groups or ('general',)):
+                    names.append(name)
+                    break
         return names
 
 class Threads(Dashboard.Module):
