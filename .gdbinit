@@ -1882,8 +1882,7 @@ class Registers(Dashboard.Module):
         if self.register_list:
             register_list = self.register_list.split()
         else:
-            register_list = list(map(lambda line: line.split(None, 1)[0],
-                                     run('info registers').strip().split('\n')))
+            register_list = Registers.fetch_register_list()
         # fetch registers status
         registers = []
         for name in register_list:
@@ -1963,6 +1962,14 @@ The empty list (default) causes to show all the available registers.''',
             # convert to unsigned but preserve code and flags information
             pass
         return str(value)
+
+    @staticmethod
+    def fetch_register_list(*match_groups):
+        names = []
+        for line in run('info registers').strip().split('\n'):
+            name = line.split(None, 1)[0]
+            names.append(name)
+        return names
 
 class Threads(Dashboard.Module):
     '''List the currently available threads.'''
