@@ -616,7 +616,10 @@ class Dashboard(gdb.Command):
 
     @staticmethod
     def parse_inits(python):
-        for root, dirs, files in os.walk(os.path.expanduser('~/.gdbinit.d/')):
+        init_d = '~/.gdbinit.d/'
+        if(os.path.islink(init_d)):
+            init_d = os.path.realpath(init_d)
+        for root, dirs, files in os.walk(os.path.expanduser(init_d)):
             dirs.sort()
             for init in sorted(files):
                 path = os.path.join(root, init)
