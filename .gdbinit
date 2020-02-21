@@ -1656,11 +1656,17 @@ Optionally list the frame arguments and locals too.'''
     def get_pc_line(frame, style):
         frame_pc = ansi(format_address(frame.pc()), style)
         info = 'from {}'.format(frame_pc)
+        # if a frame function symbol is available then use it to fetch the
+        # current function name and address, otherwise fall back relying on the
+        # frame name
         if frame.function():
             name = ansi(frame.function(), style)
             func_start = to_unsigned(frame.function().value())
             offset = ansi(str(frame.pc() - func_start), style)
             info += ' in {}+{}'.format(name, offset)
+        elif frame.name():
+            name = ansi(frame.name(), style)
+            info += ' in {}'.format(name)
         sal = frame.find_sal()
         if sal and sal.symtab:
             file_name = ansi(sal.symtab.filename, style)
