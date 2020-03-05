@@ -1340,7 +1340,10 @@ The instructions constituting the current statement are marked, if available.'''
             try:
                 extra_start = 0
                 extra_end = 0
-                asm = self.fetch_asm(frame.pc(), height, True, highlighter)
+                # allow to scroll down nevertheless
+                clamped_offset = min(self.offset, 0)
+                asm = self.fetch_asm(frame.pc(), height - clamped_offset, True, highlighter)
+                asm = asm[-clamped_offset:]
             except gdb.error as e:
                 msg = '{}'.format(e)
                 return [ansi(msg, R.style_error)]
