@@ -2056,6 +2056,7 @@ class Expressions(Dashboard.Module):
 
     def __init__(self):
         self.table = set()
+        self.previous_values = {}
 
     def label(self):
         return 'Expressions'
@@ -2074,6 +2075,10 @@ class Expressions(Dashboard.Module):
                     radix, expression = match.groups()
                     run('set output-radix {}'.format(radix))
                 value = format_value(gdb.parse_and_eval(expression))
+                changed = self.previous_values.get(expression, '') != value
+                self.previous_values[expression] = value
+                if changed:
+                    value = ansi(value, R.style_selected_1)
             except gdb.error as e:
                 value = ansi(e, R.style_error)
             finally:
@@ -2114,6 +2119,7 @@ class Expressions(Dashboard.Module):
     def watch(self, arg):
         if arg:
             self.table.add(arg)
+            self.previous_values[arg] = ''
         else:
             raise Exception('Specify an expression')
 
@@ -2121,6 +2127,7 @@ class Expressions(Dashboard.Module):
         if arg:
             try:
                 self.table.remove(arg)
+                self.previous_values.pop(arg, None)
             except:
                 raise Exception('Expression not watched')
         else:
@@ -2128,6 +2135,7 @@ class Expressions(Dashboard.Module):
 
     def clear(self, arg):
         self.table.clear()
+        self.previous_values.clear()
 
     @staticmethod
     def get_default_radix():
