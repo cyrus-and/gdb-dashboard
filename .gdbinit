@@ -1616,6 +1616,7 @@ Optionally list the frame arguments and locals too.'''
         # add the placeholder
         if more:
             lines.append('[{}]'.format(ansi('+', R.style_selected_2)))
+        lines.reverse()
         return lines
 
     def attributes(self):
