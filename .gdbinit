@@ -223,6 +223,8 @@ def run(command):
 
 def ansi(string, style):
     if R.ansi:
+        # clean up existing style before applying the new
+        string = re.sub('\x1b\[[0-9;:]+m', '', str(string))
         return '\x1b[{}m{}\x1b[0m'.format(style, string)
     else:
         return string
