@@ -1560,6 +1560,7 @@ class Variables(Dashboard.Module):
             equal = ansi('=', R.style_low)
             value = format_value(elem.sym.value(frame), compact)
             lines.append('{} {} {}'.format(name, equal, value))
+        lines.sort()
         return lines
 
 class Stack(Dashboard.Module):
