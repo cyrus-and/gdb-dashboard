@@ -1489,7 +1489,7 @@ class Variables(Dashboard.Module):
 
     def lines(self, term_width, term_height, style_changed):
         return Variables.format_frame(
-            gdb.selected_frame(), self.show_arguments, self.show_locals, self.compact, self.align)
+            gdb.selected_frame(), self.show_arguments, self.show_locals, self.compact, self.align, self.sort)
 
     def attributes(self):
         return {
@@ -1514,11 +1514,16 @@ class Variables(Dashboard.Module):
                 'doc': 'Align variables in column flag (only if not compact).',
                 'default': False,
                 'type': bool
+            },
+            'sort': {
+                'doc': 'Sort variables by name.',
+                'default': False,
+                'type': bool
             }
         }
 
     @staticmethod
-    def format_frame(frame, show_arguments, show_locals, compact, align):
+    def format_frame(frame, show_arguments, show_locals, compact, align, sort):
         out = []
         # fetch frame arguments and locals
         decorator = gdb.FrameDecorator.FrameDecorator(frame)
@@ -1527,7 +1532,7 @@ class Variables(Dashboard.Module):
             def prefix(line):
                 return Stack.format_line('arg', line)
             frame_args = decorator.frame_args()
-            args_lines = Variables.fetch(frame, frame_args, compact, align)
+            args_lines = Variables.fetch(frame, frame_args, compact, align, sort)
             if args_lines:
                 if compact:
                     args_line = separator.join(args_lines)
@@ -1539,7 +1544,7 @@ class Variables(Dashboard.Module):
             def prefix(line):
                 return Stack.format_line('loc', line)
             frame_locals = decorator.frame_locals()
-            locals_lines = Variables.fetch(frame, frame_locals, compact, align)
+            locals_lines = Variables.fetch(frame, frame_locals, compact, align, sort)
             if locals_lines:
                 if compact:
                     locals_line = separator.join(locals_lines)
@@ -1550,7 +1555,7 @@ class Variables(Dashboard.Module):
         return out
 
     @staticmethod
-    def fetch(frame, data, compact, align):
+    def fetch(frame, data, compact, align, sort):
         lines = []
         name_width = 0
         if align and not compact:
@@ -1560,7 +1565,8 @@ class Variables(Dashboard.Module):
             equal = ansi('=', R.style_low)
             value = format_value(elem.sym.value(frame), compact)
             lines.append('{} {} {}'.format(name, equal, value))
-        lines.sort()
+        if sort:
+            lines.sort()
         return lines
 
 class Stack(Dashboard.Module):
@@ -1597,7 +1603,8 @@ Optionally list the frame arguments and locals too.'''
             frame_lines = []
             frame_lines.append('[{}] {}'.format(frame_id, info))
             # add frame arguments and locals
-            variables = Variables.format_frame(frame, self.show_arguments, self.show_locals, self.compact, self.align)
+            variables = Variables.format_frame(
+                frame, self.show_arguments, self.show_locals, self.compact, self.align, self.sort)
             frame_lines.extend(variables)
             # add frame
             frames.append(frame_lines)
@@ -1646,6 +1653,11 @@ Optionally list the frame arguments and locals too.'''
             },
             'align': {
                 'doc': 'Align variables in column flag (only if not compact).',
+                'default': False,
+                'type': bool
+            },
+            'sort': {
+                'doc': 'Sort variables by name.',
                 'default': False,
                 'type': bool
             }
