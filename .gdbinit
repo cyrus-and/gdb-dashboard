@@ -110,6 +110,11 @@ See the `prompt` attribute. This value is used as a Python format string.''',
                 'default': '\[\e[1;30m\]>>>\[\e[0m\]'
             },
             # divider
+            'omit_divider': {
+                'doc': 'Omit the divider in external outputs when only one module is displayed.',
+                'default': False,
+                'type': bool
+            },
             'divider_fill_char_primary': {
                 'doc': 'Filler around the label for primary dividers',
                 'default': '─'
@@ -535,10 +540,12 @@ class Dashboard(gdb.Command):
                         # allow to continue on exceptions in modules
                         stacktrace = traceback.format_exc().strip()
                         lines = [ansi(stacktrace, R.style_error)]
-                    # create the divider accordingly
-                    div = divider(width, instance.label(), True, lines)
+                    # create the divider if needed
+                    div = []
+                    if not R.omit_divider or len(instances) > 1 or fs is gdb:
+                        div = [divider(width, instance.label(), True, lines)]
                     # write the data
-                    buf += '\n'.join([div] + lines)
+                    buf += '\n'.join(div + lines)
                     # write the newline for all but last unless main terminal
                     if n != len(instances) or fs is gdb:
                         buf += '\n'
