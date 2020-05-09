@@ -514,6 +514,9 @@ class Dashboard(gdb.Command):
                     buf += Dashboard.clear_screen()
                 # show message if all the modules in this output are disabled
                 if not any(instances):
+                    # skip the main terminal
+                    if fs is gdb:
+                        continue
                     # write the error message
                     buf += divider(width, 'Warning', True)
                     buf += '\n'
