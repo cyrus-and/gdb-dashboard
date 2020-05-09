@@ -412,7 +412,9 @@ class Dashboard(gdb.Command):
     def on_continue(self, _):
         # try to contain the GDB messages in a specified area unless the
         # dashboard is printed to a separate file (dashboard -output ...)
-        if self.is_running() and not self.output:
+        # or there are no modules to display in the main terminal
+        enabled_modules = list(filter(lambda m: not m.output and m.enabled, self.modules))
+        if self.is_running() and not self.output and len(enabled_modules) > 0:
             width, _ = Dashboard.get_term_size()
             gdb.write(Dashboard.clear_screen())
             gdb.write(divider(width, 'Output/messages', True))
