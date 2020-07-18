@@ -1469,17 +1469,24 @@ A value of 0 uses the whole height.''',
             self.offset = 0
 
     def fetch_function_boundaries(self):
+        frame = gdb.selected_frame()
+        # parse the output of the disassemble GDB command to find the function
+        # boundaries, this should handle cases in which a function spans
+        # multiple discontinuous blocks
+        disassemble = run('disassemble')
+        for block_start, block_end in re.findall(r'Address range 0x([0-9a-f]+) to 0x([0-9a-f]+):', disassemble):
+            block_start = int(block_start, 16)
+            block_end = int(block_end, 16)
+            if block_start <= frame.pc() < block_end:
+                return block_start, block_end - 1 # need to be inclusive
         # if function information is available then try to obtain the
         # boundaries by looking at the superblocks
-        frame = gdb.selected_frame()
         block = frame.block()
         if frame.function():
             while block and (not block.function or block.function.name != frame.function().name):
                 block = block.superblock
             block = block or frame.block()
-        asm_start = block.start
-        asm_end = block.end - 1
-        return asm_start, asm_end
+        return block.start, block.end - 1
 
     def fetch_asm(self, start, end_or_count, relative, highlighter):
         # fetch asm from cache or disassemble
