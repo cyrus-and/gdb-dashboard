@@ -2043,10 +2043,25 @@ class Threads(Dashboard.Module):
         for inferior in gdb.inferiors():
             if self.all_inferiors or inferior == gdb.selected_inferior():
                 threads += gdb.Inferior.threads(inferior)
-        for thread in threads:
-            # skip running threads if requested
-            if self.skip_running and thread.is_running():
-                continue
+        # reverse order and skip running threads if requested
+        threads = [t for t in reversed(threads)
+                         if not (self.skip_running and t.is_running())]
+        # find place of the selected thread in list 'threads'
+        selected_thread_n = 0
+        for (thread_n, thread) in enumerate(threads):
+            is_selected = (thread.ptid == selected_thread.ptid)
+            if is_selected:
+                selected_thread_n = thread_n
+                break
+        # set bounds to display inside list 'threads'
+        if self.limit == 0:
+            first_thread_n = 0
+            final_thread_n = len(threads)
+        else:
+            first_thread_n = max(0, selected_thread_n - self.limit + 1)
+            final_thread_n = min(len(threads), first_thread_n + self.limit)
+        for thread_n in range(first_thread_n, final_thread_n):
+            thread = threads[thread_n]
             is_selected = (thread.ptid == selected_thread.ptid)
             style = R.style_selected_1 if is_selected else R.style_selected_2
             if self.all_inferiors:
@@ -2066,6 +2081,8 @@ class Threads(Dashboard.Module):
             except gdb.error:
                 info += ' (running)'
             out.append(info)
+        if final_thread_n != len(threads):
+            out.append('[{}]'.format(ansi('+', R.style_selected_2)))
         # restore thread and frame
         selected_thread.switch()
         if restore_frame:
@@ -2074,6 +2091,12 @@ class Threads(Dashboard.Module):
 
     def attributes(self):
         return {
+            'limit': {
+                'doc': 'Maximum number of displayed threads (0 means no limit).',
+                'default': 8,
+                'type': int,
+                'check': check_ge_zero
+            },
             'skip-running': {
                 'doc': 'Skip running threads.',
                 'default': False,
