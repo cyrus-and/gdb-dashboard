@@ -266,6 +266,34 @@ def check_gt_zero(x):
 def check_ge_zero(x):
     return x >= 0
 
+def parse_ranges(s, end, current):
+    def convert(val):
+        v = val.strip()
+        if v == 'e' or v == 'end' or v == 'last':
+            return end
+        elif v == 'c' or v == 'current':
+            return current
+        else:
+            return int(val)
+    ranges = s.split(',')
+    ranges_lst = [r.split('-') for r in ranges]
+    ranges_pairs = []
+    for r in ranges_lst:
+        if len(r) == 1:
+            ranges_pairs.append((convert(r[0]), convert(r[0])))
+        elif len(r) == 2:
+            ranges_pairs.append((convert(r[0]), convert(r[1])))
+        else:
+            raise ValueError("range contains more than 2 values")
+    return ranges_pairs
+
+def check_ranges(s):
+    try:
+        parse_ranges(s, end=0, current=0)
+    except:
+        return False
+    return True
+
 def to_unsigned(value, size=8):
     # values from GDB can be used transparently but are not suitable for
     # being printed as unsigned integers, so a conversion is needed
@@ -2043,31 +2071,39 @@ class Threads(Dashboard.Module):
         for inferior in gdb.inferiors():
             if self.all_inferiors or inferior == gdb.selected_inferior():
                 threads += gdb.Inferior.threads(inferior)
-        # reverse order and skip running threads if requested
-        threads = [t for t in reversed(threads)
-                         if not (self.skip_running and t.is_running())]
-        # find place of the selected thread in list 'threads'
-        selected_thread_n = 0
-        for (thread_n, thread) in enumerate(threads):
-            is_selected = (thread.ptid == selected_thread.ptid)
-            if is_selected:
-                selected_thread_n = thread_n
-                break
         # set bounds to display inside list 'threads'
-        if self.limit == 0:
-            first_thread_n = 0
-            final_thread_n = len(threads)
-        else:
-            first_thread_n = max(0, selected_thread_n - self.limit + 1)
-            final_thread_n = min(len(threads), first_thread_n + self.limit)
-        for thread_n in range(first_thread_n, final_thread_n):
-            thread = threads[thread_n]
+        max_thread = 1
+        for thread in threads:
+            print("tnum:", thread.num)
+            if thread.num > max_thread:
+                max_thread = thread.num
+        current_thread = 1
+        for thread in threads:
+            if thread.ptid == selected_thread.ptid:
+                current_thread = thread.num
+                break
+        show_ranges = parse_ranges(self.show, end=max_thread,
+                                   current=current_thread)
+        n_skipped = 0
+        for thread in reversed(threads):
+            # skip running threads if requested
+            if self.skip_running and thread.is_running():
+                n_skipped += 1
+                continue
             is_selected = (thread.ptid == selected_thread.ptid)
             style = R.style_selected_1 if is_selected else R.style_selected_2
             if self.all_inferiors:
                 number = '{}.{}'.format(thread.inferior.num, thread.num)
             else:
                 number = str(thread.num)
+            to_show = False
+            for (first, final) in show_ranges:
+                if (first <= thread.num and thread.num <= final):
+                    to_show = True
+                    break
+            if not to_show:
+                n_skipped += 1
+                continue
             number = ansi(number, style)
             tid = ansi(str(thread.ptid[1] or thread.ptid[2]), style)
             info = '[{}] id {}'.format(number, tid)
@@ -2081,8 +2117,8 @@ class Threads(Dashboard.Module):
             except gdb.error:
                 info += ' (running)'
             out.append(info)
-        if final_thread_n != len(threads):
-            out.append('[{}]'.format(ansi('+', R.style_selected_2)))
+        if n_skipped > 0:
+            out.append('[{} threads skipped]'.format(n_skipped))
         # restore thread and frame
         selected_thread.switch()
         if restore_frame:
@@ -2091,11 +2127,15 @@ class Threads(Dashboard.Module):
 
     def attributes(self):
         return {
-            'limit': {
-                'doc': 'Maximum number of displayed threads (0 means no limit).',
-                'default': 8,
-                'type': int,
-                'check': check_ge_zero
+            'show': {
+                'doc': "A set of displayed threads " +
+                       "(default '1-e' means no limit).\n" +
+                       "   'e' means end/last thread, 'c' means current thread\n" +
+                       "   The value can be composed into comma(,)-separated ranges, e.g.:\n" +
+                       "   '1-3,c,e' means to display up to 5 threads: 1, 2, 3, current, last.\n",
+                'default': '1-e',
+                'type': str,
+                'check': check_ranges
             },
             'skip-running': {
                 'doc': 'Skip running threads.',
