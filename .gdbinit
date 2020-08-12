@@ -479,14 +479,12 @@ class Dashboard(gdb.Command):
 
     def render(self, clear_screen, style_changed=False):
         # fetch module content and info
-        all_disabled = True
         display_map = dict()
         for module in self.modules:
             # fall back to the global value
             output = module.output or self.output
             # add the instance or None if disabled
             if module.enabled:
-                all_disabled = False
                 instance = module.instance
             else:
                 instance = None
@@ -553,7 +551,7 @@ class Dashboard(gdb.Command):
                 # write the final newline and the terminator only if it is the
                 # main terminal to allow the prompt to display correctly (unless
                 # there are no modules to display)
-                if fs is gdb and not all_disabled:
+                if fs is gdb:
                     buf += divider(width, primary=True)
                     buf += '\n'
                 fs.write(buf)
