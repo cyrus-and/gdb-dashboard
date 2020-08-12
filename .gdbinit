@@ -526,11 +526,7 @@ class Dashboard(gdb.Command):
                         buf += 'No module to display (see `dashboard -layout`)'
                     else:
                         buf += 'No module loaded'
-                    # write the terminator only in the main terminal
                     buf += '\n'
-                    if fs is gdb:
-                        buf += divider(width, primary=True)
-                        buf += '\n'
                     fs.write(buf)
                     continue
                 # process all the modules for that output
