@@ -482,6 +482,13 @@ class Dashboard(gdb.Command):
         all_disabled = True
         display_map = dict()
         for module in self.modules:
+            if -1 != module.name.find("registers"):
+                is_arm = (0 == gdb.selected_frame().architecture().name().find("arm"))
+                if is_arm and "registers" == module.name:
+                    # Use ARMRegisters for rendering rather than 
+                    # using the generic Registers class.
+                    continue
+
             # fall back to the global value
             output = module.output or self.output
             # add the instance or None if disabled
@@ -1924,7 +1931,7 @@ class Registers(Dashboard.Module):
         if self.register_list:
             register_list = self.register_list.split()
         else:
-            register_list = Registers.fetch_register_list()
+            register_list = self.fetch_register_list()
         # fetch registers status
         registers = []
         for name in register_list:
@@ -2005,7 +2012,6 @@ The empty list (default) causes to show all the available registers.''',
             pass
         return str(value)
 
-    @staticmethod
     def fetch_register_list(*match_groups):
         names = []
         for line in run('maintenance print register-groups').split('\n'):
@@ -2019,6 +2025,25 @@ The empty list (default) causes to show all the available registers.''',
                 if group in (match_groups or ('general',)):
                     names.append(name)
                     break
+        return names
+
+class ARMRegisters(Registers):
+    def fetch_register_list(*match_groups):
+        names = []
+        for line in run('maintenance print register-groups').split('\n'):
+            fields = line.split()
+            if len(fields) == 6:
+                name, _, _, _, _, _ = fields
+                # Check if the register is one of them: R[0-12], sp, lr, pc.
+                if not (re.match('r(?:[0-9]?|[1][0-2])$', name) or (name in ('sp', 'lr', 'pc'))):
+                    continue
+            elif len(fields) == 7:
+                name, _, _, _, _, _, group = fields
+                if "cp_regs" != group or "DUMMY" == name:
+                    continue
+            else:
+                continue
+            names.append(name)
         return names
 
 class Threads(Dashboard.Module):
