@@ -107,7 +107,7 @@ See the `prompt` attribute. This value is used as a Python format string where
                 'doc': '''Define the value of `{status}` when the target program is running.
 
 See the `prompt` attribute. This value is used as a Python format string.''',
-                'default': '\[\e[1;30m\]>>>\[\e[0m\]'
+                'default': '\[\e[90m\]>>>\[\e[0m\]'
             },
             # divider
             'omit_divider': {
@@ -129,7 +129,7 @@ See the `prompt` attribute. This value is used as a Python format string.''',
             },
             'divider_fill_style_secondary': {
                 'doc': 'Style for `divider_fill_char_secondary`',
-                'default': '1;30'
+                'default': '90'
             },
             'divider_label_style_on_primary': {
                 'doc': 'Label style for non-empty primary dividers',
@@ -145,7 +145,7 @@ See the `prompt` attribute. This value is used as a Python format string.''',
             },
             'divider_label_style_off_secondary': {
                 'doc': 'Label style for empty secondary dividers',
-                'default': '1;30'
+                'default': '90'
             },
             'divider_label_skip': {
                 'doc': 'Gap between the aligning border and the label.',
@@ -172,7 +172,7 @@ See the `prompt` attribute. This value is used as a Python format string.''',
                 'default': '32'
             },
             'style_low': {
-                'default': '1;30'
+                'default': '90'
             },
             'style_high': {
                 'default': '1;37'
