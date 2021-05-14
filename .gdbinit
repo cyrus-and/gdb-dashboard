@@ -35,6 +35,7 @@ import re
 import struct
 import traceback
 from io import open
+from itertools import chain
 
 # Common attributes ------------------------------------------------------------
 
@@ -625,7 +626,22 @@ class Dashboard(gdb.Command):
 
     @staticmethod
     def parse_inits(python):
-        for root, dirs, files in os.walk(os.path.expanduser('~/.gdbinit.d/')):
+        inits = []
+
+        cur_path  = './.gdbinit.d/'
+        home_path = os.path.expanduser('~/.gdbinit.d/')
+        xdg_path  = os.getenv('XDG_CONFIG_HOME')
+
+        if os.path.exists(cur_path):
+            inits.append(cur_path)
+
+        if os.path.exists(home_path):
+            inits.append(home_path)
+
+        if xdg_path is not None and os.path.exists(xdg_path + '/gdb/gdbinit.d/'):
+            inits.append(xdg_path + '/gdb/gdbinit.d/')
+
+        for root, dirs, files in chain.from_iterable(os.walk(path) for path in inits):
             dirs.sort()
             for init in sorted(files):
                 path = os.path.join(root, init)
