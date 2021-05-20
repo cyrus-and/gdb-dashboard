@@ -1185,7 +1185,7 @@ class Source(Dashboard.Module):
         if style_changed or file_name != self.file_name or ts and ts > self.ts:
             try:
                 # reload the source file if changed
-                with io.open(file_name, errors='ignore') as source_file:
+                with io.open(file_name, errors='replace') as source_file:
                     highlighter = Beautifier(file_name, self.tab_size)
                     self.highlighted = highlighter.active
                     source = highlighter.process(source_file.read())
