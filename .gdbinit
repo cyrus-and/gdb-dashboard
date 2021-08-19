@@ -358,7 +358,10 @@ def fetch_breakpoints(watchpoints=False, pending=False):
     breakpoints = []
     # XXX in older versions gdb.breakpoints() returns None
     for gdb_breakpoint in gdb.breakpoints() or []:
-        addresses, is_pending = parsed_breakpoints[gdb_breakpoint.number]
+        try:
+            addresses, is_pending = parsed_breakpoints[gdb_breakpoint.number]
+        except KeyError:
+            continue
         is_pending = getattr(gdb_breakpoint, 'pending', is_pending)
         if not pending and is_pending:
             continue
