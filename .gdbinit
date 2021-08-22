@@ -1403,24 +1403,29 @@ The instructions constituting the current statement are marked, if available.'''
             if addr == frame.pc():
                 if not R.ansi:
                     indicator = '> '
-                addr_str = ansi(addr_str, R.style_selected_1)
-                indicator = ansi(indicator, R.style_selected_1)
-                opcodes = ansi(opcodes, R.style_selected_1)
-                func_info = ansi(func_info, R.style_selected_1)
-                if not highlighter.active:
-                    text = ansi(text, R.style_selected_1)
+                func_info_style = R.style_selected_1
+                addr_str_style = R.style_selected_1
             elif line_info and line_info.pc <= addr < line_info.last:
                 if not R.ansi:
                     indicator = ': '
-                addr_str = ansi(addr_str, R.style_selected_2)
-                indicator = ansi(indicator, R.style_selected_2)
-                opcodes = ansi(opcodes, R.style_selected_2)
-                func_info = ansi(func_info, R.style_selected_2)
-                if not highlighter.active:
-                    text = ansi(text, R.style_selected_2)
+                addr_str_style = R.style_selected_2
+                func_info_style = R.style_selected_2
             else:
                 addr_str = ansi(addr_str, R.style_low)
-                func_info = ansi(func_info, R.style_low)
+                func_info_style = R.style_low
+            addr_str = ansi(addr_str, func_info_style)
+            indicator = ansi(indicator, func_info_style)
+            opcodes = ansi(opcodes, func_info_style)
+            if not highlighter.active:
+                text = ansi(text, func_info_style)
+            if len(func_info) > R.max_value_length:
+                # Remove from the middle.
+                func_length = R.max_value_length / 2
+                func_info = (
+                    ansi(func_info[0:func_length/2], func_info_style) +
+                    ansi(R.value_truncation_string, R.style_critical) +
+                    ansi(func_info[-func_length/2:], func_info_style)
+                )
             # check for breakpoint presence
             enabled = None
             for breakpoint in breakpoints:
