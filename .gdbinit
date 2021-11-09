@@ -1960,6 +1960,8 @@ class Registers(Dashboard.Module):
                 continue
             value = gdb.parse_and_eval('${}'.format(name))
             string_value = Registers.format_value(value)
+            if '<unavailable>' in string_value:
+                continue
             changed = self.table and (self.table.get(name, '') != string_value)
             self.table[name] = string_value
             registers.append((name, string_value, changed))
