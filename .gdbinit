@@ -1955,7 +1955,7 @@ class Registers(Dashboard.Module):
         # fetch registers status
         registers = []
         for name in register_list:
-            # Exclude registers with a dot '.' or parse_and_eval() will fail
+            # exclude registers with a dot '.' or parse_and_eval() will fail
             if '.' in name:
                 continue
             value = gdb.parse_and_eval('${}'.format(name))
