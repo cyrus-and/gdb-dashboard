@@ -36,7 +36,7 @@ import os
 import re
 import struct
 import traceback
-
+import json
 # Common attributes ------------------------------------------------------------
 
 class R():
@@ -1071,6 +1071,9 @@ literals and converted to the proper type. '''
                 value = getattr(self.obj, attr_name)
                 print('{} = {!r}'.format(name, value))
 
+
+    #TODO : Save the list of module (only the enabled property )
+    #       Into a json 
     class SaveCommand(gdb.Command):
         ''' Save layouts
         '''
@@ -1081,7 +1084,11 @@ literals and converted to the proper type. '''
 
         def invoke(self, arg, from_tty):
             print("dashboard save command is called")
-      
+            layoutConfigStr = json.dumps(self.dashboard.modules)
+            print("Saved config : " + layoutConfigStr)
+    
+    #TODO : Load list of enabled modules from json
+    
     class LoadCommand(gdb.Command):
         ''' load saved layouts
         '''
