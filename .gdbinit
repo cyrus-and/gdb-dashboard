@@ -404,6 +404,8 @@ class Dashboard(gdb.Command):
         Dashboard.OutputCommand(self)
         Dashboard.EnabledCommand(self)
         Dashboard.LayoutCommand(self)
+        Dashboard.SaveCommand(self)
+        Dashboard.LoadCommand(self)
         # setup style commands
         Dashboard.StyleCommand(self, 'dashboard', R, R.attributes())
         # main terminal
@@ -929,6 +931,7 @@ Passing `!` as a single argument resets the dashboard original layout.'''
             self.dashboard = dashboard
 
         def invoke(self, arg, from_tty):
+            print("dashboard -layout command is called")
             arg = Dashboard.parse_arg(arg)
             directives = str(arg).split()
             if directives:
@@ -1068,6 +1071,27 @@ literals and converted to the proper type. '''
                 value = getattr(self.obj, attr_name)
                 print('{} = {!r}'.format(name, value))
 
+    class SaveCommand(gdb.Command):
+        ''' Save layouts
+        '''
+
+        def __init__(self, dashboard):
+            gdb.Command.__init__(self, 'dashboard save', gdb.COMMAND_USER)
+            self.dashboard = dashboard
+
+        def invoke(self, arg, from_tty):
+            print("dashboard save command is called")
+      
+    class LoadCommand(gdb.Command):
+        ''' load saved layouts
+        '''
+
+        def __init__(self, dashboard):
+            gdb.Command.__init__(self, 'dashboard load', gdb.COMMAND_USER)
+            self.dashboard = dashboard
+
+        def invoke(self, arg, from_tty):
+            print("dashboard load command is called")
 # Base module ------------------------------------------------------------------
 
     # just a tag
