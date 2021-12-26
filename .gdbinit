@@ -1071,11 +1071,8 @@ literals and converted to the proper type. '''
                 value = getattr(self.obj, attr_name)
                 print('{} = {!r}'.format(name, value))
 
-
-    #TODO : Save the list of module (only the enabled property )
-    #       Into a json 
     class SaveCommand(gdb.Command):
-        ''' Save layouts
+        ''' Save current layouts
         '''
 
         def __init__(self, dashboard):
@@ -1083,12 +1080,13 @@ literals and converted to the proper type. '''
             self.dashboard = dashboard
 
         def invoke(self, arg, from_tty):
-            print("dashboard save command is called")
-            layoutConfigStr = json.dumps(self.dashboard.modules)
-            print("Saved config : " + layoutConfigStr)
-    
-    #TODO : Load list of enabled modules from json
-    
+            #save the status of which module is enabled/disabled as a json to a file
+            module_enabled_arr = [module.enabled for module in self.dashboard.modules]
+            module_enabled_arr_json = json.dumps(module_enabled_arr)
+            with open('.gdbdashboard_config','w') as fs:
+                fs.write(module_enabled_arr_json)
+                print("dashboard layout is saved")
+
     class LoadCommand(gdb.Command):
         ''' load saved layouts
         '''
@@ -1098,7 +1096,14 @@ literals and converted to the proper type. '''
             self.dashboard = dashboard
 
         def invoke(self, arg, from_tty):
-            print("dashboard load command is called")
+            #set which module is enabled/disabled from json
+            with open('.gdbdashboard_config','r') as fs :
+                print("loading file")
+                module_enabled_arr = json.load(fs)
+                for i in range(0,len(self.dashboard.modules)):
+                    self.dashboard.modules[i].enabled = module_enabled_arr[i]
+                print("dashboard layout is loaded")
+            
 # Base module ------------------------------------------------------------------
 
     # just a tag
