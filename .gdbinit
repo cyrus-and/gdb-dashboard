@@ -574,6 +574,8 @@ class Dashboard(gdb.Command):
 
     @staticmethod
     def start():
+        # save the instance for customization convenience
+        global dashboard
         # initialize the dashboard
         dashboard = Dashboard()
         Dashboard.set_custom_prompt(dashboard)
