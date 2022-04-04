@@ -192,7 +192,7 @@ See the `prompt` attribute. This value is used as a Python format string.''',
 class Beautifier():
 
     def __init__(self, hint, tab_size=4):
-        self.tab_spaces = ' ' * tab_size
+        self.tab_spaces = ' ' * tab_size if tab_size else None
         self.active = False
         if not R.ansi or not R.syntax_highlighting:
             return
@@ -218,8 +218,9 @@ class Beautifier():
             pass
 
     def process(self, source):
-        # convert tabs anyway
-        source = source.replace('\t', self.tab_spaces)
+        # convert tabs if requested
+        if self.tab_spaces:
+            source = source.replace('\t', self.tab_spaces)
         if self.active:
             import pygments
             source = pygments.highlight(source, self.lexer, self.formatter)
@@ -1324,7 +1325,7 @@ The instructions constituting the current statement are marked, if available.'''
             flavor = gdb.parameter('disassembly-flavor')
         except:
             flavor = 'att'  # not always defined (see #36)
-        highlighter = Beautifier(flavor)
+        highlighter = Beautifier(flavor, tab_size=None)
         # fetch the assembly code
         line_info = None
         frame = gdb.selected_frame()  # PC is here
