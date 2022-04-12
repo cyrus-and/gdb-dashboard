@@ -1160,7 +1160,7 @@ class Source(Dashboard.Module):
         self.offset = 0
 
     def label(self):
-        return 'Source'
+        return 'Source' + (': ' + self.file_name if self.file_name else "")
 
     def lines(self, term_width, term_height, style_changed):
         # skip if the current thread is not stopped
