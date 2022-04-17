@@ -1160,7 +1160,10 @@ class Source(Dashboard.Module):
         self.offset = 0
 
     def label(self):
-        return 'Source'
+        label = 'Source'
+        if self.show_path and self.file_name:
+            label += ': {}'.format(self.file_name)
+        return label
 
     def lines(self, term_width, term_height, style_changed):
         # skip if the current thread is not stopped
@@ -1170,6 +1173,7 @@ class Source(Dashboard.Module):
         sal = gdb.selected_frame().find_sal()
         current_line = sal.line
         if current_line == 0:
+            self.file_name = None
             return []
         # try to lookup the source file
         candidates = [
@@ -1285,6 +1289,12 @@ A value of 0 uses the whole height.''',
                 'name': 'tab_size',
                 'type': int,
                 'check': check_gt_zero
+            },
+            'path': {
+                'doc': 'Path visibility flag in the module label.',
+                'default': False,
+                'name': 'show_path',
+                'type': bool
             },
             'highlight-line': {
                 'doc': 'Decide whether the whole current line should be highlighted.',
