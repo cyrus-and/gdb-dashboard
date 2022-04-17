@@ -1170,6 +1170,7 @@ class Source(Dashboard.Module):
         sal = gdb.selected_frame().find_sal()
         current_line = sal.line
         if current_line == 0:
+            self.file_name = None
             return []
         # try to lookup the source file
         candidates = [
