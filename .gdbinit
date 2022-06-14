@@ -2221,6 +2221,9 @@ class Expressions(Dashboard.Module):
             match = re.match('^Default output radix for printing of values is (\d+)\.$', message)
             return match.groups()[0] if match else 10  # fallback
 
+# XXX workaround to support BP_BREAKPOINT in older GDB versions
+setattr(gdb, 'BP_CATCHPOINT', getattr(gdb, 'BP_CATCHPOINT', 26))
+
 class Breakpoints(Dashboard.Module):
     '''Display the breakpoints list.'''
 
