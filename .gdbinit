@@ -2059,9 +2059,13 @@ The empty list (default) causes to show all the available registers.''',
         names = []
         for line in run('maintenance print register-groups').split('\n'):
             fields = line.split()
-            if len(fields) != 7:
+            if len(fields) == 7:
+                name, _, _, _, _, _, groups = fields
+            elif len(fields) == 6:
+                name, _, _, _, _, _ = fields
+                groups = 'general'
+            else:
                 continue
-            name, _, _, _, _, _, groups = fields
             if not re.match('\w', name):
                 continue
             for group in groups.split(','):
