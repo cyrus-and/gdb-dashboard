@@ -697,7 +697,7 @@ class Dashboard(gdb.Command):
         # ANSI: move the cursor to top-left corner and clear the screen
         # (optionally also clear the scrollback buffer if supported by the
         # terminal)
-        return '\x1b[H\x1b[J' + '\x1b[3J' if R.discard_scrollback else ''
+        return '\x1b[H\x1b[J' + ('\x1b[3J' if R.discard_scrollback else '')
 
     @staticmethod
     def setup_terminal():
