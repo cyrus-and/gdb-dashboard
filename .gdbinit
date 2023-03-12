@@ -1652,16 +1652,17 @@ Optionally list the frame arguments and locals too.'''
         frame = gdb.newest_frame()
         while frame:
             if frame == gdb.selected_frame():
+                frame = gdb.newest_frame()
                 break
             frame = frame.older()
             selected_index += 1
         # format up to "limit" frames
         frames = []
-        number = selected_index
+        number = 0
         more = False
         while frame:
             # the first is the selected one
-            selected = (len(frames) == 0)
+            selected = (number == selected_index)
             # fetch frame info
             style = R.style_selected_1 if selected else R.style_selected_2
             frame_id = ansi(str(number), style)
