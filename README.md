@@ -14,6 +14,12 @@ Just place [`.gdbinit`][] in your home directory, for example with:
 wget -P ~ https://git.io/.gdbinit
 ```
 
+If you installed GDB dashboard using `pacman`, you can activate it using
+
+```
+ln -s /usr/share/gdb-dashboard/.gdbinit ~/.gdbinit
+```
+
 Optionally install [Pygments][] to enable syntax highlighting:
 
 ```
