@@ -2142,7 +2142,7 @@ class Expressions(Dashboard.Module):
     '''Watch user expressions.'''
 
     def __init__(self):
-        self.table = set()
+        self.table = []
 
     def label(self):
         return 'Expressions'
@@ -2153,7 +2153,7 @@ class Expressions(Dashboard.Module):
         if self.align:
             label_width = max(len(expression) for expression in self.table) if self.table else 0
         default_radix = Expressions.get_default_radix()
-        for expression in self.table:
+        for number, expression in enumerate(self.table, start=1):
             label = expression
             match = re.match('^/(\d+) +(.+)$', expression)
             try:
@@ -2166,9 +2166,10 @@ class Expressions(Dashboard.Module):
             finally:
                 if match:
                     run('set output-radix {}'.format(default_radix))
+            number = ansi(str(number), R.style_selected_2)
             label = ansi(expression, R.style_high) + ' ' * (label_width - len(expression))
             equal = ansi('=', R.style_low)
-            out.append('{} {} {}'.format(label, equal, value))
+            out.append('[{}] {} {} {}'.format(number, label, equal, value))
         return out
 
     def commands(self):
@@ -2180,8 +2181,7 @@ class Expressions(Dashboard.Module):
             },
             'unwatch': {
                 'action': self.unwatch,
-                'doc': 'Stop watching an expression.',
-                'complete': gdb.COMPLETE_EXPRESSION
+                'doc': 'Stop watching an expression by index.'
             },
             'clear': {
                 'action': self.clear,
@@ -2200,15 +2200,22 @@ class Expressions(Dashboard.Module):
 
     def watch(self, arg):
         if arg:
-            self.table.add(arg)
+            if arg not in self.table:
+                self.table.append(arg)
+            else:
+                raise Exception('Expression already watched')
         else:
             raise Exception('Specify an expression')
 
     def unwatch(self, arg):
         if arg:
             try:
-                self.table.remove(arg)
+                number = int(arg) - 1
             except:
+                number = -1
+            if 0 <= number < len(self.table):
+                self.table.pop(number)
+            else:
                 raise Exception('Expression not watched')
         else:
             raise Exception('Specify an expression')
