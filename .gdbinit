@@ -676,7 +676,7 @@ class Dashboard(gdb.Command):
     def create_command(name, invoke, doc, is_prefix, complete=None):
         if callable(complete):
             Class = type('', (gdb.Command,), {
-                '__doc__': doc
+                '__doc__': doc,
                 'invoke': invoke,
                 'complete': complete
             })
