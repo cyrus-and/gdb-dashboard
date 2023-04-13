@@ -1647,46 +1647,53 @@ Optionally list the frame arguments and locals too.'''
         # skip if the current thread is not stopped
         if not gdb.selected_thread().is_stopped():
             return []
-        # find the selected frame (i.e., the first to display)
-        selected_index = 0
+        # find the selected frame level (XXX Frame.level() is a recent addition)
+        start_level = 0
         frame = gdb.newest_frame()
         while frame:
             if frame == gdb.selected_frame():
                 break
             frame = frame.older()
-            selected_index += 1
-        # format up to "limit" frames
-        frames = []
-        number = selected_index
+            start_level += 1
+        # gather the frames
         more = False
-        while frame:
-            # the first is the selected one
-            selected = (len(frames) == 0)
-            # fetch frame info
-            style = R.style_selected_1 if selected else R.style_selected_2
-            frame_id = ansi(str(number), style)
-            info = Stack.get_pc_line(frame, style)
-            frame_lines = []
-            frame_lines.append('[{}] {}'.format(frame_id, info))
-            # add frame arguments and locals
-            variables = Variables.format_frame(
-                frame, self.show_arguments, self.show_locals, self.compact, self.align, self.sort)
-            frame_lines.extend(variables)
-            # add frame
-            frames.append(frame_lines)
-            # next
-            frame = frame.older()
-            number += 1
-            # check finished according to the limit
-            if self.limit and len(frames) == self.limit:
-                # more frames to show but limited
-                if frame:
-                    more = True
+        frames = [gdb.selected_frame()]
+        going_down = True
+        while True:
+            # stack frames limit reached
+            if len(frames) == self.limit:
+                more = True
                 break
+            # zigzag the frames starting from the selected one
+            if going_down:
+                frame = frames[-1].older()
+                if frame:
+                    frames.append(frame)
+                else:
+                    frame = frames[0].newer()
+                    if frame:
+                        frames.insert(0, frame)
+                        start_level -= 1
+                    else:
+                        break
+            else:
+                frame = frames[0].newer()
+                if frame:
+                    frames.insert(0, frame)
+                    start_level -= 1
+                else:
+                    frame = frames[-1].older()
+                    if frame:
+                        frames.append(frame)
+                    else:
+                        break
+            # switch direction
+            going_down = not going_down
         # format the output
         lines = []
-        for frame_lines in frames:
-            lines.extend(frame_lines)
+        for number, frame in enumerate(frames, start=start_level):
+            selected = frame == gdb.selected_frame()
+            lines.extend(self.get_frame_lines(number, frame, selected))
         # add the placeholder
         if more:
             lines.append('[{}]'.format(ansi('+', R.style_selected_2)))
@@ -1728,6 +1735,19 @@ Optionally list the frame arguments and locals too.'''
                 'type': bool
             }
         }
+
+    def get_frame_lines(self, number, frame, selected=False):
+        # fetch frame info
+        style = R.style_selected_1 if selected else R.style_selected_2
+        frame_id = ansi(str(number), style)
+        info = Stack.get_pc_line(frame, style)
+        frame_lines = []
+        frame_lines.append('[{}] {}'.format(frame_id, info))
+        # add frame arguments and locals
+        variables = Variables.format_frame(
+            frame, self.show_arguments, self.show_locals, self.compact, self.align, self.sort)
+        frame_lines.extend(variables)
+        return frame_lines
 
     @staticmethod
     def format_line(prefix, line):
