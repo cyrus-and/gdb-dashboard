@@ -1647,6 +1647,14 @@ Optionally list the frame arguments and locals too.'''
         # skip if the current thread is not stopped
         if not gdb.selected_thread().is_stopped():
             return []
+        # find the selected frame level (XXX Frame.level() is a recent addition)
+        start_level = 0
+        frame = gdb.newest_frame()
+        while frame:
+            if frame == gdb.selected_frame():
+                break
+            frame = frame.older()
+            start_level += 1
         # gather the frames
         more = False
         frames = [gdb.selected_frame()]
@@ -1665,12 +1673,14 @@ Optionally list the frame arguments and locals too.'''
                     frame = frames[0].newer()
                     if frame:
                         frames.insert(0, frame)
+                        start_level -= 1
                     else:
                         break
             else:
                 frame = frames[0].newer()
                 if frame:
                     frames.insert(0, frame)
+                    start_level -= 1
                 else:
                     frame = frames[-1].older()
                     if frame:
@@ -1681,8 +1691,7 @@ Optionally list the frame arguments and locals too.'''
             going_down = not going_down
         # format the output
         lines = []
-        for frame in frames:
-            number = frame.level()
+        for number, frame in enumerate(frames, start=start_level):
             selected = frame == gdb.selected_frame()
             lines.extend(self.get_frame_lines(number, frame, selected))
         # add the placeholder
