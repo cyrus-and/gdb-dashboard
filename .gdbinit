@@ -674,8 +674,19 @@ class Dashboard(gdb.Command):
 
     @staticmethod
     def create_command(name, invoke, doc, is_prefix, complete=None):
-        Class = type('', (gdb.Command,), {'invoke': invoke, '__doc__': doc})
-        Class(name, gdb.COMMAND_USER, complete or gdb.COMPLETE_NONE, is_prefix)
+        if callable(complete):
+            Class = type('', (gdb.Command,), {
+                '__doc__': doc
+                'invoke': invoke,
+                'complete': complete
+            })
+            Class(name, gdb.COMMAND_USER, prefix=is_prefix)
+        else:
+            Class = type('', (gdb.Command,), {
+                '__doc__': doc,
+                'invoke': invoke
+            })
+            Class(name, gdb.COMMAND_USER, complete or gdb.COMPLETE_NONE, is_prefix)
 
     @staticmethod
     def err(string):
