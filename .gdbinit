@@ -650,7 +650,7 @@ class Dashboard(gdb.Command):
         # process all the init files in order
         for root, dirs, files in itertools.chain.from_iterable(inits_dirs):
             dirs.sort()
-            for init in sorted(files):
+            for init in sorted(file for file in files if not file.startswith('.')):
                 path = os.path.join(root, init)
                 _, ext = os.path.splitext(path)
                 # either load Python files or GDB
