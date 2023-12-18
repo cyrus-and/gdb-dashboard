@@ -1847,6 +1847,13 @@ class Memory(Dashboard.Module):
             memory_raw = gdb.execute(self.xcmd, to_string=True)
             if memory_raw.startswith("warning"):
                 raise gdb.error('GDB threw warning, try command directly for more info')
+            # get start address from GDB's output rather than input, so GDB can
+            # use default if no address input is provided and to account for
+            # negative range
+            self.address = memory_raw[:memory_raw.index(':')]
+            # remove current position indicator if present and parse
+            self.address = re.sub(r'^=> ', '', self.address)
+            self.address = Memory.parse_as_address(self.address.split()[0])
             # split output string into items and strip addresses
             memory = []
             for l in memory_raw.split('\n'):
@@ -1854,12 +1861,13 @@ class Memory(Dashboard.Module):
                     address_separator = re.search(r':\s+', l)
                     if not address_separator:
                         raise gdb.error('Unexpected output from GDB')
-                    if self.object_base == 'i':
-                        # one instruction per line
-                        l_elements = [l[address_separator.end():]]
+                    if self.object_base == 'i' or self.object_base == 's':
+                        # one instruction/string per line with variable size, so
+                        # keep address
+                        l_elements = [l]
                     elif self.object_base == 'c':
                         # always in pairs, separated by tabs
-                        l_elements = (l[address_separator.end():]).split('\t')
+                        l_elements = l[address_separator.end():].split('\t')
                     else:
                         l_elements = l[address_separator.end():].split()
                     # with string format GDB doesn't throw an error directly
@@ -1870,10 +1878,6 @@ class Memory(Dashboard.Module):
             # set the original memory snapshot if needed
             if not self.original:
                 self.original = memory
-            # get start address from GDB's output rather than input, so GDB can
-            # use default if no address input is provided and to account for
-            # negative range
-            self.address = Memory.parse_as_address(memory_raw[:memory_raw.index(':')].split()[0])
             return memory
 
         def format_compute_changes(self, memory, start, count, text):
@@ -1908,17 +1912,20 @@ class Memory(Dashboard.Module):
             else:
                 separation = self.module.SEPARATION_SPACE_RAW
                 elem_length = max_elem_len
-            placeholder = '{}'.format(self.module.placeholder[0] * elem_length)
             for elem_cont in elems:
-                # instructions and strings are left aligned
+                # instructions and strings are left aligned and on a single line
                 if self.object_base == 'i' or self.object_base == 's':
+                    # address is included in element, format differently
+                    addr_sep = elem_cont[0].index(':')
                     line += '{}{}{}'.format(' ' * separation,
-                                            elem_cont[0],
-                                            ' ' * (elem_length - elem_cont[1]))
+                                            ansi(elem_cont[0][:addr_sep+1], R.style_low),
+                                            elem_cont[0][addr_sep+1:])
+                    #line = '{}'.format(ansi(address_str, R.style_low))
                 else:
                     line += '{}{}{}'.format(' ' * separation,
                                             ' ' * (elem_length - elem_cont[1]),
                                             elem_cont[0])
+            placeholder = '{}'.format(self.module.placeholder[0] * elem_length)
             for _ in range(pad):
                 line += '{}{}'.format(' ' * separation, ansi(placeholder, R.style_low))
             return line
@@ -1932,8 +1939,11 @@ class Memory(Dashboard.Module):
                 msg = msg.format(self.xcmd, e)
                 return [ansi(msg, R.style_error)]
             max_elem_len = len(max(memory, key=lambda x: len(str(x))))
-            # text representation is only possible if object format is integer
-            if type(self.object_base) == type(1):
+            if self.object_base == 'i' or self.object_base == 's':
+                # instructions and strings are always in separate lines
+                per_line_current = 1
+            elif type(self.object_base) == type(1):
+                # text representation is only possible if object format is integer
                 per_line_current = self.module.get_per_line(term_width,
                                                             self.per_line,
                                                             max_elem_len,
@@ -1948,9 +1958,14 @@ class Memory(Dashboard.Module):
             out = []
             for i in range(0, len(memory), per_line_current):
                 pad = per_line_current - len(memory[i:i + per_line_current])
-                address_str = format_address(self.address + i*self.object_size)
                 raw = self.format_compute_changes(memory, i, per_line_current, False)
-                line = '{}'.format(ansi(address_str, R.style_low))
+                # TODO instruction and string format don't have fixed size, so
+                # address can't be calculated
+                if self.object_base == 'i' or self.object_base == 's':
+                    line = ''
+                else:
+                    address_str = format_address(self.address + i*self.object_size)
+                    line = '{}'.format(ansi(address_str, R.style_low))
                 line = self.format_output_line(line, raw, pad, False, max_elem_len)
                 # if no text representation is available, line is finished here;
                 # otherwise repeat for text
@@ -1988,11 +2003,12 @@ ADDRESS [COUNT] [FORMAT] [SIZE] [PER_LINE]
 x[/[COUNT][FORMAT][SIZE]] [PER_LINE]
 
 where:
-ADDRESS: starting address,
-COUNT: number of objects to display (default: 16),
-FORMAT: object format (o, x, d, u, t, f, a, i, c or s, see "help x"; default: x),
-SIZE: object size (b, h, w or g, see "help x"; default: b) and
-PER_LINE: number of objects that should be printed per line (default: 4)''',
+ADDRESS: starting address
+COUNT: number of objects to display (default: 16)
+FORMAT: object format (o, x, d, u, t, f, a, i, c or s, see "help x"; default: x)
+SIZE: object size (b, h, w or g, see "help x"; default: b)
+PER_LINE: number of objects that should be printed per line (default: 4; always
+1 if FORMAT is i or s)''',
                 'complete': gdb.COMPLETE_EXPRESSION
             },
             'unwatch': {
