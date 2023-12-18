@@ -1819,14 +1819,22 @@ class History(Dashboard.Module):
         }
 
 class Memory(Dashboard.Module):
-    '''Allow to inspect memory regions.'''
+    '''Allow to inspect memory regions with GDB's "x" command.'''
 
-    DEFAULT_LENGTH = 16
+    DEFAULT_COUNT = 16
+    DEFAULT_FORMAT = 'x'
+    DEFAULT_SIZE = 'b'
+    DEFAULT_PER_LINE = 4
+    SEPARATION_SPACE_RAW = 2
+    SEPARATION_SPACE_TEXT = 1
 
     class Region():
-        def __init__(self, expression, length, module):
-            self.expression = expression
-            self.length = length
+        def __init__(self, xcmd, object_base, object_size, per_line, module):
+            self.xcmd = xcmd
+            self.object_base = object_base
+            self.object_size = object_size
+            self.address = 0
+            self.per_line = per_line
             self.module = module
             self.original = None
             self.latest = None
@@ -1835,53 +1843,121 @@ class Memory(Dashboard.Module):
             self.original = None
             self.latest = None
 
-        def format(self, per_line):
+        def fetch_memory(self):
+            memory_raw = gdb.execute(self.xcmd, to_string=True)
+            if memory_raw.startswith("warning"):
+                raise gdb.error('GDB threw warning, try command directly for more info')
+            # split output string into items and strip addresses
+            memory = []
+            for l in memory_raw.split('\n'):
+                if l:
+                    address_separator = re.search(r':\s+', l)
+                    if not address_separator:
+                        raise gdb.error('Unexpected output from GDB')
+                    if self.object_base == 'i':
+                        # one instruction per line
+                        l_elements = [l[address_separator.end():]]
+                    elif self.object_base == 'c':
+                        # always in pairs, separated by tabs
+                        l_elements = (l[address_separator.end():]).split('\t')
+                    else:
+                        l_elements = l[address_separator.end():].split()
+                    # with string format GDB doesn't throw an error directly
+                    if self.object_base == 's' and '<error:' in l_elements:
+                        raise gdb.error('Cannot access memory at address {}'.format(
+                            l[:address_separator.start()]))
+                    memory += l_elements
+            # set the original memory snapshot if needed
+            if not self.original:
+                self.original = memory
+            # get start address from GDB's output rather than input, so GDB can
+            # use default if no address input is provided and to account for
+            # negative range
+            self.address = Memory.parse_as_address(memory_raw[:memory_raw.index(':')].split()[0])
+            return memory
+
+        def format_compute_changes(self, memory, start, count, text):
+            region = memory[start:start + count]
+            elements = []
+            for i in range(len(region)):
+                rel = start + i
+                if text:
+                    elem = self.module.format_object(str(memory[rel]),
+                                                     self.object_base,
+                                                     self.object_size)
+                else:
+                    elem = str(memory[rel])
+                # save strlen because ANSI escape sequences are added later
+                elem_cont = [elem, len(elem)]
+                # differences against the latest have the highest priority
+                if self.latest and memory[rel] != self.latest[rel]:
+                    elem_cont[0] = ansi(elem_cont[0], R.style_selected_1)
+                # cumulative changes if enabled
+                elif self.module.cumulative and memory[rel] != self.original[rel]:
+                    elem_cont[0] = ansi(elem_cont[0], R.style_selected_2)
+                # format the text differently for clarity
+                elif text:
+                    elem_cont[0] = ansi(elem_cont[0], R.style_high)
+                elements.append(elem_cont)
+            return elements
+
+        def format_output_line(self, line, elems, pad, text, max_elem_len=0):
+            if text:
+                separation = self.module.SEPARATION_SPACE_TEXT
+                elem_length = self.object_size
+            else:
+                separation = self.module.SEPARATION_SPACE_RAW
+                elem_length = max_elem_len
+            placeholder = '{}'.format(self.module.placeholder[0] * elem_length)
+            for elem_cont in elems:
+                # instructions and strings are left aligned
+                if self.object_base == 'i' or self.object_base == 's':
+                    line += '{}{}{}'.format(' ' * separation,
+                                            elem_cont[0],
+                                            ' ' * (elem_length - elem_cont[1]))
+                else:
+                    line += '{}{}{}'.format(' ' * separation,
+                                            ' ' * (elem_length - elem_cont[1]),
+                                            elem_cont[0])
+            for _ in range(pad):
+                line += '{}{}'.format(' ' * separation, ansi(placeholder, R.style_low))
+            return line
+
+        def format(self, term_width):
             # fetch the memory content
             try:
-                address = Memory.parse_as_address(self.expression)
-                inferior = gdb.selected_inferior()
-                memory = inferior.read_memory(address, self.length)
-                # set the original memory snapshot if needed
-                if not self.original:
-                    self.original = memory
+                memory = self.fetch_memory()
             except gdb.error as e:
-                msg = 'Cannot access {} bytes starting at {}: {}'
-                msg = msg.format(self.length, self.expression, e)
+                msg = 'Cannot execute "{}": {}'
+                msg = msg.format(self.xcmd, e)
                 return [ansi(msg, R.style_error)]
+            max_elem_len = len(max(memory, key=lambda x: len(str(x))))
+            # text representation is only possible if object format is integer
+            if type(self.object_base) == type(1):
+                per_line_current = self.module.get_per_line(term_width,
+                                                            self.per_line,
+                                                            max_elem_len,
+                                                            True,
+                                                            self.object_size)
+            else:
+                per_line_current = self.module.get_per_line(term_width,
+                                                            self.per_line,
+                                                            max_elem_len,
+                                                            False)
             # format the memory content
             out = []
-            for i in range(0, len(memory), per_line):
-                region = memory[i:i + per_line]
-                pad = per_line - len(region)
-                address_str = format_address(address + i)
-                # compute changes
-                hexa = []
-                text = []
-                for j in range(len(region)):
-                    rel = i + j
-                    byte = memory[rel]
-                    hexa_byte = '{:02x}'.format(ord(byte))
-                    text_byte = self.module.format_byte(byte)
-                    # differences against the latest have the highest priority
-                    if self.latest and memory[rel] != self.latest[rel]:
-                        hexa_byte = ansi(hexa_byte, R.style_selected_1)
-                        text_byte = ansi(text_byte, R.style_selected_1)
-                    # cumulative changes if enabled
-                    elif self.module.cumulative and memory[rel] != self.original[rel]:
-                        hexa_byte = ansi(hexa_byte, R.style_selected_2)
-                        text_byte = ansi(text_byte, R.style_selected_2)
-                    # format the text differently for clarity
-                    else:
-                        text_byte = ansi(text_byte, R.style_high)
-                    hexa.append(hexa_byte)
-                    text.append(text_byte)
-                # output the formatted line
-                hexa_placeholder = ' {}'.format(self.module.placeholder[0] * 2)
-                text_placeholder = self.module.placeholder[0]
-                out.append('{}  {}{}  {}{}'.format(
-                    ansi(address_str, R.style_low),
-                    ' '.join(hexa), ansi(pad * hexa_placeholder, R.style_low),
-                    ''.join(text), ansi(pad * text_placeholder, R.style_low)))
+            for i in range(0, len(memory), per_line_current):
+                pad = per_line_current - len(memory[i:i + per_line_current])
+                address_str = format_address(self.address + i*self.object_size)
+                raw = self.format_compute_changes(memory, i, per_line_current, False)
+                line = '{}'.format(ansi(address_str, R.style_low))
+                line = self.format_output_line(line, raw, pad, False, max_elem_len)
+                # if no text representation is available, line is finished here;
+                # otherwise repeat for text
+                if type(self.object_base) == type(1):
+                    text = self.format_compute_changes(memory, i, per_line_current, True)
+                    line = self.format_output_line(line, text, pad, True)
+                out.append(line)
             # update the latest memory snapshot
             self.latest = memory
             return out
@@ -1896,16 +1972,27 @@ class Memory(Dashboard.Module):
         out = []
         for expression, region in self.table.items():
             out.append(divider(term_width, expression))
-            out.extend(region.format(self.get_per_line(term_width)))
+            out.extend(region.format(term_width))
         return out
 
     def commands(self):
         return {
             'watch': {
                 'action': self.watch,
-                'doc': '''Watch a memory region by expression and length.
+                'doc': '''Watch a memory region with the output of GDB's "x" command.
 
-The length defaults to 16 bytes.''',
+The argument can be either of these (the latter being the same format as for
+GDB's "x" command with an additional objects per line argument):
+
+ADDRESS [COUNT] [FORMAT] [SIZE] [PER_LINE]
+x[/[COUNT][FORMAT][SIZE]] [PER_LINE]
+
+where:
+ADDRESS: starting address,
+COUNT: number of objects to display (default: 16),
+FORMAT: object format (o, x, d, u, t, f, a, i, c or s, see "help x"; default: x),
+SIZE: object size (b, h, w or g, see "help x"; default: b) and
+PER_LINE: number of objects that should be printed per line (default: 4)''',
                 'complete': gdb.COMPLETE_EXPRESSION
             },
             'unwatch': {
@@ -1939,16 +2026,28 @@ The length defaults to 16 bytes.''',
 
     def watch(self, arg):
         if arg:
-            expression, _, length_str = arg.partition(' ')
-            length = Memory.parse_as_address(length_str) if length_str else Memory.DEFAULT_LENGTH
+            cmd_options = self.parse_arg(arg)
+            # create command to use with GDB's "x" command
+            cmd = 'x/{}{}{}'.format(cmd_options['count'],
+                                    cmd_options['base'][0],
+                                    cmd_options['size'][0])
+            # if no address was given, GDB's "x" command uses its own default value
+            if cmd_options['address']:
+                cmd += ' {}'.format(cmd_options['address'])
             # keep the length when the memory is watched to reset the changes
-            region = self.table.get(expression)
-            if region and not length_str:
+            region = self.table.get(cmd)
+            if region and region.per_line == cmd_options['per_line']:
                 region.reset()
             else:
-                self.table[expression] = Memory.Region(expression, length, self)
+                self.table[cmd] = Memory.Region(cmd,
+                                                cmd_options['base'][1],
+                                                cmd_options['size'][1],
+                                                cmd_options['per_line'],
+                                                self)
         else:
-            raise Exception('Specify a memory location')
+            raise Exception('Specify memory region with \
+"ADDRESS [COUNT] [FORMAT] [SIZE] [PER_LINE]" or \
+"x[/[COUNT][FORMAT][SIZE] [PER_LINE]"')
 
     def unwatch(self, arg):
         if arg:
@@ -1962,21 +2061,90 @@ The length defaults to 16 bytes.''',
     def clear(self, arg):
         self.table.clear()
 
-    def format_byte(self, byte):
-        # `type(byte) is bytes` in Python 3
-        if 0x20 < ord(byte) < 0x7f:
-            return chr(ord(byte))
-        else:
-            return self.placeholder[0]
+    def format_object(self, obj, object_base, object_size):
+        # account for negative values, so hex doesn't get a leading '-'
+        obj_hex = hex((int(obj, base=object_base) + (1 << object_size*8)) % (1 << object_size*8))
+        obj_text = ''
+        for i in range(2, len(obj_hex), 2):
+            byte = int(obj_hex[i:i+2], base=16)
+            if 0x20 < byte < 0x7f:
+                obj_text += chr(byte)
+            else:
+                obj_text += self.placeholder[0]
+        return obj_text
 
-    def get_per_line(self, term_width):
-        if self.full:
-            padding = 3  # two double spaces separator (one is part of below)
-            elem_size = 4 # HH + 1 space + T
-            address_length = gdb.parse_and_eval('$pc').type.sizeof * 2 + 2  # 0x
-            return max(int((term_width - address_length - padding) / elem_size), 1)
+    def get_per_line(self, term_width, choice, max_elem_len, text, object_size=0):
+        padding = 2
+        separation = self.SEPARATION_SPACE_RAW
+        if text:
+            separation += self.SEPARATION_SPACE_TEXT
+            max_elem_len += object_size
+        address_length = gdb.parse_and_eval('$pc').type.sizeof*2 + 2  # 0x
+        max_per_line =  max(int(
+            (term_width - address_length - padding)/(max_elem_len + separation)), 1)
+        if self.full or choice > max_per_line: # use maximum horizontal space
+            per_line = max_per_line
+        elif choice > 0:
+            per_line = choice
         else:
-            return Memory.DEFAULT_LENGTH
+            per_line = 1
+        return per_line
+
+    def parse_arg(self, arg):
+        msg_invalid = 'Invalid command, see "help dashboard memory watch"'
+        # values for GDB's x command (every letter is unique)
+        x_vals_size = { 'b': 1, 'h': 2, 'w': 4, 'g': 8} # object size
+        x_vals_format = {
+                'x': 16, 'z': 16, 'o': 8, 'd': 10, 'u': 10, 't': 2, # object base
+                'i': 'i', 'c': 'c', 's': 's', 'f': 'other', 'a': 'other' # string objects
+                }
+        cmd_options = {'address': '', 'count': 0,
+                       'base': ('', 0), 'size': ('', 0), 'per_line': 0}
+        # argument can be either "x[/[COUNT][FORMAT][SIZE]] [PER_LINE]" or
+        # "ADDRESS [COUNT] [FORMAT] [SIZE] [PER_LINE]";
+        # bring argument into common format
+        arg_parts = arg.split()
+        # regardless of format, per_line arg must be at least the 3rd argument
+        # and it must be numeric
+        if len(arg_parts) > 2 and arg_parts[-1].isdigit():
+            cmd_options['per_line'] = self.parse_as_address(arg_parts[-1])
+            del(arg_parts[-1])
+        if arg.startswith('x'): # format of GDB's "x" command
+            if len(arg_parts) > 1:
+                cmd_options['address'] = arg_parts[1]
+            x_options = arg_parts[0][2:] # formatted as "x/FMT"; go past slash
+        else: # gdb-dashboard format
+            cmd_options['address'] = arg_parts[0]
+            x_options = ''.join(arg_parts[1:])
+        # parse command
+        if len(x_options):
+            count_pos = re.search(r'^-?\d*', x_options)
+            if count_pos and count_pos.start() != count_pos.end():
+                cmd_options['count'] = int(x_options[:count_pos.end()])
+                x_options = x_options[count_pos.end():]
+        if len(x_options) > 2:
+            raise Exception(msg_invalid)
+        elif len(x_options):
+            for opt in x_options:
+                if opt in x_vals_format:
+                    cmd_options['base'] = (opt, x_vals_format[opt])
+                elif opt in x_vals_size:
+                    cmd_options['size'] = (opt, x_vals_size[opt])
+                else:
+                    raise Exception(msg_invalid)
+        # set defaults where needed
+        if not cmd_options['count']:
+            cmd_options['count'] = self.DEFAULT_COUNT
+        if not cmd_options['base'][0]:
+            cmd_options['base'] = (self.DEFAULT_FORMAT, x_vals_format[self.DEFAULT_FORMAT])
+        if not cmd_options['size'][0]:
+            cmd_options['size'] = (self.DEFAULT_SIZE, x_vals_size[self.DEFAULT_SIZE])
+        if not cmd_options['per_line']:
+            cmd_options['per_line'] = self.DEFAULT_PER_LINE
+        if cmd_options['per_line'] > abs(cmd_options['count']):
+            # avoid unnecessary placeholders
+            cmd_options['per_line'] = abs(cmd_options['count'])
+        return cmd_options
 
     @staticmethod
     def parse_as_address(expression):
