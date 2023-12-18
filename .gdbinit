@@ -1891,8 +1891,14 @@ class Memory(Dashboard.Module):
                                                      self.object_size)
                 else:
                     elem = str(memory[rel])
-                # save strlen because ANSI escape sequences are added later
-                elem_cont = [elem, len(elem)]
+                if self.object_base == 'i' or self.object_base == 's':
+                    # instructions and strings need no padding, but address
+                    # should be separated for formatting
+                    addr_sep = elem.index(':')
+                    elem_cont = [elem[addr_sep+1:], ansi(elem[:addr_sep+1], R.style_low)]
+                else:
+                    # save strlen to calculate padding because ANSI is added later
+                    elem_cont = [elem, len(elem)]
                 # differences against the latest have the highest priority
                 if self.latest and memory[rel] != self.latest[rel]:
                     elem_cont[0] = ansi(elem_cont[0], R.style_selected_1)
@@ -1915,12 +1921,9 @@ class Memory(Dashboard.Module):
             for elem_cont in elems:
                 # instructions and strings are left aligned and on a single line
                 if self.object_base == 'i' or self.object_base == 's':
-                    # address is included in element, format differently
-                    addr_sep = elem_cont[0].index(':')
                     line += '{}{}{}'.format(' ' * separation,
-                                            ansi(elem_cont[0][:addr_sep+1], R.style_low),
-                                            elem_cont[0][addr_sep+1:])
-                    #line = '{}'.format(ansi(address_str, R.style_low))
+                                            elem_cont[1],
+                                            elem_cont[0])
                 else:
                     line += '{}{}{}'.format(' ' * separation,
                                             ' ' * (elem_length - elem_cont[1]),
@@ -1959,7 +1962,7 @@ class Memory(Dashboard.Module):
             for i in range(0, len(memory), per_line_current):
                 pad = per_line_current - len(memory[i:i + per_line_current])
                 raw = self.format_compute_changes(memory, i, per_line_current, False)
-                # TODO instruction and string format don't have fixed size, so
+                # instruction and string format don't have fixed size, so
                 # address can't be calculated
                 if self.object_base == 'i' or self.object_base == 's':
                     line = ''
