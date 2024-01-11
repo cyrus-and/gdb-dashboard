@@ -103,13 +103,13 @@ prompt, see the command `python print(gdb.prompt.prompt_help())`''',
 
 See the `prompt` attribute. This value is used as a Python format string where
 `{pid}` is expanded with the process identifier of the target program.''',
-                'default': '\[\e[1;35m\]>>>\[\e[0m\]'
+                'default': r'\[\e[1;35m\]>>>\[\e[0m\]'
             },
             'prompt_not_running': {
                 'doc': '''Define the value of `{status}` when the target program is running.
 
 See the `prompt` attribute. This value is used as a Python format string.''',
-                'default': '\[\e[90m\]>>>\[\e[0m\]'
+                'default': r'\[\e[90m\]>>>\[\e[0m\]'
             },
             # divider
             'omit_divider': {
@@ -2099,7 +2099,7 @@ architectures different from x86 setting this attribute might be mandatory.''',
             if len(fields) != 7:
                 continue
             name, _, _, _, _, _, groups = fields
-            if not re.match('\w', name):
+            if not re.match(r'\w', name):
                 continue
             for group in groups.split(','):
                 if group in (match_groups or ('general',)):
@@ -2187,7 +2187,7 @@ class Expressions(Dashboard.Module):
         default_radix = Expressions.get_default_radix()
         for number, expression in enumerate(self.table, start=1):
             label = expression
-            match = re.match('^/(\d+) +(.+)$', expression)
+            match = re.match(r'^/(\d+) +(.+)$', expression)
             try:
                 if match:
                     radix, expression = match.groups()
@@ -2262,7 +2262,7 @@ class Expressions(Dashboard.Module):
         except RuntimeError:
             # XXX this is a fix for GDB <8.1.x see #161
             message = run('show output-radix')
-            match = re.match('^Default output radix for printing of values is (\d+)\.$', message)
+            match = re.match(r'^Default output radix for printing of values is (\d+)\.$', message)
             return match.groups()[0] if match else 10  # fallback
 
 # XXX workaround to support BP_BREAKPOINT in older GDB versions
