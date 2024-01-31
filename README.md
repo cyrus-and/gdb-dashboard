@@ -11,7 +11,7 @@ GDB dashboard is a standalone `.gdbinit` file written using the [Python API][] t
 Just place [`.gdbinit`][] in your home directory, for example with:
 
 ```
-wget -P ~ https://git.io/.gdbinit
+wget -P ~ https://github.com/cyrus-and/gdb-dashboard/raw/master/.gdbinit
 ```
 
 Optionally install [Pygments][] to enable syntax highlighting:
