@@ -346,7 +346,7 @@ def fetch_breakpoints(watchpoints=False, pending=False):
                 parsed_breakpoints[number] = [address_info], is_pending, ''
             elif len(fields) >= 5 and fields[1] == 'catchpoint':
                 # only take before comma, but ignore commas in quotes
-                what = catch_what_regex.search(' '.join(fields[4:]))[0].strip()
+                what = catch_what_regex.search(' '.join(fields[4:])).group(0).strip()
                 parsed_breakpoints[number] = [], False, what
             elif len(fields) >= 3 and number in parsed_breakpoints:
                 # add this address to the list of multiple locations
