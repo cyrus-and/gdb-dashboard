@@ -36,6 +36,17 @@ import os
 import re
 import struct
 import traceback
+import importlib.abc
+
+# fix https://github.com/cyrus-and/gdb-dashboard/issues/325
+# fix from https://sourceware.org/bugzilla/show_bug.cgi?id=32473
+class GdbRemoveReadlineFinder(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == "readline":
+            raise ImportError("readline module disabled under GDB")
+        return None
+
+sys.meta_path.insert(0, GdbRemoveReadlineFinder())
 
 # Common attributes ------------------------------------------------------------
 
