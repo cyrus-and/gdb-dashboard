@@ -2374,6 +2374,11 @@ set python print-stack full
 
 python Dashboard.start()
 
+# Fixes ------------------------------------------------------------------------
+
+# workaround for the GDB readline issue, see #325
+python import sys; sys.modules['readline'] = None
+
 # File variables ---------------------------------------------------------------
 
 # vim: filetype=python
