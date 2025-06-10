@@ -2113,13 +2113,25 @@ class Threads(Dashboard.Module):
     def label(self):
         return 'Threads'
 
+    @staticmethod
+    def if_enter_cuda_thread():
+        '''when enter cuda thread, shouldn't switch to CPU thread'''
+        try:
+            from gdb import cuda
+
+            return cuda.get_focus_physical() is not None
+        except ImportError:
+            return False
+
     def lines(self, term_width, term_height, style_changed):
         out = []
         selected_thread = gdb.selected_thread()
+        switch = not self.if_enter_cuda_thread()
         # do not restore the selected frame if the thread is not stopped
-        restore_frame = gdb.selected_thread().is_stopped()
-        if restore_frame:
-            selected_frame = gdb.selected_frame()
+        if switch:
+            restore_frame = gdb.selected_thread().is_stopped()
+            if restore_frame:
+                selected_frame = gdb.selected_frame()
         # fetch the thread list
         threads = []
         for inferior in gdb.inferiors():
@@ -2140,18 +2152,20 @@ class Threads(Dashboard.Module):
             info = '[{}] id {}'.format(number, tid)
             if thread.name:
                 info += ' name {}'.format(ansi(thread.name, style))
-            # switch thread to fetch info (unless is running in non-stop mode)
-            try:
-                thread.switch()
-                frame = gdb.newest_frame()
-                info += ' ' + Stack.get_pc_line(frame, style)
-            except gdb.error:
-                info += ' (running)'
+            if switch:
+                # switch thread to fetch info (unless is running in non-stop mode)
+                try:
+                    thread.switch()
+                    frame = gdb.newest_frame()
+                    info += ' ' + Stack.get_pc_line(frame, style)
+                except gdb.error:
+                    info += ' (running)'
             out.append(info)
-        # restore thread and frame
-        selected_thread.switch()
-        if restore_frame:
-            selected_frame.select()
+        if switch:
+            # restore thread and frame
+            selected_thread.switch()
+            if restore_frame:
+                selected_frame.select()
         return out
 
     def attributes(self):
