@@ -2116,10 +2116,11 @@ class Threads(Dashboard.Module):
     def lines(self, term_width, term_height, style_changed):
         out = []
         selected_thread = gdb.selected_thread()
-        # do not restore the selected frame if the thread is not stopped
-        restore_frame = gdb.selected_thread().is_stopped()
-        if restore_frame:
-            selected_frame = gdb.selected_frame()
+        if self.switch:
+            # do not restore the selected frame if the thread is not stopped
+            restore_frame = gdb.selected_thread().is_stopped()
+            if restore_frame:
+                selected_frame = gdb.selected_frame()
         # fetch the thread list
         threads = []
         for inferior in gdb.inferiors():
@@ -2141,21 +2142,29 @@ class Threads(Dashboard.Module):
             if thread.name:
                 info += ' name {}'.format(ansi(thread.name, style))
             # switch thread to fetch info (unless is running in non-stop mode)
-            try:
-                thread.switch()
-                frame = gdb.newest_frame()
-                info += ' ' + Stack.get_pc_line(frame, style)
-            except gdb.error:
-                info += ' (running)'
+            if self.switch:
+                try:
+                    thread.switch()
+                    frame = gdb.newest_frame()
+                    info += ' ' + Stack.get_pc_line(frame, style)
+                except gdb.error:
+                    info += ' (running)'
             out.append(info)
-        # restore thread and frame
-        selected_thread.switch()
-        if restore_frame:
-            selected_frame.select()
+        if self.switch:
+            # restore thread and frame
+            selected_thread.switch()
+            if restore_frame:
+                selected_frame.select()
         return out
 
     def attributes(self):
         return {
+            'switch': {
+                'doc': 'Switch threads to fetch info',
+                'default': False,
+                'name': 'switch',
+                'type': bool
+            },
             'skip-running': {
                 'doc': 'Skip running threads.',
                 'default': False,
