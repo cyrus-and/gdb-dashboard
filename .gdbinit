@@ -2272,6 +2272,7 @@ class Breakpoints(Dashboard.Module):
     '''Display the breakpoints list.'''
 
     NAMES = {
+        23: 'autostep',
         gdb.BP_BREAKPOINT: 'break',
         gdb.BP_WATCHPOINT: 'watch',
         gdb.BP_HARDWARE_WATCHPOINT: 'write watch',
