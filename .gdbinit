@@ -2291,7 +2291,7 @@ class Breakpoints(Dashboard.Module):
             # format common information
             style = R.style_selected_1 if breakpoint['enabled'] else R.style_selected_2
             number = ansi(breakpoint['number'], style)
-            bp_type = ansi(Breakpoints.NAMES[breakpoint['type']], style)
+            bp_type = ansi(Breakpoints.NAMES.get(breakpoint['type'], 'unknown'), style)
             if breakpoint['temporary']:
                 bp_type = bp_type + ' {}'.format(ansi('once', style))
             if not R.ansi and breakpoint['enabled']:
