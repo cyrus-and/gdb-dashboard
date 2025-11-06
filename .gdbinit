@@ -612,11 +612,13 @@ class Dashboard(gdb.Command):
             else:
                 import termios
                 import fcntl
-                # first 2 shorts (4 byte) of struct winsize
-                raw = fcntl.ioctl(fd, termios.TIOCGWINSZ, ' ' * 4)
-                height, width = struct.unpack('hh', raw)
+                # first 2 shorts of struct winsize
+                winsize_format = 'hhhh'
+                buffer = b'\x00' * struct.calcsize(winsize_format)
+                buffer = fcntl.ioctl(fd, termios.TIOCGWINSZ, buffer)
+                height, width, _, _ = struct.unpack(winsize_format, buffer)
                 return int(width), int(height)
-        except (ImportError, OSError):
+        except (ImportError, OSError, SystemError):
             # this happens when no curses library is found on windows or when
             # the terminal is not properly configured
             return 80, 24  # hardcoded fallback value
