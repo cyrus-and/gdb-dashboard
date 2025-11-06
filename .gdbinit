@@ -612,9 +612,11 @@ class Dashboard(gdb.Command):
             else:
                 import termios
                 import fcntl
-                # struct winsize is 8 bytes, but we only need the first 2 shorts (rows, cols)
-                raw = fcntl.ioctl(fd, termios.TIOCGWINSZ, b'\0' * 8)
-                height, width = struct.unpack('hh', raw[:4])
+                # first 2 shorts of struct winsize
+                winsize_format = 'hhhh'
+                buffer = b'\x00' * struct.calcsize(winsize_format)
+                buffer = fcntl.ioctl(fd, termios.TIOCGWINSZ, buffer)
+                height, width, _, _ = struct.unpack(winsize_format, buffer)
                 return int(width), int(height)
         except (ImportError, OSError, SystemError):
             # this happens when no curses library is found on windows or when
