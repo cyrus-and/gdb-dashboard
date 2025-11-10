@@ -2275,6 +2275,7 @@ class Breakpoints(Dashboard.Module):
 
     NAMES = {
         gdb.BP_BREAKPOINT: 'break',
+        gdb.BP_HARDWARE_BREAKPOINT: 'hw break',
         gdb.BP_WATCHPOINT: 'watch',
         gdb.BP_HARDWARE_WATCHPOINT: 'write watch',
         gdb.BP_READ_WATCHPOINT: 'read watch',
