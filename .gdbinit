@@ -2296,7 +2296,7 @@ class Breakpoints(Dashboard.Module):
             bp_type = ansi(Breakpoints.NAMES[breakpoint['type']], style)
             if breakpoint['temporary']:
                 bp_type = bp_type + ' {}'.format(ansi('once', style))
-            if not R.ansi and breakpoint['enabled']:
+            if not R.ansi and not breakpoint['enabled']:
                 bp_type = 'disabled ' + bp_type
             line = '[{}] {}'.format(number, bp_type)
             if breakpoint['type'] == gdb.BP_BREAKPOINT:
